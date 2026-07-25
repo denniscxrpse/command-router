@@ -1,0 +1,26 @@
+[project]
+name = "command-router"
+version = "26.0-dev"
+requires-python = ">=3.14"
+license = "BSD-3-Clause-Clear"
+authors = [
+    { name = "Ian Hylton", email = "dcxrpse@krwwstudios.com" }
+]
+description = "<TBA>"
+readme = "readme.md"
+dependencies = [
+    "pyrefly>=1.1.1",
+    "pytest>=9.1.1",
+    "ruff>=0.15.22",
+    "ty>=0.0.61",
+]
+
+[project.urls]
+Repository = "git@gitlab.com:denniscxrpse/command-router.git"
+Issues = "https://gitlab.com/denniscxrpse/command-router/-/work_items"
+Documentation = "https://gitlab.com/denniscxrpse/command-router/-/wikis"
+
+[tool.uv.workspace]
+members = [
+    "lib",
+]
