@@ -9,10 +9,14 @@ authors = [
 description = "<TBA>"
 readme = "readme.md"
 dependencies = [
+    "black>=26.5.1",
+    "click>=8.4.2",
+    "icecream>=2.2.0",
+    "json5>=0.15.0",
+    "prompt-toolkit>=3.0.53",
     "pyrefly>=1.1.1",
     "pytest>=9.1.1",
     "ruff>=0.15.22",
-    "ty>=0.0.61",
 ]
 
 [project.urls]
@@ -20,7 +24,6 @@ Repository = "git@gitlab.com:denniscxrpse/command-router.git"
 Issues = "https://gitlab.com/denniscxrpse/command-router/-/work_items"
 Documentation = "https://gitlab.com/denniscxrpse/command-router/-/wikis"
 
-[tool.uv.workspace]
-members = [
-    "lib",
-]
+[tool.black]
+line-length = 120
+target-version = ['py310']

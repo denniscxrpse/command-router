@@ -1,203 +1,186 @@
-# command-router — Build Roadmap
+# command-router — Brigadier-ish roadmap (personal project)
 
-A phase-by-phase scope, in build order. Each phase has a goal, concrete
-recommendations, and an exit condition — don't move to the next phase until
-the exit condition is true. The two mistakes most likely to derail this
-project are: building the fluent builder before the matcher is correct, and
-designing ellipsis before you have a single concrete repeating grammar to
-test it against. Both are called out below where they'd normally happen.
+Goal: build something conceptually similar to Mojang’s Brigadier (Minecraft’s command dispatcher):
+a command tree, typed arguments, good parse errors, and suggestions/autocomplete.
 
----
+Also: make it runnable as a small standalone process that another app can talk to (local socket or similar).
 
-## Phase 0 — Environment & project skeleton
+Non-goals (for now): PyPI polish, long-term API stability promises, docs, perfect CI.
 
-**Goal:** a project that runs, lints, and tests, containing nothing yet.
-
-- [x] Python **3.14**. Newer than 3.12, and specifically the self-referential
-  `CommandNode` type hints (`children: dict[str, "CommandNode"]`) benefit
-  from PEP 649's deferred annotation evaluation, on by default in 3.14 — no
-  `from __future__ import annotations`, no quoted forward refs.
-- [x] `uv init --lib command-router` — use `--lib`, not the bare app template.
-  Even though this starts as a personal project, a `src/command_router/`
-  layout with a real package name avoids import-shadowing bugs later if you
-  ever `pip install -e .` it into something else (e.g. testing against a
-  throwaway Godot client).
-- [x] `uv add --dev pytest ruff` at minimum. Add `ty` or `pyrefly` per the note
-  above — either is fine, just know which tradeoff you picked.
-- [x] `ruff.toml` (or `[tool.ruff]` in `pyproject.toml`): start with
-  `select = ["E", "F", "I", "UP", "B"]` (pyflakes, isort, pyupgrade,
-  bugbear). Don't reach for the stricter rulesets (docstrings, complexity)
-  yet — the code's shape will change too much before Phase 6 for style
-  rules to be worth enforcing.
-- [x] `pyproject.toml`: `requires-python = ">=3.14"`.
-
-**Exit condition:** `uv run pytest` runs (even with zero tests), `uv run ruff check .` is clean.
+Rule: only add complexity when a real command grammar demands it.
 
 ---
 
-## Phase 1 — Fixture-first spec (no engine code yet)
+## Phase 0 — Keep the project runnable
 
-**Goal:** a written-down, unambiguous ground truth to build against, before
-any tree/matcher code exists.
+**Goal:** a tight iteration loop.
 
-- [ ] Pick 4–5 concrete grammars and write them, by hand, as a table: input →
-  expected tokens → expected match result. Suggested set, since each
-  exercises a different mechanic:
-  - [ ] `gamemode (survival|creative|adventure|spectator) [<target>]` — choice + optional
-  - [ ] `tell <target> <message>` — required arg + terminal greedy arg
-  - [ ] `advancement (grant|revoke) <targets> only <advancement> [<criterion>]` — nesting + optional
-  - [ ] `say <message>` — single greedy arg, no branching at all
-- [ ] Put this in `tests/fixtures/grammars.md` or similar. It's documentation
-  *and* the source you'll transcribe into `pytest.mark.parametrize` in
-  Phase 3.
+- [x] One command to run tests.
+- [x] One command to run a demo (REPL or “send one line, print result”).
+- [x] Ruff/formatting stays “good enough” (don’t bikeshed).
 
-**Exit condition:** you can describe all 4–5 grammars without opening an editor to "figure out" how they should behave — if you can't, the ambiguity belongs here, not in code.
+**Exit condition:** you can change engine code and validate it in under a minute.
 
 ---
 
-## Phase 2 — Tokenizer
+## Phase 1 — Fixtures: the Minecraft-ish spec (ground truth)
 
-**Goal:** raw string → list of tokens, correctly, including quoted strings.
+**Goal:** write down exactly what you want, before refining APIs.
 
-- [ ] Wrap `shlex.split()`. Don't reimplement it.
-- [ ] Test explicitly: empty string, whitespace-only string, unterminated
-  quote (should raise a clear error, not a cryptic `ValueError` from deep
-  inside `shlex`), and a message with an embedded quote character.
+Pick 4–6 real-ish grammars that force the mechanics you care about:
 
-**Exit condition:** tokenizer has its own test file, fully green, decoupled from anything tree-related.
+- `say <message...>` (greedy tail)
+- `tell <target> <message...>` (typed arg + greedy tail)
+- `gamemode (survival|creative|adventure|spectator) [<target>]` (choice + optional)
+- `advancement (grant|revoke) <target> ('*' | only <advancement> [<criterion>])` (nesting + sentinel + optional)
+- one numeric command: `tp <x> <y> <z>`
+- one “debug” command: `debug (on|off)`
 
----
+For each fixture, write:
 
-## Phase 3 — Core tree engine
+- input string
+- expected tokenization (including quotes)
+- expected match: handler name + parsed args
+- expected failure: error kind + where it failed + what would have worked next
 
-**Goal:** the actual matcher. This is the phase that matters most —
-everything after this is either testing it or building on top of it.
-
-- [ ] `CommandNode`: `literal_children: dict[str, CommandNode]`,
-  `argument_child: tuple[str, ArgumentType, CommandNode] | None`,
-  `executor: Callable | None`.
-- [ ] `ParseResult` dataclass (`ok`, `value`, `error`) instead of exceptions for
-  per-candidate parse attempts — build this now, not retrofitted later,
-  since the matcher's control flow depends on it from the first line.
-- [ ] Matching order: literal children first (exact match), then the argument
-  child (attempt `.parse()`, use the `ParseResult`, backtrack on failure).
-- [ ] Write this directly against the Phase 1 fixtures as parametrized pytest
-  cases. Do **not** build the fluent builder (Phase 6) yet, even though
-  hand-constructing trees with nested dicts is tedious — that tedium is
-  useful pressure, and building ergonomics before correctness means
-  redesigning the builder every time the engine's shape changes underneath
-  it.
-
-**Exit condition:** all Phase 1 fixtures pass, constructed via raw `CommandNode` objects, no builder syntax sugar anywhere yet.
+**Exit condition:** you can directly turn the table into parametrized tests.
 
 ---
 
-## Phase 4 — ArgumentType interface + minimal built-ins
+## Phase 2 — Tokenization
 
-**Goal:** typed argument parsing, plus the one structural invariant that
-prevents a whole class of bugs.
+**Goal:** raw string → list of tokens, including quoted segments.
 
-- [ ] `ArgumentType` protocol: `parse(token: str) -> ParseResult`.
-- [ ] Implement: a plain string type, an integer type, and the **greedy
-  string** type.
-- [ ] The greedy type is the one to build carefully: enforce, at tree
-  *construction* time (in `CommandNode.then()`), that a node whose argument
-  type is greedy cannot have children. Raise `GrammarDefinitionError`
-  immediately if someone tries — this is what makes the `/tell`-style
-  ambiguity from earlier structurally impossible instead of merely
-  discouraged.
+- [x] Wrap `shlex.split()` and convert failures into a friendly error (don’t leak a cryptic `ValueError`).
+- [ ] Tests: empty, whitespace-only, quoted strings, escaped quotes, unterminated quotes.
 
-**Exit condition:** a test that tries to add a child after a greedy node raises at build time, not at parse time.
+**Exit condition:** tokenizer is fully tested and independent of the dispatcher.
 
 ---
 
-## Phase 5 — Optional & choice, as tests, not new code
+## Phase 3 — Command tree + dispatcher (the core)
 
-**Goal:** confirm the design decisions from Phase 3 actually hold.
+**Goal:** register commands into a tree and parse input against it.
 
-- [ ] Optional: a node with `executor` set *and* a further child — both are
-  reachable. Test `/gamemode survival` and `/gamemode survival Steve` both
-  succeed.
-- [ ] Choice: sibling literal children. Test `/advancement grant …` and
-  `/advancement revoke …` both resolve correctly, and `/advancement steal …`
-  fails cleanly.
-- [ ] If you find yourself writing new matcher logic in this phase rather than
-  just tests, that's a signal Phase 3's node model needs revisiting before
-  you go further — don't patch around it here.
+Brigadier-like concepts to implement (names are yours):
 
-**Exit condition:** all fixtures pass with zero changes to `CommandNode` or the matcher itself.
+- [ ] `CommandDispatcher` with a root node
+- [ ] node types:
+    - literal node (matches exact token)
+    - argument node (uses an `ArgumentType` to parse)
+- [ ] attach a “command”/handler to nodes that represent complete commands
+- [ ] parse output:
+    - success: handler + `CommandContext` (parsed args, original input, maybe cursor)
+    - failure: best error (position + expectations)
 
----
+Don’t add a builder API yet; hand-build the tree until it’s correct.
 
-## Phase 6 — Fluent builder API
-
-**Goal:** make constructing trees pleasant, now that the tree shape is stable.
-
-- [ ] `literal("advancement").then(literal("grant").then(argument("targets", EntitySelector())...)).executes(handler)`
-- [ ] This is a construction-time convenience layer over Phase 3's `CommandNode`
-  — it should not introduce any new matching behavior. If it does, that
-  logic belongs in Phase 3, not here.
-
-**Exit condition:** every Phase 1 fixture can be expressed as a builder chain, and produces the identical tree to the hand-built Phase 3 version.
+**Exit condition:** all Phase 1 fixtures pass by constructing a tree directly.
 
 ---
 
-## Phase 7 — Error reporting
+## Phase 4 — Argument types (minimum set, but clean)
 
-**Goal:** failures a human can act on.
+**Goal:** typed argument parsing like Brigadier’s `ArgumentType`.
 
-- [ ] Track token position through the matcher; report "unknown argument at
-  position N", not a bare exception with no context.
-- [ ] This is where the `ParseResult`-over-exceptions choice from Phase 3 pays
-  off directly — errors are data you format, not tracebacks you catch.
+- [ ] `ArgumentType[T]` protocol (or base class):
+    - `parse(reader) -> T | error` (you can use a simple token reader abstraction)
+    - optional `suggest(reader) -> list[str]`
+- [ ] built-ins required by fixtures:
+    - [ ] `word` / `string` (single token)
+    - [ ] `int`
+    - [ ] `greedy_string` (consume remaining tokens)
 
-**Exit condition:** a deliberately malformed command produces a one-line, position-aware error message, for every fixture grammar.
+Structural invariant:
 
----
+- [ ] forbid children after `greedy_string` at definition time (fail fast).
 
-## Phase 8 — Transport & subprocess integration
-
-**Goal:** the router actually talks to something outside itself.
-
-- [ ] `--transport {stdio,tcp}`, default `stdio`.
-- [ ] stdout carries protocol responses **only** — configure `logging` to
-  target stderr, default level `warning` (i.e. quiet unless something's
-  actually wrong).
-- [ ] `--log-level` as its own independent flag, orthogonal to `--transport`.
-- [ ] Build a minimal throwaway client (even a 15-line C# console app, doesn't
-  need to touch Godot yet) to validate a real round trip over stdio before
-  wiring it into the actual game project.
-
-**Exit condition:** a command sent from an external process gets a correct response, over the real transport, not just in-process pytest calls.
+**Exit condition:** greedy commands work, and invalid grammars crash at registration/build time, not mid-parse.
 
 ---
 
-## Phase 9 — Ellipsis / repetition (only once you have a real case)
+## Phase 5 — Good errors (actionable failures)
 
-**Goal:** repeating grammars — deliberately last.
+**Goal:** failures that explain themselves.
 
-- [ ] Don't start this until you have one concrete repeating grammar you
-  actually want, e.g. a toy `execute`-style modifier chain. Designing the
-  mechanism in the abstract, with nothing to test it against, is exactly
-  the trap you were already in a few turns ago.
-- [ ] Likely shape: a `redirect` pointer on a node, aiming back at an ancestor,
-  turning the tree into a graph with a cycle. Add a recursion or
-  visited-node guard so a malformed grammar can't hang the matcher.
+- [ ] Track token index / cursor as you parse.
+- [ ] Produce a consistent error object:
+    - where it failed
+    - “expected next” (literal candidates and/or argument types)
+    - maybe: partial parsed args (for debugging)
 
-**Exit condition:** your one concrete repeating grammar passes, and you can explain in one sentence why the cycle doesn't infinite-loop.
+**Exit condition:** failing fixtures produce predictable, testable errors.
 
 ---
 
-## Phase 10 — Packaging & polish
+## Phase 6 — Suggestions / autocomplete
 
-**Goal:** a project someone else (including future you) could pick up.
+**Goal:** “Minecraft-y” feel: partial input yields helpful completions.
 
-- [ ] Fill in `pyproject.toml` metadata properly; `uv build` to confirm it
-  packages cleanly.
-- [ ] README with the grammar notation you settled on, since by now it may
-  have drifted from the Minecraft wiki's version in small ways.
-- [ ] *Now* turn on Ruff's stricter rulesets (docstrings, complexity) — the
-  code's shape is stable enough for style enforcement to be worth the
-  churn.
+- [ ] `get_suggestions(input, cursor)` returning a list of suggestion strings (later you can add ranges/weights).
+- [ ] literal suggestions (based on current node)
+- [ ] argument suggestions via `ArgumentType.suggest` when available
 
-**Exit condition:** a fresh `uv sync && uv run pytest` from a clean clone passes with no manual setup steps.
+**Exit condition:** e.g. `ga<TAB>` → `gamemode`, `gamemode <TAB>` → mode names.
+
+---
+
+## Phase 7 — Builder API (ergonomics, after correctness)
+
+**Goal:** pleasant registration, Brigadier-inspired.
+
+You want to be able to express things like:
+
+- `literal("say").then(argument("message", greedy_string())).executes(handler)`
+- choices and optionals without writing a novel
+
+Hard rule: the builder can’t introduce new matching behavior; it’s just a nicer way to build the same tree.
+
+**Exit condition:** fixtures are expressed via the builder and still pass.
+
+---
+
+## Phase 8 — Redirect / repetition (only with one real motivating grammar)
+
+**Goal:** support graph-like trees (redirect/fork) if/when a real command needs it.
+
+- [ ] choose one motivating grammar (e.g. an `execute`-style modifier chain)
+- [ ] implement redirect/fork mechanics
+- [ ] add a guard so malformed grammars can’t loop forever
+
+**Exit condition:** that one repeating grammar works and termination is well-defined.
+
+---
+
+## Phase 9 — Run it as a service (local socket / stdio)
+
+**Goal:** another application can drive this engine over an IPC-style transport.
+
+- [ ] pick transport (s):
+    - [ ] unix domain socket (best “internal socket” default on Linux/macOS)
+    - [ ] optional: TCP localhost
+    - [ ] optional: stdio mode (subprocess pipes)
+- [ ] define a tiny protocol (start with JSON lines):
+    - request: `{id, input, cursor?}`
+    - response: `{id, ok, result|error, suggestions?}`
+- [ ] keep logs on stderr; keep protocol clean on the transport
+
+**Exit condition:** a tiny external client can connect, send a command, and get a structured response.
+
+---
+
+## Phase 10 — Integration demos
+
+**Goal:** prove the “another app summons this” story end-to-end.
+
+- [ ] a minimal client script that connects and sends requests
+- [ ] server mode that loads a demo command tree and serves requests
+
+**Exit condition:** two terminals (server + client) feel solid and boring.
+
+---
+
+## Packaging note
+
+Don’t optimize for PyPI. If you ever want that, create a new TODO dedicated to “publishable library mode”.
+

@@ -1,0 +1,47 @@
+# This file provides the grammar that `cmd_router` (lib) should read.
+# This file might change formats in the future, but hopefuly, this would not be the case.
+
+# I am going to use this to write down my thoughts as the project continues forwards.
+# As of version `26.0-dev`, this file simply represents the concrete grammar that the engine would expect.
+# I believe that, when the engine starts, I should allow this file to be the very main point of initialization,
+# as long as the program is started with the `--test` flag, or similar.
+#
+# This would mean that I should probably create a file whose only purpose is to be edited by the user,
+# and the engine, when reading that file, starts as expected, but without any tests.
+# The engine starting with no tests shouldn't be a problem either, as I should also alert the user that the imported
+# grammar, at [x|y], is incorrect-this would mean "safety checks" must be a part of the system.
+
+[cmd-router]
+schema-version = 1
+# I should allow the user to provide their own format, as long as I support it.
+# For now, focusing on TOML is the correct choice; I'll be adding JSON/JSONC later.
+# The logical-engine tells the engine to initalize the commands later, following a spefific format.
+# We should only support TOML and JSON/JSONC. This will only work if the program is initialized with `--lazy`;
+# else, read a file as early as posible.
+logical-engine = "toml"
+
+[cmd-router.grammar]
+# First write the command itself, then the grammar in the cmd-notation format. Examples will be given above
+# the commands themselves.
+# The engine expects this dict to have this notation:
+# - `word` <----------------> required literal
+# - `(a|b|c)` <-------------> choice
+# - `[item]` <--------------> optional token or group (`args...`)
+# - `<name:type>` <---------> required argument
+# - `<name>` <--------------> untyped required argument (echoes directly as-is)
+# - `<name...>` <-----------> greedy terminal argument (echoes everything "after the fact" directly)
+# - `<name:type=default>` <-> argument with a default
+# - `'char'` <--------------> literal branch, where `char` is literally a single character
+# - `'*'` <-----------------> built-in literal branch, applies "all" choices as a sentinel of a deeper branch
+
+# — choice + optional
+gamemode = "(survival|creative|adventure|spectator) [<target>]"
+
+# — required arg + terminal greedy arg
+tell = "<target> <message...>"
+
+# — nesting + optional
+advancement = "(grant|revoke) <target> ('*' | only <advancement> [<criterion>])"
+
+# — single greedy arg, no branching at all
+say = "<message...>"
