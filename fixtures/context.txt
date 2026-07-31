@@ -1,0 +1,13 @@
+
+First write the command itself, then the grammar in the cmd-notation format. Examples will be given above
+the commands themselves.
+The engine expects this dict to have this notation:
+- `word` <----------------> required literal
+- `(a|b|c)` <-------------> choice
+- `[item]` <--------------> optional token or group (`args...`)
+- `<name:type>` <---------> required argument
+- `<name>` <--------------> untyped required argument (echoes directly as-is)
+- `<name...>` <-----------> greedy terminal argument (echoes everything "after the fact" directly)
+- `<name:type=default>` <-> argument with a default
+- `'char'` <--------------> literal branch, where `char` is literally a single character
+- `'*'` <-----------------> built-in literal branch, applies "all" choices as a sentinel of a deeper branch

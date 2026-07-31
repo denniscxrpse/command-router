@@ -4,16 +4,18 @@ The tokenizer deliberately delegates quoting and escaping rules to `shlex`. Gram
 this module only turns a command line into tokens.
 """
 
-__all__ = ("TokenizationError", "tokenize",)
+__all__ = ("TokenizationError", "tokenize")
 
 import shlex
+
+from cmd_router.utils.context import *
 
 
 class TokenizationError(ValueError):
     """Raised when command input cannot be tokenized."""
 
 
-def tokenize(command: str) -> list[str]:
+def tokenize(command: str) -> list[str] | int:
     """Return shell-like tokens from *command*.
 
     Empty and whitespace-only input produce an empty list. Quoting and
@@ -26,6 +28,5 @@ def tokenize(command: str) -> list[str]:
 
     try:
         return shlex.split(command, comments=False, posix=True)
-    except ValueError as error:
-        raise TokenizationError(f"invalid command input: {error}") from error
-
+    except ValueError:
+        return error.TokenizeError

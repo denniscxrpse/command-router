@@ -1,13 +1,15 @@
-__all__ = ["log_handler", "log"]
+__all__ = (
+    "log_handler",
+    "log",
+)
 
 import logging as _log
+import sys
 from datetime import datetime
 from html import escape
 from typing import Any, final
 
 from prompt_toolkit import HTML, print_formatted_text
-
-from cmd_router.lib.utils.const import *
 
 
 @final
@@ -27,7 +29,7 @@ class LoggerHandler:
         }
 
         self.log_id = datetime.now().strftime("%m-%d-%Y.%H:%M:%S")
-        paths.LOGS_DIR.mkdir(parents=True, exist_ok=True)
+        # paths.LOGS_DIR.mkdir(parents=True, exist_ok=True)
 
     @staticmethod
     def get_final_message(level: int, message: str) -> dict[str, str]:
@@ -37,7 +39,7 @@ class LoggerHandler:
         - "logl" -> log_level
         - "time" -> timestamp
         - "msg" -> final_message
-        - "fmsg" -> Well formatted string with timestamp and final_message.
+        - "fmsg" -> Well-formatted string with timestamp and final_message.
         """
         # If this causes a crash, is the developer's fault.
         log_level = _log.getLevelName(level)
@@ -53,7 +55,7 @@ class LoggerHandler:
     def html(self, msg: str, level: int = _log.INFO) -> HTML:
         """Helper: Returns a formatted HTML message. Uses log levels to format the color quicker."""
         color = self._colors.get(level, "#291f1c")
-        return HTML(f'<style fg="{color}">{escape(str(msg))}</style>')
+        return HTML(f'<style fg="{color}">{escape(msg)}</style>')
 
     def log(self, level: int, *message: Any, sep: str, end: str) -> None:
         """Logs a message into a file and prompts the same message into the stream with colored formatting."""
@@ -106,6 +108,10 @@ class Logger:
     @staticmethod
     def raw(*message: Any, sep=" ", end="\n") -> None:
         log_handler.raw(*message, sep=sep, end=end)
+
+    @staticmethod
+    def stderr(*message: Any, sep=" ", end="\n") -> None:
+        print(*message, sep=sep, end=end, file=sys.stderr, flush=True)
 
 
 log = Logger()

@@ -1,0 +1,15 @@
+{
+  // Equivalent to:
+  // [cmd-router]
+  // schema-version = 1
+  "cmd-router": {
+    "schema-version": 1,
+    // [cmd-router.grammar]
+    "grammar": {
+      // — choice + optional
+      "gamemode": "(survival|creative|adventure|spectator) [<target>]",
+      // — required arg + terminal greedy arg
+      "tell": "<target> <message...>",
+    }
+  }
+}

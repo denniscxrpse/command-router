@@ -1,3 +1,5 @@
-[.]venv/*
+[.v]env/*
 [.]idea/*
 *.py[icx]
+*cache*
+fixtures/http/**
