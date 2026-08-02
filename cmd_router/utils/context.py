@@ -43,7 +43,8 @@ class _ErrorCodes(IntEnum):
     GrammarLoadError = 2
     InvalidGrammarError = 3
     UnsupportedGrammarFormatError = 4
-    TokenizeError = 5
+    TokenizeInvalidError = 5
+    TokenizeUnsupportedTypeError = 6
 
 
 @dataclass

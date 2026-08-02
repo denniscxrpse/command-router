@@ -52,7 +52,7 @@ For each fixture, write:
 **Goal:** raw string → list of tokens, including quoted segments.
 
 - [x] Wrap `shlex.split()` and convert failures into a friendly error (don’t leak a cryptic `ValueError`).
-- [ ] Tests: empty, whitespace-only, quoted strings, escaped quotes, unterminated quotes.
+- [x] Tests: empty, whitespace-only, quoted strings, escaped quotes, unterminated quotes.
 
 **Exit condition:** tokenizer is fully tested and independent of the dispatcher.
 
@@ -64,12 +64,12 @@ For each fixture, write:
 
 Brigadier-like concepts to implement (names are yours):
 
-- [ ] `CommandDispatcher` with a root node
-- [ ] node types:
-    - literal node (matches exact token)
-    - argument node (uses an `ArgumentType` to parse)
-- [ ] attach a “command”/handler to nodes that represent complete commands
-- [ ] parse output:
+- [x] `CommandDispatcher` with a root node
+- [x] node types:
+    - [x] literal node (matches exact token)
+    - [x] argument node (uses an `ArgumentType` to parse)
+- [x] attach a “command”/handler to nodes that represent complete commands
+- [x] parse output:
     - success: handler + `CommandContext` (parsed args, original input, maybe cursor)
     - failure: best error (position + expectations)
 
@@ -183,4 +183,3 @@ Hard rule: the builder can’t introduce new matching behavior; it’s just a ni
 ## Packaging note
 
 Don’t optimize for PyPI. If you ever want that, create a new TODO dedicated to “publishable library mode”.
-

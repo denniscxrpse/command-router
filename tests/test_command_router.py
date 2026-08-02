@@ -148,6 +148,7 @@ def _post_to_lazy_router(
 
     class _RecordingHTTPServer(real_server):
         def __init__(self, *args: object, **kwargs: object) -> None:
+            # pyrefly: ignore [bad-argument-type]
             super().__init__(*args, **kwargs)
             servers.append(self)
             ready.set()
@@ -167,6 +168,7 @@ def _post_to_lazy_router(
     server = servers[0]
     statuses: list[int] = []
     for payload in payloads:
+        # pyrefly: ignore [bad-argument-type]
         connection = http.client.HTTPConnection(*server.server_address, timeout=2)
         connection.request("POST", "/", body=payload)
         response = connection.getresponse()

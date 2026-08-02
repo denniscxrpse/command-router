@@ -45,7 +45,7 @@ class EnvFlags:
     """
     This flag determines how the Command Router (cmd-router) should behave at startup:
     
-    **False** (default): The `./fixtures` path contains every single grammar path, by default, we provide two files: 
+    **False** (default): The `./fixtures` path contains every single grammar path. By default, we provide two files: 
     `gramamars.toml` and `g.json5`. Both of these files are loaded and parsed, and you may use them as examples.
     You can create as many TOML or JSON files as you want (JSON5 is supported), the fixtures path is the entry 
     point of "grammar" files, and we read the whole directory, searching for both TOML and JSON files. Any file that 

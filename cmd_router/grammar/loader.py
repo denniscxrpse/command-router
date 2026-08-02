@@ -8,7 +8,7 @@ __all__ = ("load_grammars",)
 from pathlib import Path
 from typing import Any
 
-from cmd_router.grammar.parsers import grammar_parsers
+from cmd_router.grammar.parsers import *
 from cmd_router.utils.context import *
 from cmd_router.utils.logger import *
 
