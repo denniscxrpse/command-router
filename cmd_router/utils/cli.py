@@ -1,3 +1,8 @@
+#  The Clear BSD License
+#
+#  Copyright (c) 2026 Ian Hylton
+#  All rights reserved.
+
 __all__ = ("flags", "init_flags")
 
 import sys
@@ -58,6 +63,15 @@ class EnvFlags:
     meaning that the application is ready.
     """
 
+    ignore: frozenset[str] = frozenset({"err.json5"})
+    """
+    When `lazy` is **False**, this flag will force the grammar loader to ignore specific files. By default,
+    we only ignore `err.json5`.
+
+    Values may be filenames, full file paths, or directory paths. Bare filenames are faster to process; directory
+    paths ignore files beneath them.
+    """
+
 
 flags: Final[EnvFlags] = EnvFlags()
 """Single module-level instance, access the internal CLI flags."""
@@ -73,6 +87,13 @@ flags: Final[EnvFlags] = EnvFlags()
     is_flag=True,
     default=flags.lazy,
     help="Defer loading logical data until runtime.",
+)
+@click.option(
+    "-I",
+    "--ignore",
+    multiple=True,
+    default=flags.ignore,
+    help="Ignore specific files or directories when loading logical data.",
 )
 def init_flags(**kwargs) -> None:
     """Initialize the process-wide environment flags from CLI options."""

@@ -17,6 +17,7 @@ dependencies = [
     "pyrefly>=1.1.1",
     "pytest>=9.1.1",
     "ruff>=0.15.22",
+    "rust-just>=1.57.0",
 ]
 
 [project.urls]
@@ -27,3 +28,6 @@ Documentation = "https://gitlab.com/denniscxrpse/command-router/-/wikis"
 [tool.black]
 line-length = 120
 target-version = ['py310']
+
+[tool.pytest.ini_options]
+pythonpath = ["."]

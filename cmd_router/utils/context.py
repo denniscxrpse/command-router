@@ -1,8 +1,12 @@
+#  The Clear BSD License
+#
+#  Copyright (c) 2026 Ian Hylton
+#  All rights reserved.
+
 __all__ = (
     "paths",
     "error",
-    "empty_str",
-    "valid_schemas",
+    "ctx",
 )
 
 from dataclasses import dataclass
@@ -42,11 +46,14 @@ class _ErrorCodes(IntEnum):
     TokenizeError = 5
 
 
+@dataclass
+class _Context:
+    empty_str = ""
+    "Yeah, literally. This is meant for readability."
+    valid_schemas: Final[tuple[int]] = (1,)
+    """The valid schemas for the grammars."""
+
+
 paths: Final[_Paths] = _Paths()
 error: Final[type[_ErrorCodes]] = _ErrorCodes
-
-
-empty_str = ""
-"Yeah, literally. This is meant for readability."
-valid_schemas: Final[list[int]] = [1]
-"""The valid schemas for the grammars."""
+ctx: Final[_Context] = _Context()

@@ -1,3 +1,8 @@
+#  The Clear BSD License
+#
+#  Copyright (c) 2026 Ian Hylton
+#  All rights reserved.
+
 """Tokenize command input for the command router.
 
 The tokenizer deliberately delegates quoting and escaping rules to `shlex`. Grammar matching belongs to a later layer;
