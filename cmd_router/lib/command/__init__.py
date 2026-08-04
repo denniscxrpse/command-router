@@ -85,6 +85,10 @@ class _CmdError:
     UnsupportedGrammarFormatError = _error.UnsupportedGrammarFormatError
     TokenizeInvalidError = _error.TokenizeInvalidError
     TokenizeUnsupportedTypeError = _error.TokenizeUnsupportedTypeError
+    ControlNotInitializedError = _error.ControlNotInitializedError
+    ControlFixtureError = _error.ControlFixtureError
+    ControlGrammarError = _error.ControlGrammarError
+    ControlActionError = _error.ControlActionError
 
 
 class _CmdType:

@@ -65,7 +65,7 @@ def load_grammars(path: Path) -> tuple[_Dict, _Dict] | int:
     schema_version = info.get("schema-version")
     if not info or schema_version is None:
         errors.append("Info is invalid. Cannot tokenize without understanding the context.")
-    elif type(schema_version) is not int or schema_version not in ctx.valid_schemas:
+    elif type(schema_version) is not int or schema_version not in ctx.c.VALID_SCHEMAS:
         errors.append(f"Unsupported schema version: {schema_version}.")
 
     if errors:

@@ -5,6 +5,9 @@
 
 __all__ = (
     "CommandRouter",
+    "Control",
+    "ControlInitialization",
+    "ControlResult",
     "init_flags",
 )
 
@@ -18,6 +21,7 @@ import tomllib
 from icecream import ic
 
 from cmd_router.grammar.loader import *
+from cmd_router.lib.control import Control, ControlInitialization, ControlResult
 from cmd_router.utils.cli import *
 from cmd_router.utils.context import *
 from cmd_router.utils.logger import *
@@ -30,17 +34,52 @@ class CommandRouter:
     _info: _Dict = {}
 
     def __init__(self) -> None:
+        self._grammars = {}
+        self._info = {}
+        self.control = Control()
+
         # Get every single file in fixtures/*
         if flags.lazy:
             # pass control to lazy_init
             self._lazy_init()
+            self._initialize_control()
             return
         files = [path for path in paths.FIXTURES.iterdir() if path.is_file()]
         result = self._init_grammar(files)
         if isinstance(result, int):
             log.critical(f"Could not initialize grammars ({result}).")
+        self._initialize_control()
         ic(self._grammars, self._info)
         log.info("ready")
+
+    def _initialize_control(self) -> None:
+        """Load fixture behavior only when the control flag requests it."""
+        if not flags.control:
+            return
+        result = self.control.initialize(
+            self._grammars,
+            fixture=paths.FIXTURES,
+            keep_help=not flags.control_no_help,
+        )
+        if not result.ok:
+            log.critical(f"Could not initialize control ({result.code}): {result.message}")
+
+    def execute(self, command: Any) -> ControlResult:
+        """Execute through the configured control surface."""
+        return self.control.execute(command)
+
+    dispatch = execute
+
+    async def execute_async(self, command: Any) -> ControlResult:
+        """Async counterpart to :meth:`execute`."""
+        return await self.control.execute_async(command)
+
+    async_dispatch = execute_async
+
+    @property
+    def deeper_level(self) -> Any:
+        """Expose the live Python control state for embedded callers."""
+        return self.control.deeper_level
 
     def _lazy_init(self) -> None:
         """Load the first valid grammar received through the local HTTP endpoint."""

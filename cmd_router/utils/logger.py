@@ -10,11 +10,63 @@ __all__ = (
 
 import logging as _log
 import sys
+from collections.abc import Awaitable
 from datetime import datetime
 from html import escape
-from typing import Any, final
+from threading import RLock
+from typing import Any, Final, TextIO, final
 
 from prompt_toolkit import HTML, print_formatted_text
+
+
+class _CompletedWrite:
+    """An awaitable that is already complete.
+
+    ``log.stderr`` remains usable by synchronous code, while callers that are
+    already asynchronous may also write ``await log.stderr(...)``. The write
+    happens before this object is returned, so old call sites do not leave an
+    un-awaited coroutine behind.
+    """
+
+    def __await__(self):
+        if False:
+            yield None
+        return None
+
+
+class _LockedStderr:
+    """Serialize writes to a stream shared by embedded command runners."""
+
+    def __init__(self, stream: TextIO, lock: RLock) -> None:
+        self._stream = stream
+        self._lock = lock
+
+    def write(self, text: str) -> int:
+        with self._lock:
+            return self._stream.write(text)
+
+    def flush(self) -> None:
+        with self._lock:
+            self._stream.flush()
+
+    def __getattr__(self, name: str) -> Any:
+        return getattr(self._stream, name)
+
+
+class _StderrWriter:
+    """Callable stderr writer supporting both synchronous and async callers."""
+
+    def __init__(self, lock: RLock) -> None:
+        self._lock = lock
+
+    def __call__(self, *message: Any, sep: str = " ", end: str = "\n") -> Awaitable[None]:
+        text = sep.join(str(arg) for arg in message) + end
+        with self._lock:
+            print(text, sep="", end="", file=sys.stderr, flush=True)
+        return _CompletedWrite()
+
+    async def async_write(self, *message: Any, sep: str = " ", end: str = "\n") -> None:
+        self(*message, sep=sep, end=end)
 
 
 @final
@@ -34,7 +86,34 @@ class LoggerHandler:
         }
 
         self.log_id = datetime.now().strftime("%m-%d-%Y.%H:%M:%S")
+        self._stderr_lock = RLock()
+        self._stderr_proxy: _LockedStderr | None = None
+        self._stderr_original: TextIO | None = None
+        self._stderr_users = 0
         # paths.LOGS_DIR.mkdir(parents=True, exist_ok=True)
+
+    def lock_stderr(self) -> None:
+        """Route direct stderr writes through the same process-wide lock."""
+        if self._stderr_proxy is not None:
+            self._stderr_users += 1
+            return
+        self._stderr_original = sys.stderr
+        self._stderr_proxy = _LockedStderr(sys.stderr, self._stderr_lock)
+        self._stderr_users = 1
+        sys.stderr = self._stderr_proxy
+
+    def unlock_stderr(self) -> None:
+        """Restore stderr if this handler previously wrapped it."""
+        if self._stderr_proxy is None:
+            return
+        self._stderr_users -= 1
+        if self._stderr_users > 0:
+            return
+        if sys.stderr is self._stderr_proxy and self._stderr_original is not None:
+            sys.stderr = self._stderr_original
+        self._stderr_proxy = None
+        self._stderr_original = None
+        self._stderr_users = 0
 
     @staticmethod
     def get_final_message(level: int, message: str) -> dict[str, str]:
@@ -114,9 +193,12 @@ class Logger:
     def raw(*message: Any, sep=" ", end="\n") -> None:
         log_handler.raw(*message, sep=sep, end=end)
 
+    stderr: Final[_StderrWriter] = _StderrWriter(log_handler._stderr_lock)
+
     @staticmethod
-    def stderr(*message: Any, sep=" ", end="\n") -> None:
-        print(*message, sep=sep, end=end, file=sys.stderr, flush=True)
+    async def stderr_async(*message: Any, sep=" ", end="\n") -> None:
+        """Awaitable stderr helper for code already running in an event loop."""
+        await Logger.stderr.async_write(*message, sep=sep, end=end)
 
 
 log = Logger()

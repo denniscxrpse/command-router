@@ -59,7 +59,7 @@ Preserve the existing Clear BSD license header in new Python files.
 
 ## Code style
 
-- Prefer readable implementations over clever compression. Public behavior should be easy to discover and use from the
+- Prefer readable implementations to clever compression. Public behavior should be easy to discover and use from the
   namespace façade.
 - Keep docstrings informative, direct, and short enough to scan. Explain the contract and important edge cases; avoid
   documenting obvious syntax.
