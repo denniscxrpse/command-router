@@ -1,0 +1,43 @@
+#  The Clear BSD License
+#
+#  Copyright (c) 2026 Ian Hylton
+#  All rights reserved.
+
+"""Convenience alias for a selected API.
+
+The API remains available through ``cmd_router.lib.*`` and any other ``*.api.*``
+package under ``cmd_router.lib``. This namespace is a direct convenience façade,
+not a second implementation: its names refer to the original classes and values.
+
+Prefer explicit imports from this module.  Wildcard imports are discouraged
+because callers cannot know which API names are safe to combine, although a
+deliberate ``__all__`` is provided for callers that need one.
+
+Choose one API namespace for an application.  Mixing ``cmd_router.api`` with
+``cmd_router.lib.control.api``, for example, can combine the public API and
+library namespaces in unsafe ways; this package does not add misuse safeguards.
+"""
+
+__all__ = (
+    "Control",
+    "ControlInitialization",
+    "ControlResult",
+    "DeeperLevelContext",
+    "control",
+    "deeper_level",
+    "execute",
+    "execute_async",
+    "initialize",
+)
+
+from cmd_router.lib.control.api import (
+    Control,
+    ControlInitialization,
+    ControlResult,
+    DeeperLevelContext,
+    control,
+    deeper_level,
+    execute,
+    execute_async,
+    initialize,
+)

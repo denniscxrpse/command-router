@@ -23,7 +23,7 @@ class _CompletedWrite:
     """An awaitable that is already complete.
 
     ``log.stderr`` remains usable by synchronous code, while callers that are
-    already asynchronous may also write ``await log.stderr(...)``. The write
+    already asynchronous may also write ``await log.stderr(...)``. The writing
     happens before this object is returned, so old call sites do not leave an
     un-awaited coroutine behind.
     """

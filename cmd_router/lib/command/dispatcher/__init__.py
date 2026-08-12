@@ -21,111 +21,12 @@ from cmd_router.lib.command.argument_type import *
 from cmd_router.lib.command.context import *
 from cmd_router.lib.tokenizer import *
 
+from .nodes.argument import ArgumentNode
+from .nodes.command import CommandNode
+from .nodes.literal import LiteralNode
+from .nodes.root import RootNode
+
 _Handler = Callable[..., Any]
-
-
-class CommandNode:
-    """Base node shared by literals and typed arguments."""
-
-    kind = "node"
-
-    def __init__(self, name: str, *, command: _Handler | None = None) -> None:
-        self.name = name
-        if command is not None and not callable(command):
-            raise TypeError(f"command must be callable, got {type(command).__name__}")
-        self.command = command
-        self.children: list[CommandNode] = []
-
-    @property
-    def label(self) -> str:
-        """Return the syntax shown when this node is expected next."""
-        return self.name
-
-    def add_child(self, child: "CommandNode") -> "CommandNode":
-        """Attach *child* and return it for convenient hand-built trees."""
-        if getattr(self, "greedy", False):
-            raise ValueError("greedy argument nodes must be terminal")
-        if not isinstance(child, CommandNode):
-            raise TypeError(f"child must be a CommandNode, got {type(child).__name__}")
-        if getattr(child, "greedy", False) and child.children:
-            raise ValueError("greedy argument nodes must be terminal")
-        if any(self._duplicates(existing, child) for existing in self.children):
-            raise ValueError(f"duplicate child node: {child.label}")
-        self.children.append(child)
-        return child
-
-    def set_command(self, command: _Handler) -> "CommandNode":
-        """Attach a handler to this node and return the node."""
-        if not callable(command):
-            raise TypeError(f"command must be callable, got {type(command).__name__}")
-        self.command = command
-        return self
-
-    @staticmethod
-    def _duplicates(left: "CommandNode", right: "CommandNode") -> bool:
-        if isinstance(left, LiteralNode) and isinstance(right, LiteralNode):
-            return left.name == right.name
-        if isinstance(left, ArgumentNode) and isinstance(right, ArgumentNode):
-            return left.name == right.name
-        return False
-
-
-class RootNode(CommandNode):
-    """The invisible root of a command tree."""
-
-    kind = "root"
-
-    def __init__(self) -> None:
-        super().__init__("")
-
-
-class LiteralNode(CommandNode):
-    """A node that matches one exact token."""
-
-    kind = "literal"
-
-    def __init__(self, literal: str, *, command: _Handler | None = None) -> None:
-        if not isinstance(literal, str) or not literal:
-            raise ValueError("literal must be a non-empty string")
-        super().__init__(literal, command=command)
-
-
-class ArgumentNode(CommandNode):
-    """A node that converts the next token using an argument type."""
-
-    kind = "argument"
-
-    def __init__(
-        self,
-        name: str,
-        argument_type: ArgumentType[Any] | None = None,
-        *,
-        command: _Handler | None = None,
-    ) -> None:
-        if not isinstance(name, str) or not name:
-            raise ValueError("argument name must be a non-empty string")
-        selected_type = argument_type if argument_type is not None else arg_type
-        if isinstance(selected_type, type):
-            selected_type = selected_type()
-        elif not callable(getattr(selected_type, "parse", None)) and callable(selected_type):
-            selected_type = selected_type()
-        if not callable(getattr(selected_type, "parse", None)):
-            raise TypeError("argument_type must provide a callable parse method")
-        self.argument_type = selected_type
-        super().__init__(name, command=command)
-
-    @property
-    def greedy(self) -> bool:
-        return bool(getattr(self.argument_type, "greedy", False))
-
-    @property
-    def label(self) -> str:
-        type_name = getattr(self.argument_type, "name", "argument")
-        if self.greedy:
-            return f"<{self.name}...>"
-        if type_name == "word":
-            return f"<{self.name}>"
-        return f"<{self.name}:{type_name}>"
 
 
 class CommandDispatcher:

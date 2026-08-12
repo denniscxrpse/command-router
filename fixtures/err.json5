@@ -1,5 +1,5 @@
-// Bad formatted JSON file, do NOT use this an example, and DO NOT parse it.
-// This file is meant for error handling for HTTP POST requests.
+// Bad formatted JSON file, do NOT use this as an example, and DO NOT parse it.
+// This file is meant for error handling for HTTP POST requests and tests.
 {
   "cmd-router": {
     // Invalid schema version

@@ -1,6 +1,10 @@
 # justfile
 # You may use `uv run just`, or use the `just` package provided by your distribution.
 
+# just -l
+list:
+    just -l
+
 # Test everything
 test:
     uv run pytest -q

@@ -18,24 +18,20 @@ __all__ = (
     "String",
     "Word",
     "arg_type",
-    "greedy_string",
+    "greedy",
     "integer",
     "string",
     "word",
 )
 
-from dataclasses import dataclass
 from typing import ClassVar, Final, Generic, TypeVar
+
+from cmd_router.utils.context import _ErrorCodes
 
 _ValueT = TypeVar("_ValueT")
 
 
-@dataclass(frozen=True, slots=True)
-class ArgumentParseError:
-    """Describe why an argument value could not be parsed."""
-
-    message: str
-    expected: str
+ArgumentParseError = _ErrorCodes.ArgumentParseError
 
 
 class _ArgType(Generic[_ValueT]):
@@ -77,6 +73,7 @@ Word = _WordType
 String = _StringType
 Int = _IntegerType
 GreedyString = _GreedyStringType
+
 arg_type: Final[ArgumentType[str]] = ArgumentType()
 
 
@@ -95,6 +92,6 @@ def integer() -> ArgumentType[int]:
     return _IntegerType()
 
 
-def greedy_string() -> ArgumentType[str]:
+def greedy() -> ArgumentType[str]:
     """Return an argument type that consumes the rest of the command."""
     return _GreedyStringType()

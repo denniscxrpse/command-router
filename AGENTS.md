@@ -66,6 +66,8 @@ Preserve the existing Clear BSD license header in new Python files.
 - `__init__` methods are for necessary object initialization, not a mandatory pattern for every module or class.
 - Black may be run for formatting, but do not spend effort on cosmetic churn. Ruff and Pyrefly are the practical quality
   checks.
+- Do not add `from __future__ import annotations`. The project targets Python 3.14+, so annotations are evaluated
+  normally; import referenced types before they are used and use `typing.Self` for recursive type references.
 - Follow the existing private-class plus public-alias pattern, `Final` values, centralized context objects, and
   module-level singleton conventions where they fit the design.
 

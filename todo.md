@@ -89,11 +89,11 @@ Don’t add a builder API yet; hand-build the tree until it’s correct.
 - [ ] built-ins required by fixtures:
     - [ ] `word` / `string` (single token)
     - [ ] `int`
-    - [ ] `greedy_string` (consume remaining tokens)
+    - [ ] `greedy` (consume remaining tokens)
 
 Structural invariant:
 
-- [ ] forbid children after `greedy_string` at definition time (fail fast).
+- [ ] forbid children after `greedy` at definition time (fail fast).
 
 **Exit condition:** greedy commands work, and invalid grammars crash at registration/build time, not mid-parse.
 

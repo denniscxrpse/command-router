@@ -7,9 +7,7 @@
 This file is reserved to hold the fixtures' grammar logic.
 """
 
-from __future__ import annotations
-
-from typing import Any, ClassVar
+from typing import Any, ClassVar, Self
 
 from cmd_router.utils.context import ctx as context
 
@@ -39,11 +37,11 @@ def setup() -> None:
 class _FixG:
     """Example stateful fixture logic.
 
-    The control layer creates this class exactly once and then calls: func:`setup`. Put fixture state and setup-time
+    The control layer creates this class exactly once and then calls: `setup`. Put fixture state and setup-time
     work in ``__init__``; importing this module should not execute command logic.
     """
 
-    _current: ClassVar[_FixG | None] = None
+    _current: ClassVar[Self | None] = None
 
     def __init__(self) -> None:
         type(self)._current = self

@@ -15,9 +15,6 @@ __all__ = ("CmdError", "CmdNode", "CmdParse", "CmdType")
 from typing import Final
 
 from cmd_router.lib.command.argument_type import (
-    ArgumentParseError as _ArgumentParseError,
-)
-from cmd_router.lib.command.argument_type import (
     ArgumentType as _ArgumentType,
 )
 from cmd_router.lib.command.argument_type import (
@@ -33,7 +30,7 @@ from cmd_router.lib.command.argument_type import (
     Word as _Word,
 )
 from cmd_router.lib.command.argument_type import (
-    greedy_string as _greedy_string,
+    greedy as _greedy_string,
 )
 from cmd_router.lib.command.argument_type import (
     integer as _integer,
@@ -69,26 +66,8 @@ from cmd_router.lib.command.dispatcher import (
     RootNode as _RootNode,
 )
 from cmd_router.lib.tokenizer import tokenize as _tokenize
+from cmd_router.utils.context import _ErrorCodes
 from cmd_router.utils.context import error as _error
-
-
-class _CmdError:
-    """Namespace for tokenizer, grammar, and argument errors."""
-
-    ArgumentParseError = _ArgumentParseError
-    Code = _error
-    Abort = _error.Abort
-    Succeed = _error.Succeed
-    DefaultGrammarError = _error.DefaultGrammarError
-    GrammarLoadError = _error.GrammarLoadError
-    InvalidGrammarError = _error.InvalidGrammarError
-    UnsupportedGrammarFormatError = _error.UnsupportedGrammarFormatError
-    TokenizeInvalidError = _error.TokenizeInvalidError
-    TokenizeUnsupportedTypeError = _error.TokenizeUnsupportedTypeError
-    ControlNotInitializedError = _error.ControlNotInitializedError
-    ControlFixtureError = _error.ControlFixtureError
-    ControlGrammarError = _error.ControlGrammarError
-    ControlActionError = _error.ControlActionError
 
 
 class _CmdType:
@@ -124,7 +103,7 @@ class _CmdNode:
     Dispatcher = _CommandDispatcher
 
 
-CmdError: Final[type[_CmdError]] = _CmdError
+CmdError: Final[type[_ErrorCodes]] = _error
 CmdType: Final[type[_CmdType]] = _CmdType
 CmdParse: Final[type[_CmdParse]] = _CmdParse
 CmdNode: Final[type[_CmdNode]] = _CmdNode

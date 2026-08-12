@@ -20,8 +20,8 @@ import json5
 import tomllib
 from icecream import ic
 
+from cmd_router.api import Control, ControlInitialization, ControlResult
 from cmd_router.grammar.loader import *
-from cmd_router.lib.control import Control, ControlInitialization, ControlResult
 from cmd_router.utils.cli import *
 from cmd_router.utils.context import *
 from cmd_router.utils.logger import *
