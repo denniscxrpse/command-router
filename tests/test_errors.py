@@ -7,38 +7,31 @@ import pytest
 
 import main as entrypoint
 from cmd_router.lib.command import CmdError
+from cmd_router.lib.command.argument_type import ArgumentParseError
 from cmd_router.utils.context import error
 
 
-@pytest.mark.parametrize(
-    ("exception", "expected"),
-    [
-        (Exception(), error.FatalError),
-        (MemoryError(), error.FatalMemoryError),
-        (ImportError(), error.FatalImportError),
-        (OSError(), error.FatalOSError),
-        (TypeError(), error.FatalTypeError),
-        (ValueError(), error.FatalValueError),
-        (RuntimeError(), error.FatalRuntimeError),
-        (KeyboardInterrupt(), error.Interrupted),
-    ],
-)
-def test_fatal_exceptions_have_stable_exit_codes(exception: BaseException, expected: int) -> None:
-    assert error.exit_code(exception) == int(expected)
+def test_error_codes_do_not_classify_exceptions() -> None:
+    assert not hasattr(error, "exit_code")
+    assert not hasattr(error, "FatalError")
+    assert not hasattr(error, "FatalOSError")
 
 
-def test_cmd_error_is_the_central_error_code_namespace() -> None:
+def test_cmd_error_exposes_codes_and_argument_errors() -> None:
     assert CmdError is error
+    assert CmdError.ArgumentParseError is ArgumentParseError
     assert CmdError.ArgumentParseError.__name__ == "ArgumentParseError"
 
 
-def test_main_returns_the_fatal_exception_code(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_main_logs_exception_message_and_returns_abort(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(entrypoint, "init_flags", lambda **_kwargs: None)
 
     def fail() -> None:
         raise ValueError("bad value")
 
     monkeypatch.setattr(entrypoint, "CommandRouter", fail)
-    monkeypatch.setattr(entrypoint.log, "critical", lambda *_message: None)
+    messages: list[object] = []
+    monkeypatch.setattr(entrypoint.log, "critical", lambda *message: messages.extend(message))
 
-    assert entrypoint.main() == error.FatalValueError
+    assert entrypoint.main() == error.Abort
+    assert messages == ["bad value"]

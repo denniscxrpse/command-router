@@ -13,15 +13,13 @@ def main() -> int:
     try:
         init_flags(standalone_mode=False)
         CommandRouter()
-    except KeyboardInterrupt as exception:
-        code = error.exit_code(exception)
-        log.warning(f"Interrupted ({code}).")
-        return code
+    except KeyboardInterrupt:
+        log.warning("Interrupted.")
+        return error.Interrupted
     except Exception as exception:
-        code = error.exit_code(exception)
-        log.critical(f"Fatal error ({code}): {exception!r}")
-        return code
-    return 0
+        log.critical(str(exception))
+        return error.Abort
+    return error.Succeed
 
 
 if __name__ == "__main__":

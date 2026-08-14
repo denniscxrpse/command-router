@@ -34,14 +34,7 @@ class _Paths:
     LOGS_DIR: Path = ROOT / "logs"
 
 
-class _ErrorCodes(IntEnum):
-    @dataclass(frozen=True, slots=True)
-    class ArgumentParseError:
-        """Describe why an argument value could not be parsed."""
-
-        message: str
-        expected: str
-
+class _Error(IntEnum):
     def __str__(self) -> str:
         return self.name
 
@@ -57,35 +50,14 @@ class _ErrorCodes(IntEnum):
     ControlFixtureError = 8
     ControlGrammarError = 9
     ControlActionError = 10
-    FatalError = 11
-    FatalMemoryError = 12
-    FatalImportError = 13
-    FatalOSError = 14
-    FatalTypeError = 15
-    FatalValueError = 16
-    FatalRuntimeError = 17
-    Interrupted = 130
+    Interrupted = 18
 
-    @classmethod
-    def exit_code(cls, exception: BaseException) -> int:
-        """Return the process exit code assigned to *exception*."""
-        for exception_type, code in _FATAL_EXCEPTION_CODES:
-            if isinstance(exception, exception_type):
-                return int(code)
-        return int(cls.FatalError)
+    @dataclass(frozen=True, slots=True)
+    class ArgumentParseError:
+        """Describe why an argument value could not be parsed."""
 
-
-# doin too much man
-_FATAL_EXCEPTION_CODES: Final[tuple[tuple[type[BaseException], _ErrorCodes], ...]] = (
-    (KeyboardInterrupt, _ErrorCodes.Interrupted),
-    (MemoryError, _ErrorCodes.FatalMemoryError),
-    (ImportError, _ErrorCodes.FatalImportError),
-    (OSError, _ErrorCodes.FatalOSError),
-    (TypeError, _ErrorCodes.FatalTypeError),
-    (ValueError, _ErrorCodes.FatalValueError),
-    (RuntimeError, _ErrorCodes.FatalRuntimeError),
-    (Exception, _ErrorCodes.FatalError),
-)
+        message: str
+        expected: str
 
 
 @dataclass
@@ -181,5 +153,5 @@ class _Context:
 
 
 paths: Final[_Paths] = _Paths()
-error: Final[type[_ErrorCodes]] = _ErrorCodes
+error: Final[type[_Error]] = _Error
 ctx: Final[_Context] = _Context()

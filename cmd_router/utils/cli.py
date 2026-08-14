@@ -10,6 +10,7 @@ from dataclasses import dataclass
 from typing import Final, final
 
 import click
+from icecream import ic
 
 _help = ["-h", "--help"]
 
@@ -148,3 +149,4 @@ def init_flags(**kwargs) -> None:
         # caller that has already configured `flags` programmatically.
         if value is not None and hasattr(flags, key):
             setattr(flags, key, value)
+    ic(flags)

@@ -5,9 +5,8 @@
 
 """Argument types used by command nodes.
 
-Argument types deliberately do one small job: convert one token (or a
-greedy sequence of tokens assembled by the dispatcher) into a Python value.
-Tree traversal and error selection belong to :mod:`dispatcher`.
+Argument types deliberately do one small job: convert one token (or a greedy sequence of tokens assembled by the
+dispatcher) into a Python value. Tree traversal and error selection belong to ``dispatcher``.
 """
 
 __all__ = (
@@ -26,12 +25,11 @@ __all__ = (
 
 from typing import ClassVar, Final, Generic, TypeVar
 
-from cmd_router.utils.context import _ErrorCodes
+from cmd_router.utils.context import error
 
 _ValueT = TypeVar("_ValueT")
 
-
-ArgumentParseError = _ErrorCodes.ArgumentParseError
+ArgumentParseError = error.ArgumentParseError
 
 
 class _ArgType(Generic[_ValueT]):

@@ -5,69 +5,33 @@
 
 """Concise public namespaces for command parsing.
 
-The implementation remains split across ``argument_type``, ``context``, and
-``dispatcher``. Callers should use the namespace aliases exported here so
-the kind of command object is clear at the call site.
+The implementation remains split across ``argument_type``, ``context``, and ``dispatcher``. Callers should use the
+namespace aliases exported here, so the kind of command object is clear at the call site.
 """
 
 __all__ = ("CmdError", "CmdNode", "CmdParse", "CmdType")
 
 from typing import Final
 
-from cmd_router.lib.command.argument_type import (
-    ArgumentType as _ArgumentType,
-)
-from cmd_router.lib.command.argument_type import (
-    GreedyString as _GreedyString,
-)
-from cmd_router.lib.command.argument_type import (
-    Int as _Int,
-)
-from cmd_router.lib.command.argument_type import (
-    String as _String,
-)
-from cmd_router.lib.command.argument_type import (
-    Word as _Word,
-)
-from cmd_router.lib.command.argument_type import (
-    greedy as _greedy_string,
-)
-from cmd_router.lib.command.argument_type import (
-    integer as _integer,
-)
-from cmd_router.lib.command.argument_type import (
-    string as _string,
-)
-from cmd_router.lib.command.argument_type import (
-    word as _word,
-)
-from cmd_router.lib.command.context import (
-    CommandContext as _CommandContext,
-)
-from cmd_router.lib.command.context import (
-    ParseError as _ParseError,
-)
-from cmd_router.lib.command.context import (
-    ParseResult as _ParseResult,
-)
-from cmd_router.lib.command.dispatcher import (
-    ArgumentNode as _ArgumentNode,
-)
-from cmd_router.lib.command.dispatcher import (
-    CommandDispatcher as _CommandDispatcher,
-)
-from cmd_router.lib.command.dispatcher import (
-    CommandNode as _CommandNode,
-)
-from cmd_router.lib.command.dispatcher import (
-    LiteralNode as _LiteralNode,
-)
-from cmd_router.lib.command.dispatcher import (
-    RootNode as _RootNode,
-)
+from cmd_router.lib.command.argument_type import ArgumentType as _ArgumentType
+from cmd_router.lib.command.argument_type import GreedyString as _GreedyString
+from cmd_router.lib.command.argument_type import Int as _Int
+from cmd_router.lib.command.argument_type import String as _String
+from cmd_router.lib.command.argument_type import Word as _Word
+from cmd_router.lib.command.argument_type import greedy as _greedy_string
+from cmd_router.lib.command.argument_type import integer as _integer
+from cmd_router.lib.command.argument_type import string as _string
+from cmd_router.lib.command.argument_type import word as _word
+from cmd_router.lib.command.context import CommandContext as _CommandContext
+from cmd_router.lib.command.context import ParseError as _ParseError
+from cmd_router.lib.command.context import ParseResult as _ParseResult
+from cmd_router.lib.command.dispatcher import ArgumentNode as _ArgumentNode
+from cmd_router.lib.command.dispatcher import CommandDispatcher as _CommandDispatcher
+from cmd_router.lib.command.dispatcher import CommandNode as _CommandNode
+from cmd_router.lib.command.dispatcher import LiteralNode as _LiteralNode
+from cmd_router.lib.command.dispatcher import RootNode as _RootNode
 from cmd_router.lib.tokenizer import tokenize as _tokenize
-from cmd_router.utils.context import _ErrorCodes
-from cmd_router.utils.context import error as _error
+from cmd_router.utils.context import _Error
 
 
 class _CmdType:
@@ -103,7 +67,7 @@ class _CmdNode:
     Dispatcher = _CommandDispatcher
 
 
-CmdError: Final[type[_ErrorCodes]] = _error
+CmdError: Final[type[_Error]] = _Error
 CmdType: Final[type[_CmdType]] = _CmdType
 CmdParse: Final[type[_CmdParse]] = _CmdParse
 CmdNode: Final[type[_CmdNode]] = _CmdNode
