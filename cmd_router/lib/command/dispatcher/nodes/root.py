@@ -7,9 +7,8 @@
 from collections.abc import Callable
 from typing import Any
 
-from cmd_router.lib.command.dispatcher.kinds import *
-
 from .command import CommandNode
+from .kinds import *
 
 _Handler = Callable[..., Any]
 

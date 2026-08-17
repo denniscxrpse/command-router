@@ -3,11 +3,12 @@
 #  Copyright (c) 2026 Ian Hylton
 #  All rights reserved.
 
+__all__ = ("CommandNode",)
 
 from collections.abc import Callable
 from typing import Any
 
-from cmd_router.lib.command.dispatcher.kinds import *
+from .kinds import *
 
 _Handler = Callable[..., Any]
 

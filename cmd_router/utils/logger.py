@@ -63,7 +63,7 @@ class _StderrWriter:
         text = sep.join(str(arg) for arg in message) + end
         with self._lock:
             print(text, sep="", end="", file=sys.stderr, flush=True)
-        return _CompletedWrite()
+        return _CompletedWrite()  # pyrefly: ignore [bad-return]
 
     async def async_write(self, *message: Any, sep: str = " ", end: str = "\n") -> None:
         self(*message, sep=sep, end=end)
@@ -193,6 +193,7 @@ class Logger:
     def raw(*message: Any, sep=" ", end="\n") -> None:
         log_handler.raw(*message, sep=sep, end=end)
 
+    # noinspection protected-member
     stderr: Final[_StderrWriter] = _StderrWriter(log_handler._stderr_lock)
 
     @staticmethod

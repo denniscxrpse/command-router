@@ -7,24 +7,20 @@
 
 __all__ = (
     "ArgumentNode",
-    "CommandDispatcher",
     "CommandNode",
     "LiteralNode",
     "RootNode",
+    "CommandDispatcher",
     "cmd_dispatcher",
 )
 
 from collections.abc import Callable
 from typing import Any, Final
 
-from cmd_router.lib.command.argument_type import *
 from cmd_router.lib.command.context import *
+from cmd_router.lib.command.dispatcher.nodes import *
+from cmd_router.lib.command.typing import *
 from cmd_router.lib.tokenizer import *
-
-from .nodes.argument import ArgumentNode
-from .nodes.command import CommandNode
-from .nodes.literal import LiteralNode
-from .nodes.root import RootNode
 
 _Handler = Callable[..., Any]
 
@@ -40,7 +36,7 @@ class CommandDispatcher:
         return self.root.add_child(node)
 
     def parse(self, command: str) -> ParseResult:
-        """Parse *command* and return its handler/context or best error."""
+        """Parse *command* and return its handler/context or the best error."""
         tokens = tokenize(command)
         if isinstance(tokens, int):
             failure = ParseError(

@@ -25,6 +25,16 @@ def _toml_grammar(command: str = "say") -> str:
     return f'[cmd-router]\nschema-version = 1\n\n[cmd-router.grammar]\n{command} = "<message...>"\n'
 
 
+GRAMMAR_JSON5 = "grammar.json5"
+GRAMMAR_TOML = "grammar.toml"
+GRAMMAR_TXT = "notes.txt"
+GRAMMAR_ERR = "err.json5"
+
+GRAMMAR_IGNORED = "ignored.json5"
+GRAMMAR_INCLUDE = "include.json5"
+GRAMMAR_INVALID = "invalid.json5"
+
+
 @pytest.fixture
 def router() -> CommandRouter:
     instance = CommandRouter.__new__(CommandRouter)
@@ -41,11 +51,11 @@ def test_normalize_merges_grammar_and_info(router: CommandRouter) -> None:
 
 
 def test_default_ignore_contains_one_filename() -> None:
-    assert flags.ignore == frozenset({"err.json5"})
+    assert flags.ignore == frozenset({GRAMMAR_ERR})
 
 
 def test_constructor_loads_non_lazy_fixtures(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    grammar = tmp_path / "grammar.json5"
+    grammar = tmp_path / GRAMMAR_JSON5
     grammar.write_text(_json_grammar(), encoding="utf-8")
     monkeypatch.setattr(paths, "FIXTURES", tmp_path)
     monkeypatch.setattr(flags, "lazy", False)
@@ -61,9 +71,9 @@ def test_constructor_loads_non_lazy_fixtures(tmp_path: Path, monkeypatch: pytest
 def test_init_grammar_loads_supported_files_and_skips_unknown_files(
     router: CommandRouter, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    json_file = tmp_path / "grammar.json5"
-    toml_file = tmp_path / "grammar.toml"
-    text_file = tmp_path / "notes.txt"
+    json_file = tmp_path / GRAMMAR_JSON5
+    toml_file = tmp_path / GRAMMAR_TOML
+    text_file = tmp_path / GRAMMAR_TXT
     json_file.write_text(_json_grammar("json"), encoding="utf-8")
     toml_file.write_text(_toml_grammar("toml"), encoding="utf-8")
     text_file.write_text("not a grammar", encoding="utf-8")
@@ -80,43 +90,45 @@ def test_init_grammar_loads_supported_files_and_skips_unknown_files(
 def test_init_grammar_ignores_a_filename(
     router: CommandRouter, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    ignored = tmp_path / "ignored.json5"
-    included = tmp_path / "included.json5"
+    ignored = tmp_path / GRAMMAR_IGNORED
+    include = tmp_path / GRAMMAR_INCLUDE
     ignored.write_text("invalid", encoding="utf-8")
-    included.write_text(_json_grammar(), encoding="utf-8")
+    include.write_text(_json_grammar(), encoding="utf-8")
     monkeypatch.setattr(flags, "ignore", frozenset({ignored.name}))
 
-    result = router._init_grammar([ignored, included])
+    result = router._init_grammar([ignored, include])
 
     assert result == ({"say": "<message...>"}, {"schema-version": 1})
 
 
+# noinspection DuplicatedCode
 def test_init_grammar_ignores_a_full_file_path(
     router: CommandRouter, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    ignored = tmp_path / "ignored.json5"
-    included = tmp_path / "included.json5"
+    ignored = tmp_path / GRAMMAR_IGNORED
+    include = tmp_path / GRAMMAR_INCLUDE
     ignored.write_text("invalid", encoding="utf-8")
-    included.write_text(_json_grammar(), encoding="utf-8")
+    include.write_text(_json_grammar(), encoding="utf-8")
     monkeypatch.setattr(flags, "ignore", frozenset({str(ignored)}))
 
-    result = router._init_grammar([ignored, included])
+    result = router._init_grammar([ignored, include])
 
     assert result == ({"say": "<message...>"}, {"schema-version": 1})
 
 
+# noinspection DuplicatedCode
 def test_init_grammar_ignores_files_under_a_directory(
     router: CommandRouter, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     ignored_dir = tmp_path / "ignored"
     ignored_dir.mkdir()
-    ignored = ignored_dir / "ignored.json5"
-    included = tmp_path / "included.json5"
+    ignored = ignored_dir / GRAMMAR_IGNORED
+    include = tmp_path / GRAMMAR_INCLUDE
     ignored.write_text("invalid", encoding="utf-8")
-    included.write_text(_json_grammar(), encoding="utf-8")
+    include.write_text(_json_grammar(), encoding="utf-8")
     monkeypatch.setattr(flags, "ignore", frozenset({str(ignored_dir)}))
 
-    result = router._init_grammar([ignored, included])
+    result = router._init_grammar([ignored, include])
 
     assert result == ({"say": "<message...>"}, {"schema-version": 1})
 
@@ -124,7 +136,7 @@ def test_init_grammar_ignores_files_under_a_directory(
 def test_init_grammar_returns_validation_error(
     router: CommandRouter, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    invalid = tmp_path / "invalid.json5"
+    invalid = tmp_path / GRAMMAR_INVALID
     invalid.write_text(_json_grammar().replace('"schema-version": 1', '"schema-version": -1'), encoding="utf-8")
     monkeypatch.setattr(flags, "ignore", frozenset())
 

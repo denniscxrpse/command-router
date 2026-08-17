@@ -7,10 +7,10 @@
 from collections.abc import Callable
 from typing import Any
 
-from cmd_router.lib.command.argument_type import *
-from cmd_router.lib.command.dispatcher.kinds import *
+from cmd_router.lib.command.typing import *
 
-from .command import CommandNode
+from .command import *
+from .kinds import *
 
 _Handler = Callable[..., Any]
 

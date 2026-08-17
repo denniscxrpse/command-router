@@ -13,6 +13,8 @@ from typing import Any
 class _GrammarSyntaxError(ValueError):
     """Report an invalid control grammar expression."""
 
+    ...
+
 
 @dataclass(frozen=True, slots=True)
 class _LiteralTerm:
@@ -158,7 +160,8 @@ class _GrammarParser:
 
         return tuple(tokens)
 
-    def _parse_argument(self, token: str) -> _ArgumentTerm:
+    @staticmethod
+    def _parse_argument(token: str) -> _ArgumentTerm:
         """Parse one argument declaration."""
         if not token.endswith(">"):
             raise _GrammarSyntaxError(f"invalid argument declaration {token!r}")

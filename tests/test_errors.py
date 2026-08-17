@@ -7,7 +7,7 @@ import pytest
 
 import main as entrypoint
 from cmd_router.lib.command import CmdError
-from cmd_router.lib.command.argument_type import ArgumentParseError
+from cmd_router.lib.command.typing import ArgumentParseError
 from cmd_router.utils.context import error
 
 

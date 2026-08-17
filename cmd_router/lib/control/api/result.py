@@ -56,7 +56,7 @@ class ControlResult:
         """Return a transport-friendly result mapping."""
         data: dict[str, Any] = {
             "ok": self.ok,
-            "code": int(self.code),
+            "code": self.code,
             "kind": self.kind,
             "input": self.input,
             "command": self.command,
@@ -71,7 +71,7 @@ class ControlResult:
                 "expected": self.error.expected,
                 "message": self.error.message,
                 "partial_args": dict(self.error.partial_args),
-                "code": None if self.error.code is None else int(self.error.code),
+                "code": None if self.error.code is None else self.error.code,
             }
         if self.message:
             data["message"] = self.message
@@ -100,7 +100,7 @@ class ControlInitialization:
         """Return a transport-friendly initialization mapping."""
         data: dict[str, Any] = {
             "ok": self.ok,
-            "code": int(self.code),
+            "code": self.code,
             "message": self.message,
             "command_count": self.command_count,
         }

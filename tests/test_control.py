@@ -55,7 +55,8 @@ def test_fixture_initialization_only_calls_the_declared_hooks(clean_context: Non
         def __init__(self) -> None:
             events.append("logic")
 
-        def say(self, **arguments: Any) -> dict[str, Any]:
+        @staticmethod
+        def say(**arguments: Any) -> dict[str, Any]:
             return arguments
 
     def setup() -> None:
@@ -68,7 +69,9 @@ def test_fixture_initialization_only_calls_the_declared_hooks(clean_context: Non
         Logic.__init__(logic)
         return logic
 
+    # pyrefly: ignore [missing-attribute]
     module.FixtureGrammarLogic = make_logic
+    # pyrefly: ignore [missing-attribute]
     module.setup = setup
 
     runner = Control()

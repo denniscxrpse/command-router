@@ -151,7 +151,7 @@ class Control:
             self._stderr_locked = False
 
     def __enter__(self) -> Self:
-        """Return this control surface for a context manager."""
+        """Return this control surface to a context manager."""
         return self
 
     def __exit__(self, *_arguments: Any) -> None:
