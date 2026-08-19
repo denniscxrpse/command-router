@@ -3,17 +3,28 @@
 #  Copyright (c) 2026 Ian Hylton
 #  All rights reserved.
 
+"""Shared constants and paths used by the command-router packages.
+
+``uctx`` is deliberately not a mutable command configuration object.  Its
+``c`` and ``k`` namespaces provide schema constants and serialized grammar
+keys; fixture-owned settings such as ``cmd_prefix``, the help policy, action
+functions, and argument overrides live on ``FixturesSetup`` instances in the
+control API.  Keeping this module limited to constants avoids a hidden global
+state between independent control surfaces and fixture initializations.
+"""
+
 __all__ = (
     "paths",
     "error",
-    "ctx",
+    "uctx",
+    "uctx_c",
+    "uctx_k",
 )
 
-from collections.abc import Callable
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from enum import IntEnum
 from pathlib import Path
-from typing import Any, Final
+from typing import Final
 
 
 @dataclass
@@ -31,6 +42,7 @@ class _Paths:
 
     ROOT: Path = _get_root()
     FIXTURES: Path = ROOT / "fixtures"
+    FIXTURES_HTTP: Path = FIXTURES / "http"
     LOGS_DIR: Path = ROOT / "logs"
 
 
@@ -60,98 +72,31 @@ class _Error(IntEnum):
         expected: str
 
 
-@dataclass
-class _Context:
+@dataclass(frozen=True, slots=True)
+class _UniversalContext:
+    """Namespace containing constants only; no command settings are stored here."""
+
     # noinspection pep8-naming
     class c:
-        """`Constants` namespace. We use ``c`` for quick access to these."""
+        """Constant values used while validating grammar files."""
 
         EMPTY_STR: Final[str] = ""
         "Yeah, literally. This is meant for readability."
         VALID_SCHEMAS: Final[frozenset[int]] = frozenset({1})
         "The valid schemas for the grammars."
 
-    # Values that can be set externally:
-    cmd_prefix: str = "/"
-    """The prefix for all commands.
+    # noinspection pep8-naming
+    class k:
+        """Serialized key names used by grammar containers."""
 
-    Any input that does not start with this prefix is treated as greedy (non-command) input.
-
-    Default:
-        "/"
-
-    Example:
-        >>> context.cmd_prefix = "!"
-        >>> # Now commands must start with "!" instead of "/"
-    """
-
-    control_no_help_keeps_help: bool = True
-    """Controls whether the built-in help command remains available.
-
-    When set to ``True``, the help command will always be available, even if no help text
-    is defined for commands. When set to ``False``, the help command can be overridden
-    or hidden.
-
-    Default:
-        True
-
-    See Also:
-        - ``command_action``: For overriding the help command when this is ``False``
-    """
-
-    command_action: dict[str, Callable[..., Any]] = field(default_factory=dict)
-    """Maps command names to their executable action functions.
-
-    This dictionary defines the behavior of each command. Each key is a command name
-    (as defined in your grammar files), and each value is a callable that will be
-    executed when that command is invoked.
-
-    Behavior:
-        - **Empty mapping**: Commands will load and parse successfully, but executing
-          them will have no effect.
-        - **Mismatched names**: If a command action name doesn't match any defined
-          command, the action is silently ignored. Conversely, if a command has no
-          matching action, it will load but do nothing when executed.
-        - **Built-in commands**: Cannot be overridden except for ``help``.
-
-    Overriding the help command:
-        To override the built-in ``help`` command, you must:
-
-        1. Set ``control_no_help_keeps_help = False``
-        2. Provide your own ``"help"`` entry in this dictionary
-
-        Other built-in commands are protected and cannot be overridden.
-
-    Default:
-        {} (empty dictionary)
-
-    Example:
-        >>> context.command_action = {
-        ...     "gamemode": lambda mode, target: set_gamemode(mode, target),
-        ...     "tell": lambda player, message: send_message(player, message),
-        ...     "say": lambda text: broadcast(text),
-        ... }
-
-    Warning:
-        Ensure command names in this dictionary exactly match those defined in your
-        grammar files. Name mismatches will cause commands to silently fail at runtime.
-
-    Note:
-        From the fixtures example: if your grammar defines a command named ``"say"``
-        but you provide an action named ``"saying"``, the ``"saying"`` action will be
-        ignored, and the ``"say"`` command will load but have no effect when executed.
-    """
-
-    command_args_ctrl: dict[str, Any] = field(default_factory=dict)
-    """Optional command argument overrides used by the control layer.
-
-    The preferred shape is ``{"command": {"argument": value}}``.  Keeping
-    this on the shared context preserves the small existing configuration
-    surface; :class:`cmd_router.lib.control._DeeperLevelContext` exposes the
-    same mapping for callers that need runtime control.
-    """
+        cmd_router: Final[str] = "cmd-router"
+        grammar: Final[str] = "grammar"
+        schema_version: Final[str] = "schema-version"
 
 
 paths: Final[_Paths] = _Paths()
 error: Final[type[_Error]] = _Error
-ctx: Final[_Context] = _Context()
+
+uctx: Final[_UniversalContext] = _UniversalContext()
+uctx_c: Final[type[_UniversalContext.c]] = uctx.c
+uctx_k: Final[type[_UniversalContext.k]] = uctx.k

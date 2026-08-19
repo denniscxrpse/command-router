@@ -31,3 +31,9 @@ target-version = ['py310']
 
 [tool.pytest.ini_options]
 pythonpath = ["."]
+
+[tool.pyrefly]
+project-includes = [
+    "**/*.py*",
+    "**/*.ipynb",
+]

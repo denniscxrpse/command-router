@@ -8,7 +8,7 @@ __all__ = (
     "CommandContext",
     "ParseError",
     "ParseResult",
-    "cmd_context",
+    "cmd_ctx",
 )
 
 from collections.abc import Callable
@@ -19,13 +19,13 @@ _Handler = Callable[..., Any]
 
 
 @dataclass
-class _Context:
+class _CommandContext:
     """Namespace reserved for shared command-context helpers."""
 
     ...
 
 
-cmd_context: Final[_Context] = _Context()
+cmd_ctx: Final[_CommandContext] = _CommandContext()
 
 
 @dataclass(frozen=True, slots=True)

@@ -1,30 +1,67 @@
-# Cmd-notation reference (summary)
+# Fixture reference
 
-Define the command first, followed by its grammar in cmd-notation format. Place examples above the commands they
-demonstrate.
+The files in this directory are the command router's fixture inputs. Grammar files (`json`/`.json5` and `.toml`)
+describe command syntax; `__init__.py` supplies the Python state and actions used by the control layer.
 
-The engine expects grammar definitions to use the following notation:
+## Grammar notation
+
+Define the command first, followed by its grammar in cmd-notation format. The engine supports:
 
 - `word` — required literal.
 - `(a|b|c)` — choice between alternatives.
 - `[item]` — optional token or group, such as `[args...]`.
 - `<name:type>` — required, typed argument.
-- `<name>` — required, untyped argument; its value is echoed as-is.
-- `<name...>` — greedy terminal argument; it captures everything that follows.
-- `<name:type=default>` — argument with a default value.
-- `'char'` — literal branch containing exactly one character.
-- `'*'` — built-in literal branch that selects all choices as a sentinel for a deeper branch.
+- `<name>` — required `word` argument.
+- `<name...>` — greedy terminal argument that captures the remaining input.
+- `<name:type=default>` — argument with an alternate omitted value.
+- `'char'` or `"literal"` — literal containing punctuation or whitespace.
 
-This is a summary. You may read the documentation for individual commands to learn more about their grammar and usage.
+See the individual grammar files for complete examples of choices, nesting, optional arguments, and greedy values.
 
-## Fixture logic
+## Python fixture contract
 
-When control is enabled, the router imports this module and calls only two hooks:
+The control API imports `fixtures/__init__.py` and looks for two definitions:
 
-1. `FixtureGrammarLogic()` to create the fixture's state.
-2. `setup()` to assign the command prefix and action mapping.
+1. `context_holder`, a class derived from
+   `cmd_router.api.FixturesContextHolder`.
+2. `SetupFixtures`, a class derived from
+   `cmd_router.api.FixturesSetup`.
 
-Keep state and setup-time work in `FixtureGrammarLogic.__init__`. Importing this
-file should only define the hooks and classes; command scripts should run from
-their action methods. The initialized logic object is available through the
-control layer's `deeper_level.fixture_logic` attribute.
+Initialization then proceeds as follows:
+
+1. `context_holder()` creates one state holder. Its `__init__` should call `super().__init__()` before setting an
+   application-specific state.
+2. The control layer assigns that holder to `SetupFixtures.logic`.
+3. `SetupFixtures()` calls `super().__init__()` and assigns its settings, such as `self.cmd_prefix` and
+   `self.command_action`.
+4. Grammar compilation reads the setup object, and the holder's bound methods execute commands.
+
+A minimal fixture looks like this:
+
+```python
+from typing import Any
+
+from cmd_router.api import FixturesContextHolder, FixturesSetup
+
+
+class Context(FixturesContextHolder):
+    def say(self, **arguments: Any) -> dict[str, Any]:
+        return self._record("say", arguments)
+
+
+context_holder = Context
+
+
+class SetupFixtures(FixturesSetup):
+    def __init__(self) -> None:
+        super().__init__()
+        self.cmd_prefix = "/"
+        self.command_action = {"say": self.logic.say}
+```
+
+`FixturesSetup` owns the command prefix, built-in-help policy, action mapping, and argument overrides for one control
+surface.
+
+Importing the fixture should define classes and aliases only. Put setup-time state in the holder or setup constructors
+and keep command work in action methods. The initialized objects remain available through
+`control.deeper_level.fixture_logic` and `control.deeper_level.fixture_setup`.

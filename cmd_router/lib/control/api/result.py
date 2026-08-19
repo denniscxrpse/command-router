@@ -3,7 +3,23 @@
 #  Copyright (c) 2026 Ian Hylton
 #  All rights reserved.
 
-"""Result objects exposed by the control API."""
+"""Structured results returned by control initialization and execution.
+
+The control API reports expected failures as values rather than requiring
+callers to catch parser, grammar, or action exceptions.  ``ControlResult``
+describes one command attempt and may represent ordinary non-command input,
+successful dispatch, tokenization/grammar mismatch, or an action failure.
+Successful parses retain the dispatcher ``ParseResult``, command context, and
+handler so integrations can inspect exactly what ran.  Parse failures retain
+the structured ``ParseError`` with its furthest token position and
+expectations.
+
+``ControlInitialization`` describes fixture loading and grammar compilation.
+Its ``exception`` field is a formatted diagnostic string, not the live
+exception object; this keeps results serializable while preserving useful
+failure context.  Both result types are immutable dataclasses, are truthy only
+when ``ok`` is true, and expose ``to_dict``/``as_dict`` for transport layers.
+"""
 
 from collections.abc import Callable
 from dataclasses import dataclass
@@ -11,12 +27,22 @@ from typing import Any
 
 from cmd_router.lib.command import CmdParse
 
+__all__ = ("ControlResult", "ControlInitialization")
+
 _Action = Callable[..., Any]
 
 
 @dataclass(frozen=True, slots=True)
 class ControlResult:
-    """Describe one command-control result."""
+    """Describe one command attempt and preserve its parse/execution details.
+
+    ``kind`` distinguishes the control-layer stage that produced the result.
+    For a successful command, ``context`` contains parsed and override-applied
+    arguments while ``parse_result`` contains the original parser result.  For
+    a parse failure, ``error`` contains the structured furthest failure.  For
+    an action failure, ``exception`` contains a printable exception summary
+    and ``handler`` identifies the handler that was selected.
+    """
 
     ok: bool
     code: int
@@ -84,7 +110,14 @@ class ControlResult:
 
 @dataclass(frozen=True, slots=True)
 class ControlInitialization:
-    """Describe the result of control initialization."""
+    """Describe fixture setup and grammar-compilation status.
+
+    ``command_count`` is populated on successful grammar compilation.  Fixture
+    failures use the centralized ``ControlFixtureError`` code, while malformed
+    setup or grammar values use the corresponding control initialization code.
+    The object is intentionally small so it can be returned directly from the
+    module-level API and serialized with ``to_dict``.
+    """
 
     ok: bool
     code: int

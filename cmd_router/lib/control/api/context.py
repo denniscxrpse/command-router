@@ -3,26 +3,63 @@
 #  Copyright (c) 2026 Ian Hylton
 #  All rights reserved.
 
-"""Live state exposed by the control API."""
+"""Live state and configuration exposed by the control API.
+
+``DeeperLevelContext`` is the inspection and runtime-override surface behind
+``Control``.  It owns one ``FixturesSetup`` instance, the compiled dispatcher,
+the grammar mapping used to build that dispatcher, and the most recent results.
+The setup object is deliberately per-control: settings no longer live on the
+process-wide ``uctx`` constants object.
+
+The control lifecycle replaces ``fixture_setup`` when a fixture is initialized.
+Before that happens, a private default ``FixturesSetup`` provides the normal
+prefix, help policy, empty action mapping, and empty argument-override mapping
+so direct programmatic use of ``Control`` remains possible without a fixture.
+The public properties in this module delegate to the active setup and are the
+supported way to inspect or change live configuration after initialization.
+
+Argument overrides are separate from grammar compilation.  They are applied
+to parsed arguments immediately before an action runs, so
+``set_command_args`` can change behavior without rebuilding the dispatcher.
+The action mapping is also live: compiler-generated handlers look up actions
+through the active setup when invoked.
+"""
 
 from collections.abc import Callable
 from types import ModuleType
 from typing import Any, Final
 
 from cmd_router.lib.command import CmdNode
-from cmd_router.utils.context import ctx
+from cmd_router.utils.logger import log
 
+from .fixtures import FixturesSetup
 from .result import ControlInitialization, ControlResult
+
+__all__ = ("DeeperLevelContext",)
 
 _Action = Callable[..., Any]
 
 
 class _DeeperLevelContext:
-    """Expose live dispatcher and fixture state to Python callers."""
+    """Expose live dispatcher, fixture, setup, and execution state.
 
-    def __init__(self, command_context: Any = ctx) -> None:
-        """Create a control context backed by *command_context*."""
-        self.context = command_context
+    The class remains private while ``DeeperLevelContext`` below is its public
+    alias.  A caller may construct it with a ``FixturesSetup`` for isolated
+    configuration, or omit the setup to receive a fresh default setup backed
+    by a harmless placeholder logic object.
+
+    ``fixture_module`` and ``fixture_logic`` are populated only after a
+    successful fixture initialization.  ``fixture_setup`` is the corresponding
+    configuration object.  The ``context`` property is retained as a concise
+    compatibility alias for that setup; it is no longer the old mutable
+    ``uctx`` object.
+    """
+
+    def __init__(self, setup: FixturesSetup | None = None) -> None:
+        """Create live control state backed by *setup* or fresh defaults."""
+        if setup is not None and not isinstance(setup, FixturesSetup):
+            raise TypeError("setup must be a FixturesSetup instance")
+        self._setup = setup if setup is not None else FixturesSetup(logic=object())
         self.dispatcher = CmdNode.Dispatcher()
         self.grammars: dict[str, str] = {}
         self.fixture_module: ModuleType | None = None
@@ -30,46 +67,113 @@ class _DeeperLevelContext:
         self.initialized = False
         self.last_result: ControlResult | None = None
         self.last_initialization: ControlInitialization | None = None
+        log.debug("context: deeper control state created (custom_setup=%s)", setup is not None)
+
+    @property
+    def setup(self) -> FixturesSetup:
+        """Return the active fixture-owned configuration object."""
+        return self._setup
+
+    @property
+    def context(self) -> FixturesSetup:
+        """Return ``setup`` through the historical context alias."""
+        return self._setup
+
+    @context.setter
+    def context(self, value: FixturesSetup) -> None:
+        """Replace the active setup through the compatibility alias."""
+        self._replace_setup(value)
+
+    @property
+    def fixture_setup(self) -> FixturesSetup:
+        """Return the setup associated with the current fixture or defaults."""
+        return self._setup
+
+    def _replace_setup(self, value: FixturesSetup) -> None:
+        """Validate and install a new active setup."""
+        if not isinstance(value, FixturesSetup):
+            raise TypeError("setup must be a FixturesSetup instance")
+        self._setup = value
+        log.info("context: active fixture setup replaced (%s)", type(value).__name__)
+
+    def attach_fixture(self, module: ModuleType, logic: Any, setup: FixturesSetup) -> None:
+        """Store a successfully initialized fixture and make its setup active."""
+        if not isinstance(module, ModuleType):
+            raise TypeError("fixture module must be a module")
+        if not isinstance(setup, FixturesSetup):
+            raise TypeError("fixture setup must be a FixturesSetup instance")
+        self._setup = setup
+        self.fixture_module = module
+        self.fixture_logic = logic
+        log.info("context: attached fixture %s with setup %s", module.__name__, type(setup).__name__)
+
+    @property
+    def cmd_prefix(self) -> str:
+        """Return the active command prefix."""
+        return self._setup.cmd_prefix
+
+    @cmd_prefix.setter
+    def cmd_prefix(self, value: str) -> None:
+        """Update the active setup's command prefix."""
+        self._setup.cmd_prefix = value
+
+    @property
+    def control_no_help_keeps_help(self) -> bool:
+        """Return the active setup's built-in-help policy."""
+        return self._setup.control_no_help_keeps_help
+
+    @control_no_help_keeps_help.setter
+    def control_no_help_keeps_help(self, value: bool) -> None:
+        """Update the active setup's built-in-help policy."""
+        self._setup.control_no_help_keeps_help = value
 
     @property
     def command_args_ctrl(self) -> dict[str, Any]:
-        """Return the command argument overrides."""
-        return self.context.command_args_ctrl
+        """Return live command argument overrides from the active setup."""
+        return self._setup.command_args_ctrl
 
     @command_args_ctrl.setter
     def command_args_ctrl(self, value: dict[str, Any]) -> None:
-        """Replace the command argument overrides."""
-        if not isinstance(value, dict):
-            raise TypeError("command_args_ctrl must be a dictionary")
-        self.context.command_args_ctrl = value
+        """Replace command argument overrides on the active setup."""
+        self._setup.command_args_ctrl = value
 
     @property
     def command_action(self) -> dict[str, _Action]:
-        """Return the command action mapping."""
-        return self.context.command_action
+        """Return the live action mapping from the active setup."""
+        return self._setup.command_action
 
     @command_action.setter
     def command_action(self, value: dict[str, _Action]) -> None:
-        """Replace the command action mapping."""
-        if not isinstance(value, dict):
-            raise TypeError("command_action must be a dictionary")
-        self.context.command_action = value
+        """Replace the active setup's action mapping."""
+        self._setup.command_action = value
 
     def set_command_args(self, command: str, **arguments: Any) -> None:
-        """Set runtime argument overrides for one command."""
+        """Set runtime argument overrides for one command.
+
+        Overrides are merged into the parsed arguments immediately before the
+        action is called.  A command-specific mapping takes precedence over
+        parsed values, and a flat entry whose key matches a parsed argument is
+        also accepted for small integrations.
+
+        :raises ValueError: if *command* is not a non-empty string.
+        :raises TypeError: if an existing command entry is not a mapping.
+        """
         if not isinstance(command, str) or not command:
             raise ValueError("command must be a non-empty string")
         overrides = self.command_args_ctrl.setdefault(command, {})
         if not isinstance(overrides, dict):
             raise TypeError(f"argument overrides for {command!r} must be a dictionary")
         overrides.update(arguments)
+        log.debug("context: set %d argument override(s) for %r", len(arguments), command)
 
     def clear_command_args(self, command: str | None = None) -> None:
-        """Clear one command's overrides, or all overrides."""
+        """Clear one command's overrides, or all active setup overrides."""
         if command is None:
             self.command_args_ctrl.clear()
+            log.debug("context: cleared all command argument overrides")
         else:
             self.command_args_ctrl.pop(command, None)
+            log.debug("context: cleared argument overrides for %r", command)
 
 
 DeeperLevelContext: Final[type[_DeeperLevelContext]] = _DeeperLevelContext

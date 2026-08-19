@@ -17,7 +17,8 @@ _DictOrError = _Dict | int
 
 
 def _logerr(c: int, s: str) -> int:
-    log.raw(f"{c} - {s}")
+    log.raw("grammar: validation: FAILURE")
+    log.error("grammar: %s (code=%s)", s, c)
     return c
 
 
@@ -32,26 +33,29 @@ def load_grammars(path: Path) -> tuple[_Dict, _Dict] | int:
     p = grammar_parsers.get(path.suffix.casefold())
 
     if p is None:
+        log.debug("grammar: ignoring unsupported file format %s", path)
         return error.UnsupportedGrammarFormatError
 
-    log.info(f"Parsing and validating ({path.name}):", end=" ")
+    log.info("grammar: parsing and validating (%s)", path.name)
+    log.debug("grammar: selected %s parser for %s", p.__name__, path)
 
     parsed = p(path)
     if isinstance(parsed, int):
+        log.error("grammar: parser rejected %s with code %s", path, parsed)
         return parsed
 
-    container = parsed.get("cmd-router")
+    container = parsed.get(uctx_k.cmd_router)
     if not isinstance(container, dict):
         return _logerr(error.InvalidGrammarError, "Missing 'cmd-router' object.")
 
-    grammar = container.get("grammar")
+    grammar = container.get(uctx_k.grammar)
     if not isinstance(grammar, dict):
         return _logerr(error.InvalidGrammarError, "Missing 'grammar' object.")
 
-    info = {key: value for key, value in container.items() if key != "grammar"}
+    info = {key: value for key, value in container.items() if key != uctx_k.grammar}
 
     errors: list[str] = []
-    allowed_keys = {"schema-version", "grammar"}
+    allowed_keys = {uctx_k.schema_version, uctx_k.grammar}
     unknown_keys = sorted(set(container) - allowed_keys)
 
     if unknown_keys:
@@ -62,19 +66,20 @@ def load_grammars(path: Path) -> tuple[_Dict, _Dict] | int:
     elif any(not isinstance(key, str) or not isinstance(value, str) for key, value in grammar.items()):
         errors.append("Grammar is not a valid map of string commands.")
 
-    schema_version = info.get("schema-version")
+    schema_version = info.get(uctx_k.schema_version)
     if not info or schema_version is None:
         errors.append("Info is invalid. Cannot tokenize without understanding the context.")
-    elif type(schema_version) is not int or schema_version not in ctx.c.VALID_SCHEMAS:
+    elif type(schema_version) is not int or schema_version not in uctx_c.VALID_SCHEMAS:
         errors.append(f"Unsupported schema version: {schema_version}.")
 
     if errors:
-        log.raw("FAILED")
+        log.raw(f"grammar: validation ({path.name}): FAILURE")
         log.warning("Validation failed!")
         log.debug(f"Parsed data: {parsed}, from: {path}")
         for e in errors:
-            log.error(e)
+            log.error("grammar: %s", e)
         return error.Abort
 
-    log.raw("OK")
+    log.raw(f"grammar: validation ({path.name}): OK")
+    log.info("grammar: loaded %d command entr%s from %s", len(grammar), "y" if len(grammar) == 1 else "ies", path.name)
     return grammar, info

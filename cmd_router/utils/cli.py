@@ -10,7 +10,8 @@ from dataclasses import dataclass
 from typing import Final, final
 
 import click
-from icecream import ic
+
+from cmd_router.utils.logger import log
 
 _help = ["-h", "--help"]
 
@@ -80,25 +81,26 @@ class EnvFlags:
     This flag will tell the Command Router to initialize the `control` module. A test suite provided by the
     Command Router (cmd-router), **not recommended** to use it in production for obvious reasons.
 
-    After determining the flags `lazy` and `ignore`, we use this flag to either (if `True`) enable or (if `False`)
+    After determining the flags ``lazy`` and ``ignore``, we use this flag to either (if `True`) enable or (if `False`)
     disable the initialization of the `control` module. This flag defaults to `False`.
 
     This module initializes the cmd-router under (either) default or custom conditions, depending on the flags; if
-    `lazy` is `True`, the `control` module will not be initialized unless the user enters the correct TOML or JSON
-    file to the HTTP port, otherwise (`lazy` is `False`), we'll wait until we have loaded all `./fixtures` files. The
-    same goes with `ignore` as we wait to handle and load the correct specified filenames, full file paths, or
-    directory paths. In summary, you'll have to wait until everything is loaded before you can use the `control` module.
+    ``lazy`` is `True`, the `control` module will not be initialized unless the user enters the correct TOML or JSON
+    file to the HTTP port, otherwise (``lazy`` is `False`), we'll wait until we have loaded all ``./fixtures`` files. 
+    The same goes with ``ignore`` as we wait to handle and load the correct specified filenames, full file paths, or
+    directory paths. In summary, you'll have to wait until everything is loaded before you can use the 
+    ``control`` module.
 
-    Once ready, we'll pass control to the `control` module, which will do, in summary: 1. Initialize a `shell` like
+    Once ready, we'll pass control to the ``control`` module, which will do, in summary: 1. Initialize a `shell` like
     interface (this is mainly for comfort, we **DO NOT** initialize an actual shell), you may write the commands in
     this interface, test their behaviour, and see live debug information. 2. Test of special, built-in commands which
     will help you to understand even further how the `cmd-notation` works. You can disable this by setting
     `control_no_help` to `True`.
 
-    If you have a different grammar in `./fixtures`, or you are going to send a completely different grammar file under
-    our HTTP port, we recommend to disable `control_no_help` to keep things straightforward. Following this,
-    we also recommend to check `./fixtures/__init__.py` to see if your custom grammar logic's is correct, and if not,
-    well, that's your problem.
+    If you have a different grammar in ``./fixtures``, or you are going to send a completely different grammar file
+    under our HTTP port, we recommend disabling `control_no_help` to keep things straightforward. Check
+    ``./fixtures/__init__.py`` for the ``context_holder`` and ``SetupFixtures`` fixture contract when customizing
+    command state or actions.
     """
 
     control_no_help: bool = False
@@ -149,4 +151,4 @@ def init_flags(**kwargs) -> None:
         # caller that has already configured `flags` programmatically.
         if value is not None and hasattr(flags, key):
             setattr(flags, key, value)
-    ic(flags)
+    log.debug("cli: flags initialized: %r", flags)

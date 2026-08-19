@@ -18,7 +18,6 @@ from uuid import uuid4
 
 import json5
 import tomllib
-from icecream import ic
 
 from cmd_router.api import Control, ControlInitialization, ControlResult
 from cmd_router.grammar.loader import *
@@ -34,47 +33,60 @@ class CommandRouter:
     _info: _Dict = {}
 
     def __init__(self) -> None:
+        log.info("router: initialization started")
         self._grammars = {}
         self._info = {}
         self.control = Control()
+        log.debug(
+            "router: flags (lazy=%s, control=%s, control_no_help=%s, ignore=%s)",
+            flags.lazy,
+            flags.control,
+            flags.control_no_help,
+            flags.ignore,
+        )
 
         # Get every single file in fixtures/*
         if flags.lazy:
-            # pass control to lazy_init
+            log.info("router: lazy grammar loading enabled")
             self._lazy_init()
-            self._initialize_control()
+            self._control_init()
+            log.info("router: initialization completed")
             return
-        files = [path for path in paths.FIXTURES.iterdir() if path.is_file()]
-        result = self._init_grammar(files)
-        if isinstance(result, int):
-            log.critical(f"Could not initialize grammars ({result}).")
-        self._initialize_control()
-        ic(self._grammars, self._info)
-        log.info("ready")
 
-    def _initialize_control(self) -> None:
+        files = [path for path in paths.FIXTURES.iterdir() if path.is_file()]
+        log.debug("router: discovered %d fixture file(s) in %s", len(files), paths.FIXTURES)
+        result = self._grammar_init(files)
+        if isinstance(result, int):
+            log.error("router: grammar initialization failed (%s); continuing with loaded data", result)
+
+        self._control_init()
+        log.debug("router: normalized grammars=%r; info=%r", self._grammars, self._info)
+
+        log.info("router: initialization completed (%d command grammar(s))", len(self._grammars))
+
+    def _control_init(self) -> None:
         """Load fixture behavior only when the control flag requests it."""
         if not flags.control:
+            log.debug("router: control initialization disabled")
             return
+        log.info("router: initializing control")
         result = self.control.initialize(
             self._grammars,
             fixture=paths.FIXTURES,
             keep_help=not flags.control_no_help,
         )
         if not result.ok:
-            log.critical(f"Could not initialize control ({result.code}): {result.message}")
+            log.error("router: control initialization failed (%s): %s", result.code, result.message)
+            return
+        log.info("router: control ready (%d grammar(s))", result.command_count)
 
     def execute(self, command: Any) -> ControlResult:
         """Execute through the configured control surface."""
         return self.control.execute(command)
 
-    dispatch = execute
-
     async def execute_async(self, command: Any) -> ControlResult:
         """Async counterpart to :meth:`execute`."""
         return await self.control.execute_async(command)
-
-    async_dispatch = execute_async
 
     @property
     def deeper_level(self) -> Any:
@@ -84,8 +96,9 @@ class CommandRouter:
     def _lazy_init(self) -> None:
         """Load the first valid grammar received through the local HTTP endpoint."""
 
+        log.info("router: starting lazy grammar server")
         # Keep HTTP grammars in a persistent cache between application runs.
-        http_dir = paths.FIXTURES / "http"
+        http_dir = paths.FIXTURES_HTTP
         # Stop serving requests after one grammar loads successfully.
         state = {"success": False}
         # Let the request handler update this router instance.
@@ -101,12 +114,14 @@ class CommandRouter:
                     self.wfile.write(body)
 
             def _invalid(self, message: str) -> None:
+                log.warning("router: lazy request rejected: %s", message)
+                log.error("router: rejecting malformed lazy request; waiting for another request")
                 log.stderr(1)
-                log.warning(message)
                 self._reply(400, b"1\n")
 
             # noinspection pep8-naming
             def do_POST(self) -> None:
+                log.debug("router: lazy server received POST request for %s", self.path)
                 # Read and validate the request body length.
                 try:
                     content_length = int(self.headers.get("Content-Length", "-1"))
@@ -120,6 +135,7 @@ class CommandRouter:
 
                 # Decode the grammar as UTF-8 text.
                 payload = self.rfile.read(content_length)
+                log.debug("router: lazy request body read (%d byte(s))", len(payload))
                 try:
                     text = payload.decode("utf-8")
                 except UnicodeDecodeError:
@@ -140,6 +156,7 @@ class CommandRouter:
                 if suffix is None:
                     self._invalid("HTTP body is not valid JSON5 or TOML.")
                     return
+                log.debug("router: lazy request recognized as %s", suffix)
 
                 # Reuse an identical grammar already saved by an earlier run.
                 existing: Path | None = None
@@ -153,10 +170,12 @@ class CommandRouter:
                             continue
                 except OSError:
                     # Handle the request as new when the cache cannot be scanned.
-                    pass
+                    log.warning("router: could not scan the persisted lazy grammar cache")
+                    log.error("router: continuing with this request as a new grammar")
 
                 if existing is not None:
                     # Load the cached grammar into this router instance.
+                    log.info("router: reusing persisted lazy grammar %s", existing.name)
                     result = load_grammars(existing)
                     if isinstance(result, int):
                         self._invalid("HTTP grammar has an invalid schema.")
@@ -164,7 +183,7 @@ class CommandRouter:
 
                     router._normalize(result)
                     log.stderr(0)
-                    log.debug(f"Reused HTTP grammar: {existing.name}")
+                    log.debug("router: reused grammar normalized (%d command(s))", len(result[0]))
                     state["success"] = True
                     self._reply(204)
                     return
@@ -175,7 +194,8 @@ class CommandRouter:
                     http_dir.mkdir(parents=True, exist_ok=True)
                     target.write_bytes(payload)
                     result = load_grammars(target)
-                except OSError:
+                except OSError as exception:
+                    log.error("router: could not persist lazy grammar %s: %s", target, exception)
                     self._invalid("Could not save the HTTP grammar.")
                     return
 
@@ -188,7 +208,8 @@ class CommandRouter:
                 # Store the grammar and signal that initialization is complete.
                 router._normalize(result)
                 log.stderr(0)
-                log.debug(f"Saved HTTP grammar: {target.name}")
+                log.info("router: saved and loaded lazy grammar %s", target.name)
+                log.debug("router: saved grammar normalized (%d command(s))", len(result[0]))
                 state["success"] = True
                 self._reply(204)
 
@@ -199,6 +220,7 @@ class CommandRouter:
 
         # Bind an ephemeral localhost port and announce it to the client.
         server = HTTPServer(("127.0.0.1", 0), _Handler)
+        log.info("router: lazy grammar server listening on localhost")
         log.stderr(server.server_port)
         try:
             # Process requests until a valid grammar is accepted.
@@ -207,9 +229,13 @@ class CommandRouter:
         finally:
             # Always release the listening socket.
             server.server_close()
+            log.info("router: lazy grammar server stopped")
+            log.raw("router: lazy grammar server: ", end="")
+            log.raw("OK" if state["success"] else "FAILURE")
 
-    def _init_grammar(self, f: list[Path] | Path) -> tuple[_Dict, _Dict] | int:
+    def _grammar_init(self, f: list[Path] | Path) -> tuple[_Dict, _Dict] | int:
         files = f if isinstance(f, list) else [f]
+        log.info("router: loading %d grammar file(s)", len(files))
 
         # Keep bare filenames fast while also accepting full file or directory paths.
         ignored_names: set[str] = set()
@@ -227,7 +253,7 @@ class CommandRouter:
         # Load grammars unless their name or path was explicitly ignored.
         for file in files:
             if file.name in ignored_names:
-                log.debug(f"Ignoring: {file.name}!")
+                log.debug("router: ignoring grammar file by name: %s", file.name)
                 continue
             if ignored_paths:
                 try:
@@ -235,17 +261,28 @@ class CommandRouter:
                 except (OSError, RuntimeError):
                     file_path = file.absolute()
                 if any(file_path == ignored or ignored in file_path.parents for ignored in ignored_paths):
+                    log.debug("router: ignoring grammar file by path: %s", file)
                     continue
+            log.debug("router: loading grammar file %s", file)
             result = load_grammars(file)
             if isinstance(result, int):
                 if result == error.UnsupportedGrammarFormatError:
+                    log.debug("router: skipped unsupported grammar file %s", file)
                     continue
+                log.error("router: grammar file %s failed with code %s", file, result)
                 return result
             self._normalize(result)
 
+        log.info("router: grammar loading completed (%d command(s))", len(self._grammars))
         return self._grammars, self._info
 
     def _normalize(self, t: tuple[_Dict, _Dict]) -> None:
         grammars, info = t
         self._grammars.update(grammars)
         self._info.update(info)
+        log.debug(
+            "router: normalized grammar batch (commands=%d, info_keys=%s, totals=%d)",
+            len(grammars),
+            tuple(info),
+            len(self._grammars),
+        )

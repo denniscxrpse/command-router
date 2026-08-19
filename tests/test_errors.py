@@ -9,6 +9,7 @@ import main as entrypoint
 from cmd_router.lib.command import CmdError
 from cmd_router.lib.command.typing import ArgumentParseError
 from cmd_router.utils.context import error
+from cmd_router.utils.logger import log
 
 
 def test_error_codes_do_not_classify_exceptions() -> None:
@@ -35,3 +36,11 @@ def test_main_logs_exception_message_and_returns_abort(monkeypatch: pytest.Monke
 
     assert entrypoint.main() == error.Abort
     assert messages == ["bad value"]
+
+
+def test_diagnostic_logs_are_formatted_on_stdout(capsys: pytest.CaptureFixture[str]) -> None:
+    log.info("logger smoke test: %s", "stdout")
+
+    captured = capsys.readouterr()
+    assert "logger smoke test: stdout" in captured.out
+    assert captured.err == ""

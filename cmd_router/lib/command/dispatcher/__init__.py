@@ -21,6 +21,7 @@ from cmd_router.lib.command.context import *
 from cmd_router.lib.command.dispatcher.nodes import *
 from cmd_router.lib.command.typing import *
 from cmd_router.lib.tokenizer import *
+from cmd_router.utils.logger import log
 
 _Handler = Callable[..., Any]
 
@@ -30,15 +31,19 @@ class CommandDispatcher:
 
     def __init__(self, root: RootNode | None = None) -> None:
         self.root = root if root is not None else RootNode()
+        log.debug("dispatcher: created with root containing %d child node(s)", len(self.root.children))
 
     def register(self, node: CommandNode) -> CommandNode:
         """Register a top-level node and return it."""
+        log.debug("dispatcher: registering root node %r (%s)", node.name, node.kind)
         return self.root.add_child(node)
 
     def parse(self, command: str) -> ParseResult:
         """Parse *command* and return its handler/context or the best error."""
+        log.debug("dispatcher: tokenizing input %r", command)
         tokens = tokenize(command)
         if isinstance(tokens, int):
+            log.error("dispatcher: tokenization failed with code %s", tokens)
             failure = ParseError(
                 kind="tokenization",
                 token_index=0,
@@ -49,9 +54,17 @@ class CommandDispatcher:
             return ParseResult(error=failure)
 
         token_values = tuple(tokens)
+        log.debug("dispatcher: received %d token(s): %r", len(token_values), token_values)
         result = self._walk(self.root, token_values, 0, {}, command)
         if isinstance(result, ParseResult):
+            log.debug("dispatcher: parse matched at token %d", result.context.cursor if result.context else -1)
             return result
+        log.error(
+            "dispatcher: parse failed (%s) at token %d; expected=%s",
+            result.kind,
+            result.token_index,
+            result.expected,
+        )
         return ParseResult(error=result)
 
     def dispatch(self, command: str) -> ParseResult:
@@ -66,8 +79,16 @@ class CommandDispatcher:
         args: dict[str, Any],
         original_input: str,
     ) -> ParseResult | ParseError:
+        log.debug(
+            "dispatcher: visiting node %r at token %d/%d with args=%r",
+            node.label or "<root>",
+            index,
+            len(tokens),
+            args,
+        )
         if index == len(tokens):
             if node.command is not None:
+                log.debug("dispatcher: terminal handler found at %r", node.label or "<root>")
                 return ParseResult(
                     handler=node.command,
                     context=CommandContext(
@@ -77,6 +98,7 @@ class CommandDispatcher:
                         tokens=tokens,
                     ),
                 )
+            log.debug("dispatcher: input ended before a command was complete at %r", node.label or "<root>")
             return self._incomplete(node, index, args)
 
         literal_children = [child for child in node.children if isinstance(child, LiteralNode)]
@@ -86,6 +108,7 @@ class CommandDispatcher:
         for child in literal_children:
             if child.name != tokens[index]:
                 continue
+            log.debug("dispatcher: trying literal %r at token %d", child.name, index)
             result = self._walk(child, tokens, index + 1, args, original_input)
             if isinstance(result, ParseResult):
                 return result
@@ -95,6 +118,7 @@ class CommandDispatcher:
             value = " ".join(tokens[index:]) if child.greedy else tokens[index]
             parsed = child.argument_type.parse(value)
             if isinstance(parsed, ArgumentParseError):
+                log.debug("dispatcher: argument %r rejected value %r: %s", child.label, value, parsed.message)
                 failures.append(
                     ParseError(
                         kind="invalid_argument",
@@ -109,13 +133,16 @@ class CommandDispatcher:
             next_args = dict(args)
             next_args[child.name] = parsed
             next_index = len(tokens) if child.greedy else index + 1
+            log.debug("dispatcher: argument %r accepted value %r", child.label, parsed)
             result = self._walk(child, tokens, next_index, next_args, original_input)
             if isinstance(result, ParseResult):
                 return result
             failures.append(result)
 
         if failures:
+            log.debug("dispatcher: selecting the best of %d branch failure(s)", len(failures))
             return self._best_error(failures)
+        log.debug("dispatcher: no child matched token %r at index %d", tokens[index], index)
         return ParseError(
             kind="unexpected_token",
             token_index=index,
@@ -127,6 +154,7 @@ class CommandDispatcher:
     def _incomplete(self, node: CommandNode, index: int, args: dict[str, Any]) -> ParseError:
         expected = self._expected(node)
         message = "incomplete command" if not expected else f"expected one of: {', '.join(expected)}"
+        log.debug("dispatcher: incomplete command at token %d; expected=%s", index, expected)
         return ParseError(
             kind="incomplete_command",
             token_index=index,
@@ -144,11 +172,13 @@ class CommandDispatcher:
         furthest = max(error.token_index for error in errors)
         candidates = [error for error in errors if error.token_index == furthest]
         if len(candidates) == 1:
+            log.debug("dispatcher: best error is the only failure at token %d", furthest)
             return candidates[0]
 
         first = candidates[0]
         expected = tuple(dict.fromkeys(item for candidate in candidates for item in candidate.expected))
         partial_args = max(candidates, key=lambda candidate: len(candidate.partial_args)).partial_args
+        log.debug("dispatcher: merged %d furthest failures at token %d", len(candidates), furthest)
         return ParseError(
             kind=first.kind,
             token_index=first.token_index,

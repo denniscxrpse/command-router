@@ -14,6 +14,7 @@ __all__ = ("tokenize",)
 import shlex
 
 from cmd_router.utils.context import error
+from cmd_router.utils.logger import log
 
 
 def tokenize(command: str) -> list[str] | int:
@@ -24,10 +25,14 @@ def tokenize(command: str) -> list[str] | int:
     malformed command strings return the corresponding tokenizer error code.
     """
 
+    log.debug("tokenizer: received input of type %s", type(command).__name__)
     if not isinstance(command, str):
+        log.warning("tokenizer: cannot tokenize non-string input (%s)", type(command).__name__)
         return error.TokenizeUnsupportedTypeError
-
     try:
-        return shlex.split(command, comments=False, posix=True)
-    except ValueError:
+        tokens = shlex.split(command, comments=False, posix=True)
+    except ValueError as exception:
+        log.error("tokenizer: malformed command input: %s", exception)
         return error.TokenizeInvalidError
+    log.debug("tokenizer: produced %d token(s): %r", len(tokens), tokens)
+    return tokens

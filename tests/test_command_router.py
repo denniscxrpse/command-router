@@ -7,22 +7,19 @@ import pytest
 import cmd_router as command_router_module
 from cmd_router import CommandRouter
 from cmd_router.utils.cli import flags
-from cmd_router.utils.context import error, paths
+from cmd_router.utils.context import error, paths, uctx_k
+
+CMD_ROUTER = uctx_k.cmd_router
+SCHEMA_VERSION = uctx_k.schema_version
+GRAMMAR = uctx_k.grammar
 
 
 def _json_grammar(command: str = "say") -> str:
-    return (
-        "{\n"
-        '  "cmd-router": {\n'
-        '    "schema-version": 1,\n'
-        f'    "grammar": {{"{command}": "<message...>"}}\n'
-        "  }\n"
-        "}\n"
-    )
+    return "{" f'"{CMD_ROUTER}":' "{" f'"{SCHEMA_VERSION}": 1,' f'"{GRAMMAR}":{{"{command}": "<message...>"}}' "}}"
 
 
 def _toml_grammar(command: str = "say") -> str:
-    return f'[cmd-router]\nschema-version = 1\n\n[cmd-router.grammar]\n{command} = "<message...>"\n'
+    return f'[{CMD_ROUTER}]\n{SCHEMA_VERSION}=1\n[{CMD_ROUTER}.{GRAMMAR}]\n{command}="<message...>"'
 
 
 GRAMMAR_JSON5 = "grammar.json5"
@@ -44,10 +41,10 @@ def router() -> CommandRouter:
 
 
 def test_normalize_merges_grammar_and_info(router: CommandRouter) -> None:
-    router._normalize(({"say": "<message...>"}, {"schema-version": 1}))
+    router._normalize(({"say": "<message...>"}, {SCHEMA_VERSION: 1}))
 
     assert router._grammars == {"say": "<message...>"}
-    assert router._info == {"schema-version": 1}
+    assert router._info == {SCHEMA_VERSION: 1}
 
 
 def test_default_ignore_contains_one_filename() -> None:
@@ -65,7 +62,7 @@ def test_constructor_loads_non_lazy_fixtures(tmp_path: Path, monkeypatch: pytest
     router = CommandRouter()
 
     assert router._grammars == {"say": "<message...>"}
-    assert router._info == {"schema-version": 1}
+    assert router._info == {SCHEMA_VERSION: 1}
 
 
 def test_init_grammar_loads_supported_files_and_skips_unknown_files(
@@ -79,11 +76,11 @@ def test_init_grammar_loads_supported_files_and_skips_unknown_files(
     text_file.write_text("not a grammar", encoding="utf-8")
     monkeypatch.setattr(flags, "ignore", frozenset())
 
-    result = router._init_grammar([json_file, toml_file, text_file])
+    result = router._grammar_init([json_file, toml_file, text_file])
 
     assert result == (
         {"json": "<message...>", "toml": "<message...>"},
-        {"schema-version": 1},
+        {SCHEMA_VERSION: 1},
     )
 
 
@@ -96,9 +93,9 @@ def test_init_grammar_ignores_a_filename(
     include.write_text(_json_grammar(), encoding="utf-8")
     monkeypatch.setattr(flags, "ignore", frozenset({ignored.name}))
 
-    result = router._init_grammar([ignored, include])
+    result = router._grammar_init([ignored, include])
 
-    assert result == ({"say": "<message...>"}, {"schema-version": 1})
+    assert result == ({"say": "<message...>"}, {SCHEMA_VERSION: 1})
 
 
 # noinspection DuplicatedCode
@@ -111,9 +108,9 @@ def test_init_grammar_ignores_a_full_file_path(
     include.write_text(_json_grammar(), encoding="utf-8")
     monkeypatch.setattr(flags, "ignore", frozenset({str(ignored)}))
 
-    result = router._init_grammar([ignored, include])
+    result = router._grammar_init([ignored, include])
 
-    assert result == ({"say": "<message...>"}, {"schema-version": 1})
+    assert result == ({"say": "<message...>"}, {SCHEMA_VERSION: 1})
 
 
 # noinspection DuplicatedCode
@@ -128,19 +125,19 @@ def test_init_grammar_ignores_files_under_a_directory(
     include.write_text(_json_grammar(), encoding="utf-8")
     monkeypatch.setattr(flags, "ignore", frozenset({str(ignored_dir)}))
 
-    result = router._init_grammar([ignored, include])
+    result = router._grammar_init([ignored, include])
 
-    assert result == ({"say": "<message...>"}, {"schema-version": 1})
+    assert result == ({"say": "<message...>"}, {SCHEMA_VERSION: 1})
 
 
 def test_init_grammar_returns_validation_error(
     router: CommandRouter, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     invalid = tmp_path / GRAMMAR_INVALID
-    invalid.write_text(_json_grammar().replace('"schema-version": 1', '"schema-version": -1'), encoding="utf-8")
+    invalid.write_text(_json_grammar().replace(f'"{SCHEMA_VERSION}": 1', f'"zz{SCHEMA_VERSION}": -1'), encoding="utf-8")
     monkeypatch.setattr(flags, "ignore", frozenset())
 
-    result = router._init_grammar(invalid)
+    result = router._grammar_init(invalid)
 
     assert result == error.Abort
 
@@ -165,9 +162,11 @@ def _post_to_lazy_router(
 
     monkeypatch.setattr(command_router_module, "HTTPServer", _RecordingHTTPServer)
     monkeypatch.setattr(paths, "FIXTURES", fixture_root)
+    monkeypatch.setattr(paths, "FIXTURES_HTTP", fixture_root / "http")
 
     def serve() -> None:
         try:
+            # noinspection protected-member
             router._lazy_init()
         except BaseException as exception:  # pragma: no cover - surfaced by the assertion below
             errors.append(exception)
@@ -211,4 +210,4 @@ def test_lazy_init_reuses_an_identical_persisted_grammar(
     assert _post_to_lazy_router(monkeypatch, second, [payload], tmp_path) == [204]
     assert len(list((tmp_path / "http").glob(f"grammar-*{extension}"))) == 1
     assert second._grammars == {"say": "<message...>"}
-    assert second._info == {"schema-version": 1}
+    assert second._info == {SCHEMA_VERSION: 1}

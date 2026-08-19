@@ -57,6 +57,18 @@ Preserve the existing Clear BSD license header in new Python files.
 - Preserve structured parse information: handler, original input, parsed arguments, token position, expected next items,
   and the furthest failure.
 
+## Logging
+
+- Use `log.debug`, `log.info`, `log.warning`, `log.error`, and `log.critical` for engine diagnostics; these methods write
+  to stdout and should describe the stage, decision, and outcome when that context is useful.
+- Use `log.raw` only for controlled progress/status fragments such as `"grammar: "` followed by `"OK"` or
+  `"FAILURE"`. Do not pass arbitrary user input to `raw`, because it is intentionally unescaped.
+- Treat `warning` as an expected but noteworthy condition, `error` as a recoverable formatting/configuration or
+  operation failure, and `critical` as a failure after which execution cannot safely continue. Do not label a failure
+  `critical` when the caller receives a structured recovery result.
+- Never use `log.stderr` or `log.stderr_async` for diagnostics. Those writers are reserved for listener/protocol data
+  explicitly consumed from stderr.
+
 ## Code style
 
 - Prefer readable implementations to clever compression. Public behavior should be easy to discover and use from the

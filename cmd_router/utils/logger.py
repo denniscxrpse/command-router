@@ -72,8 +72,11 @@ class _StderrWriter:
 @final
 class LoggerHandler:
     def __init__(self) -> None:
-        """
-        The LoggerHandler prints colorful logs to terminal and Stores logs in disk and writes them to a file.
+        """Render application logs to stdout with a consistent level style.
+
+        The ordinary log methods are intentionally stdout-only.  ``stderr`` and
+        ``stderr_async`` are separate listener/protocol writers and must not be
+        used as an alternate error channel.
         """
         self.logger = _log.getLogger(__name__)
         self.logger.setLevel(_log.DEBUG)
@@ -86,6 +89,7 @@ class LoggerHandler:
         }
 
         self.log_id = datetime.now().strftime("%m-%d-%Y.%H:%M:%S")
+        self._stdout_lock = RLock()
         self._stderr_lock = RLock()
         self._stderr_proxy: _LockedStderr | None = None
         self._stderr_original: TextIO | None = None
@@ -141,28 +145,54 @@ class LoggerHandler:
         color = self._colors.get(level, "#291f1c")
         return HTML(f'<style fg="{color}">{escape(msg)}</style>')
 
+    @staticmethod
+    def _format_message(message: tuple[Any, ...], sep: str) -> str:
+        """Format logger arguments without breaking its existing print-like API."""
+        if len(message) > 1 and isinstance(message[0], str) and "%" in message[0]:
+            try:
+                return message[0] % tuple(message[1:])
+            except (TypeError, ValueError):
+                # A malformed diagnostic should still be visible rather than
+                # raising a second exception while reporting the first one.
+                pass
+        return sep.join(str(arg) for arg in message)
+
     def log(self, level: int, *message: Any, sep: str, end: str) -> None:
-        """Logs a message into a file and prompts the same message into the stream with colored formatting."""
-        m: str = sep.join(str(arg) for arg in message)
+        """Write a colored, timestamped level message to stdout.
+
+        Calls remain print-like when no format marker is present.  A message
+        containing ``%s``/``%r``-style markers may pass values separately,
+        which keeps diagnostics readable without requiring every call site to
+        build an eager string.
+        """
+        m = self._format_message(message, sep)
         final_message = self.get_final_message(level, m + end)
 
-        # Print to stdout
-        print_formatted_text(self.html(final_message["msg"], level), sep="", end="")
+        with self._stdout_lock:
+            print_formatted_text(
+                self.html(final_message["msg"], level),
+                sep="",
+                end="",
+                file=sys.stdout,
+                flush=True,
+            )
 
-    @staticmethod
-    def raw(*message: Any, sep: str, end: str) -> None:
-        """
-        Logs a message into a file and prompts the same message into the stream.
+    def raw(self, *message: Any, sep: str, end: str) -> None:
+        """Write an unadorned progress/status message to stdout.
 
-        Against the log method, this method will simply not add the datetime and level into the stream;
-        this also means that levels are not considered a rule, always printing into the stdout.
+        Unlike :meth:`log`, this method does not add a timestamp or level.  It
+        is useful for a two-part status such as ``"grammar: "`` followed by
+        ``"OK"`` or ``"FAILURE"``.
 
-        Separators and final characters will still apply to the formatting, including injected HTML messages.
+        Separators and final characters still apply to the formatting.  The
+        message is not escaped because this helper is intended for controlled
+        status text rather than arbitrary user input.
         """
         m: str = sep.join(str(arg) for arg in message)
         final_message = m + end
 
-        print_formatted_text(HTML(final_message), sep="", end="")
+        with self._stdout_lock:
+            print_formatted_text(HTML(final_message), sep="", end="", file=sys.stdout, flush=True)
 
 
 log_handler = LoggerHandler()

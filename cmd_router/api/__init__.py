@@ -3,7 +3,7 @@
 #  Copyright (c) 2026 Ian Hylton
 #  All rights reserved.
 
-"""Convenience alias for a selected API.
+"""Convenience façade for the selected command-control API.
 
 The API remains available through ``cmd_router.lib.*`` and any other ``*.api.*``
 package under ``cmd_router.lib``. This namespace is a direct convenience façade,
@@ -16,6 +16,13 @@ deliberate ``__all__`` is provided for callers that need one.
 Choose one API namespace for an application.  Mixing ``cmd_router.api`` with
 ``cmd_router.lib.control.api``, for example, can combine the public API and
 library namespaces in unsafe ways; this package does not add misuse safeguards.
+
+Fixture-backed applications normally import ``FixturesContextHolder`` and
+``FixturesSetup`` from here.  Their fixture module should expose a
+``context_holder`` alias and a ``SetupFixtures`` child class.  The control
+layer creates the holder, assigns it to ``SetupFixtures.logic``, and reads the
+setup properties while compiling grammars.  Command settings are no longer
+written to the process-wide ``uctx`` object.
 """
 
 __all__ = (
@@ -23,6 +30,8 @@ __all__ = (
     "ControlInitialization",
     "ControlResult",
     "DeeperLevelContext",
+    "FixturesContextHolder",
+    "FixturesSetup",
     "control",
     "deeper_level",
     "execute",
@@ -35,6 +44,8 @@ from cmd_router.lib.control.api import (
     ControlInitialization,
     ControlResult,
     DeeperLevelContext,
+    FixturesContextHolder,
+    FixturesSetup,
     control,
     deeper_level,
     execute,
