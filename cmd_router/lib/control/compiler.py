@@ -56,13 +56,14 @@ does not hide either failure.
 
 The built-in ``help`` command is handled here because it depends on the whole
 grammar mapping.  When ``keep_help`` is true, a user-supplied ``help`` grammar
-is skipped and a simple terminal command is added that returns the available
-command names and ``command_prefix``.  When it is false, ``help`` is compiled
-like any other command and no built-in replacement is registered.  An action
-missing from the mapping is valid at compile time; invoking that command
-returns ``None``.  A non-callable action is rejected while compiling, and a
-mapping changed to contain a non-callable value after compilation fails when
-the late-bound handler is invoked.
+is skipped and a generated command returns the available command names and
+``command_prefix``.  Its optional greedy target also returns the grammar text
+for one named command.  When it is false, ``help`` is compiled like any other
+command and no built-in replacement is registered.  An action missing from the
+mapping is valid at compile time; invoking that command returns ``None``.  A
+non-callable action is rejected while compiling, and a mapping changed to
+contain a non-callable value after compilation fails when the late-bound
+handler is invoked.
 
 The functions in this file are private implementation helpers.  Callers
 should normally use ``Control.initialize`` or ``Control.configure`` and then
@@ -260,9 +261,10 @@ def _compile_grammars(
 
     ``keep_help`` controls the special built-in help branch.  If true, a
     grammar entry named ``help`` is ignored, and the returned dispatcher gets a
-    terminal ``help`` command whose result contains the non-help command names
-    and *command_prefix*.  If false, the supplied ``help`` grammar, *if any*
-    is compiled normally and no built-in branch is added.
+    ``help`` command whose result contains the non-help command names,
+    *command_prefix*, and an optional target grammar.  If false, the supplied
+    ``help`` grammar, *if any*, is compiled normally and no built-in branch is
+    added.
 
     This is a compilation boundary rather than an error-normalization
     boundary.  It raises ``_GrammarSyntaxError`` for invalid grammar data and
@@ -324,14 +326,31 @@ def _compile_grammars(
 
     if keep_help:
         command_names = tuple(name for name in grammars if name != "help")
+        command_syntax = {name: grammars[name] for name in command_names}
 
-        def help_action(**_arguments: Any) -> dict[str, Any]:
-            """Return the available command names."""
-            r = {"commands": command_names, "prefix": command_prefix}
+        def help_action(**arguments: Any) -> dict[str, Any]:
+            """Return the available commands and an optional target grammar."""
+            # Treat the help command as `help: [<target...>]`; where <target...> is the target
+            # meant to return the syntax of an expected (existing) command.
+            # Example usage: `/help say` -> `{..., "target": "say = "<message...>""}`.
+            # Note: We treat <target...> as greedy because the given target must be literal.
+            r: dict[str, Any] = {"commands": command_names, "prefix": command_prefix, "target": None}
+            target = arguments.get("target")
+            if target is None:
+                log.debug("compiler.help: help overview requested")
+            else:
+                s = command_syntax.get(target)
+                if s is None:
+                    log.warning("compiler.help: help target for %r was not found!", target)
+                else:
+                    r["target"] = f'{target} = "{s}"'
+                    log.debug("compiler.help: help target %r matched", target)
             log.stderr(r)
             return r
 
-        dispatcher.register(CmdNode.Literal("help", command=help_action))
+        help_node = CmdNode.Literal("help", command=help_action)
+        help_node.add_child(CmdNode.Argument("target", CmdType.GreedyString(), command=help_action))
+        dispatcher.register(help_node)
         log.info("compiler: installed built-in help for %d command(s)", len(command_names))
 
     log.info("compiler: compilation completed")

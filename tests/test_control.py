@@ -40,6 +40,41 @@ def test_control_returns_structured_results_and_keeps_deeper_state() -> None:
         runner.close()
 
 
+def test_builtin_help_lists_commands_and_searches_a_specific_command() -> None:
+    runner = Control()
+    try:
+        runner.deeper_level.command_action = {
+            "say": lambda **arguments: arguments,
+            "tell": lambda **arguments: arguments,
+        }
+        initialized = runner.initialize({"say": "<message...>", "tell": "<target> <message...>"})
+
+        overview = runner.execute("/help")
+        assert initialized.ok
+        assert overview.ok
+        assert overview.value == {
+            "commands": ("say", "tell"),
+            "prefix": "/",
+            "target": None,
+        }
+
+        specific = runner.execute("/help tell")
+        assert specific.ok
+        assert specific.parsed_args == {"target": "tell"}
+        assert specific.value == {
+            "commands": ("say", "tell"),
+            "prefix": "/",
+            "target": 'tell = "<target> <message...>"',
+        }
+
+        missing = runner.execute("/help missing")
+        assert missing.ok
+        assert missing.parsed_args == {"target": "missing"}
+        assert missing.value["target"] is None
+    finally:
+        runner.close()
+
+
 def test_fixture_initialization_creates_holder_then_setup() -> None:
     module = ModuleType("fixture_test")
     events: list[str] = []

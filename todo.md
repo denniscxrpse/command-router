@@ -83,17 +83,17 @@ Don’t add a builder API yet; hand-build the tree until it’s correct.
 
 **Goal:** typed argument parsing like Brigadier’s `ArgumentType`.
 
-- [ ] `ArgumentType[T]` protocol (or base class):
+- [x] `ArgumentType[T]` protocol (or base class):
     - `parse(reader) -> T | error` (you can use a simple token reader abstraction)
     - optional `suggest(reader) -> list[str]`
-- [ ] built-ins required by fixtures:
-    - [ ] `word` / `string` (single token)
-    - [ ] `int`
-    - [ ] `greedy` (consume remaining tokens)
+- [x] built-ins required by fixtures:
+    - [x] `word` / `string` (single token)
+    - [x] `int`
+    - [x] `greedy` (consume remaining tokens)
 
 Structural invariant:
 
-- [ ] forbid children after `greedy` at definition time (fail fast).
+- [x] forbid children after `greedy` at definition time (fail fast).
 
 **Exit condition:** greedy commands work, and invalid grammars crash at registration/build time, not mid-parse.
 

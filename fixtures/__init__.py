@@ -3,7 +3,7 @@
 #  Copyright (c) 2026 Ian Hylton
 #  All rights reserved.
 
-"""Reference fixture used by the example command-router application.
+"""Reference fixture used as an example of the command-router application.
 
 This module is intentionally a small, user-managed example of the fixture API.
 It defines the state holder that owns action methods and a separate setup class

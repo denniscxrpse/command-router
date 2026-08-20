@@ -5,7 +5,9 @@ from pathlib import Path
 import pytest
 
 import cmd_router as command_router_module
-from cmd_router import CommandRouter
+
+# noinspection protected-member
+from cmd_router import CommandRouter, _CmdRouter
 from cmd_router.api import Control
 from cmd_router.utils.cli import flags
 from cmd_router.utils.context import error, paths, uctx
@@ -34,18 +36,18 @@ GRAMMAR_INVALID = "invalid.json5"
 
 
 @pytest.fixture
-def router() -> CommandRouter:
-    instance = CommandRouter.__new__(CommandRouter)
-    instance._grammars = {}
-    instance._info = {}
+def router() -> _CmdRouter:
+    instance = _CmdRouter()
+    instance.grammars = {}
+    instance.info = {}
     return instance
 
 
-def test_normalize_merges_grammar_and_info(router: CommandRouter) -> None:
-    router._normalize(({"say": "<message...>"}, {SCHEMA_VERSION: 1}))
+def test_normalize_merges_grammar_and_info(router: _CmdRouter) -> None:
+    router.normalize(({"say": "<message...>"}, {SCHEMA_VERSION: 1}))
 
-    assert router._grammars == {"say": "<message...>"}
-    assert router._info == {SCHEMA_VERSION: 1}
+    assert router.grammars == {"say": "<message...>"}
+    assert router.info == {SCHEMA_VERSION: 1}
 
 
 def test_default_ignore_contains_one_filename() -> None:
@@ -57,8 +59,12 @@ def test_constructor_loads_non_lazy_fixtures(tmp_path: Path, monkeypatch: pytest
     grammar.write_text(_json_grammar(), encoding="utf-8")
     monkeypatch.setattr(paths, "FIXTURES", tmp_path)
     monkeypatch.setattr(flags, "lazy", False)
-    monkeypatch.setattr(CommandRouter, "_grammars", {})
-    monkeypatch.setattr(CommandRouter, "_info", {})
+    monkeypatch.setattr(flags, "control", False)
+
+    private = _CmdRouter()
+    private.grammars = {}
+    private.info = {}
+    monkeypatch.setattr(command_router_module, "_cmd_router", private)
 
     router = CommandRouter()
 
@@ -67,7 +73,7 @@ def test_constructor_loads_non_lazy_fixtures(tmp_path: Path, monkeypatch: pytest
 
 
 def test_init_grammar_loads_supported_files_and_skips_unknown_files(
-    router: CommandRouter, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    router: _CmdRouter, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     json_file = tmp_path / GRAMMAR_JSON5
     toml_file = tmp_path / GRAMMAR_TOML
@@ -77,7 +83,7 @@ def test_init_grammar_loads_supported_files_and_skips_unknown_files(
     text_file.write_text("not a grammar", encoding="utf-8")
     monkeypatch.setattr(flags, "ignore", frozenset())
 
-    result = router._grammar_init([json_file, toml_file, text_file])
+    result = router.grammar_init([json_file, toml_file, text_file])
 
     assert result == (
         {"json": "<message...>", "toml": "<message...>"},
@@ -85,23 +91,21 @@ def test_init_grammar_loads_supported_files_and_skips_unknown_files(
     )
 
 
-def test_init_grammar_ignores_a_filename(
-    router: CommandRouter, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
+def test_init_grammar_ignores_a_filename(router: _CmdRouter, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     ignored = tmp_path / GRAMMAR_IGNORED
     include = tmp_path / GRAMMAR_INCLUDE
     ignored.write_text("invalid", encoding="utf-8")
     include.write_text(_json_grammar(), encoding="utf-8")
     monkeypatch.setattr(flags, "ignore", frozenset({ignored.name}))
 
-    result = router._grammar_init([ignored, include])
+    result = router.grammar_init([ignored, include])
 
     assert result == ({"say": "<message...>"}, {SCHEMA_VERSION: 1})
 
 
 # noinspection DuplicatedCode
 def test_init_grammar_ignores_a_full_file_path(
-    router: CommandRouter, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    router: _CmdRouter, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     ignored = tmp_path / GRAMMAR_IGNORED
     include = tmp_path / GRAMMAR_INCLUDE
@@ -109,14 +113,14 @@ def test_init_grammar_ignores_a_full_file_path(
     include.write_text(_json_grammar(), encoding="utf-8")
     monkeypatch.setattr(flags, "ignore", frozenset({str(ignored)}))
 
-    result = router._grammar_init([ignored, include])
+    result = router.grammar_init([ignored, include])
 
     assert result == ({"say": "<message...>"}, {SCHEMA_VERSION: 1})
 
 
 # noinspection DuplicatedCode
 def test_init_grammar_ignores_files_under_a_directory(
-    router: CommandRouter, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    router: _CmdRouter, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     ignored_dir = tmp_path / "ignored"
     ignored_dir.mkdir()
@@ -126,26 +130,26 @@ def test_init_grammar_ignores_files_under_a_directory(
     include.write_text(_json_grammar(), encoding="utf-8")
     monkeypatch.setattr(flags, "ignore", frozenset({str(ignored_dir)}))
 
-    result = router._grammar_init([ignored, include])
+    result = router.grammar_init([ignored, include])
 
     assert result == ({"say": "<message...>"}, {SCHEMA_VERSION: 1})
 
 
 def test_init_grammar_returns_validation_error(
-    router: CommandRouter, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    router: _CmdRouter, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     invalid = tmp_path / GRAMMAR_INVALID
     invalid.write_text(_json_grammar().replace(f'"{SCHEMA_VERSION}": 1', f'"zz{SCHEMA_VERSION}": -1'), encoding="utf-8")
     monkeypatch.setattr(flags, "ignore", frozenset())
 
-    result = router._grammar_init(invalid)
+    result = router.grammar_init(invalid)
 
     assert result == error.Abort
 
 
 def _post_to_lazy_router(
     monkeypatch: pytest.MonkeyPatch,
-    router: CommandRouter,
+    router: _CmdRouter,
     payloads: list[bytes],
     fixture_root: Path,
 ) -> list[int]:
@@ -168,7 +172,7 @@ def _post_to_lazy_router(
     def serve() -> None:
         try:
             # noinspection protected-member
-            router._lazy_init()
+            router.lazy_init()
         except BaseException as exception:  # pragma: no cover - surfaced by the assertion below
             errors.append(exception)
 
@@ -200,24 +204,24 @@ def test_lazy_init_reuses_an_identical_persisted_grammar(
     grammar: str, extension: str, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
     payload = grammar.encode()
-    first = CommandRouter.__new__(CommandRouter)
-    first._grammars = {}
-    first._info = {}
-    second = CommandRouter.__new__(CommandRouter)
-    second._grammars = {}
-    second._info = {}
+
+    first = _CmdRouter.__new__(_CmdRouter)
+    first.grammars = {}
+    first.info = {}
+
+    second = _CmdRouter.__new__(_CmdRouter)
+    second.grammars = {}
+    second.info = {}
 
     assert _post_to_lazy_router(monkeypatch, first, [payload], tmp_path) == [204]
     assert _post_to_lazy_router(monkeypatch, second, [payload], tmp_path) == [204]
     assert len(list((tmp_path / "http").glob(f"grammar-*{extension}"))) == 1
-    assert second._grammars == {"say": "<message...>"}
-    assert second._info == {SCHEMA_VERSION: 1}
+    assert second.grammars == {"say": "<message...>"}
+    assert second.info == {SCHEMA_VERSION: 1}
 
 
 def _initialized_control_router() -> CommandRouter:
     router = CommandRouter.__new__(CommandRouter)
-    router._grammars = {}
-    router._info = {}
     router.control = Control()
     assert router.control.initialize({"say": "<message...>"}).ok
     return router
