@@ -18,8 +18,9 @@ from uuid import uuid4
 
 import json5
 import tomllib
+from icecream import ic
 
-from cmd_router.api import Control, ControlInitialization, ControlResult
+from cmd_router.api import Control, ControlInitialization, ControlResult, listener
 from cmd_router.grammar.loader import *
 from cmd_router.utils.cli import *
 from cmd_router.utils.context import *
@@ -49,7 +50,9 @@ class CommandRouter:
         if flags.lazy:
             log.info("router: lazy grammar loading enabled")
             self._lazy_init()
-            self._control_init()
+            ctrl_init = self._control_init()
+            if ctrl_init:
+                self._control_loop()
             log.info("router: initialization completed")
             return
 
@@ -59,26 +62,20 @@ class CommandRouter:
         if isinstance(result, int):
             log.error("router: grammar initialization failed (%s); continuing with loaded data", result)
 
-        self._control_init()
+        # The control loop doesn't necessarily need to be initialized immediately.
+        ctrl_init = self._control_init()
+
         log.debug("router: normalized grammars=%r; info=%r", self._grammars, self._info)
 
-        log.info("router: initialization completed (%d command grammar(s))", len(self._grammars))
+        # Technically, a lazy initialization is possible, but it's not worth the complexity.
+        # Note: If `flags.control` is somehow false and `ctrl_init` is true, the loop will run anyway.
+        #       This is intentional, since `_control_init` owns the rights to this initialization.
+        if ctrl_init:
+            v = self._control_loop()
+            log.info("router: control loop exited with status %s", v)
+            return
 
-    def _control_init(self) -> None:
-        """Load fixture behavior only when the control flag requests it."""
-        if not flags.control:
-            log.debug("router: control initialization disabled")
-            return
-        log.info("router: initializing control")
-        result = self.control.initialize(
-            self._grammars,
-            fixture=paths.FIXTURES,
-            keep_help=not flags.control_no_help,
-        )
-        if not result.ok:
-            log.error("router: control initialization failed (%s): %s", result.code, result.message)
-            return
-        log.info("router: control ready (%d grammar(s))", result.command_count)
+        log.info("router: initialization completed (%d command grammar(s))", len(self._grammars))
 
     def execute(self, command: Any) -> ControlResult:
         """Execute through the configured control surface."""
@@ -92,6 +89,104 @@ class CommandRouter:
     def deeper_level(self) -> Any:
         """Expose the live Python control state for embedded callers."""
         return self.control.deeper_level
+
+    def _normalize(self, t: tuple[_Dict, _Dict]) -> None:
+        grammars, info = t
+        self._grammars.update(grammars)
+        self._info.update(info)
+        log.debug(
+            "router: normalized grammar batch (commands=%d, info_keys=%s, totals=%d)",
+            len(grammars),
+            tuple(info),
+            len(self._grammars),
+        )
+
+    def _control_init(self) -> bool:
+        """Load fixture behavior only when the control flag requests it."""
+        if not flags.control:
+            log.debug("router: control initialization disabled")
+            return False
+        log.info("router: initializing control")
+        result = self.control.initialize(
+            self._grammars,
+            fixture=paths.FIXTURES,
+            keep_help=not flags.control_no_help,
+        )
+        if not result.ok:
+            log.error("router: control initialization failed (%s): %s", result.code, result.message)
+            return False
+        log.info("router: control ready (%d grammar(s))", result.command_count)
+        return True
+
+    def _control_loop(self) -> int:
+        """Run the fixture-backed command interface until it is closed.
+
+        The router owns this loop because the control API only knows how to
+        initialize and execute a command surface; it does not know whether
+        the surrounding application wants an interactive session.  Command
+        failures are yet represented by ``ControlResult`` and therefore
+        do not end the session.  Failures in the loop itself are converted to
+        an integer status, so a bad input stream or an unexpected control
+        exception cannot escape from router startup.
+        """
+        try:
+            initialized = self.control.deeper_level.initialized
+        except Exception as exception:
+            log.error("router: cannot inspect control state before starting the loop: %s", exception)
+            return error.Abort
+
+        if not initialized:
+            log.error("router: cannot start control loop; control is not initialized")
+            return int(error.ControlNotInitializedError)
+
+        log.info("router: control loop started (type 'exit'/'e' or 'quit'/'q' to stop)")
+        while True:
+            try:
+                command = input("cmd-router> ")
+            except EOFError:
+                log.info("router: control loop reached end of input")
+                return error.Succeed
+            except KeyboardInterrupt:
+                log.warning("router: control loop interrupted")
+                return error.Interrupted
+            except Exception as exception:
+                log.error("router: control loop could not read input: %s", exception)
+                return error.Abort
+
+            if not isinstance(command, str):
+                log.error("router: control loop received non-string input (%s)", type(command).__name__)
+                return error.TokenizeUnsupportedTypeError
+
+            command_marker = command.strip().casefold()
+            if command_marker in ["exit", "e", "quit", "q"]:
+                log.info("router: control loop requested to stop")
+                return error.Succeed
+            if not command_marker:
+                log.warning("router: control loop received empty input! is it a typo on an error?")
+                continue
+
+            try:
+                result = self.execute(command)
+
+                if not isinstance(result, ControlResult):
+                    log.error("router: control execution returned an invalid result")
+                    return error.Abort
+
+                if result.code == error.ControlNotInitializedError:
+                    log.error("router: control became uninitialized while the loop was running")
+                    return error.ControlNotInitializedError
+
+                if result.ok and result.kind != "input" and result.value is not None:
+                    log.info("router: control result: %r", result.value)
+
+                if result.command == "help":
+                    ic(listener())
+            except KeyboardInterrupt:
+                log.warning("router: control loop interrupted during command execution")
+                return error.Interrupted
+            except Exception as exception:
+                log.error("router: control loop failed while executing a command: %s", exception)
+                return error.Abort
 
     def _lazy_init(self) -> None:
         """Load the first valid grammar received through the local HTTP endpoint."""
@@ -275,14 +370,3 @@ class CommandRouter:
 
         log.info("router: grammar loading completed (%d command(s))", len(self._grammars))
         return self._grammars, self._info
-
-    def _normalize(self, t: tuple[_Dict, _Dict]) -> None:
-        grammars, info = t
-        self._grammars.update(grammars)
-        self._info.update(info)
-        log.debug(
-            "router: normalized grammar batch (commands=%d, info_keys=%s, totals=%d)",
-            len(grammars),
-            tuple(info),
-            len(self._grammars),
-        )

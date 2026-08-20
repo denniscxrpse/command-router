@@ -96,6 +96,13 @@ class EnvFlags:
     this interface, test their behaviour, and see live debug information. 2. Test of special, built-in commands which
     will help you to understand even further how the `cmd-notation` works. You can disable this by setting
     `control_no_help` to `True`.
+    
+    Note (after 6c75deb2): This flag doesn't directly pass control to the ``control`` module, but to the ``cmd_router``.
+    The ``control`` module is an independent module that is not aware of the ``cmd_router`` and its fixtures. The 
+    ``cmd_router`` is aware of the entire codebase at the time of execution, and directly depends on the ``fixtures`` 
+    module to work. The "test suite," meant to test behaviour and see live debug information, is directly dependant on
+    how ``fixtures.__init__.py`` is configured. **WE DO NOT** reconfigure anything in our ``cmd_router.__init__()`` 
+    function as we do not have a way (yet) to revoke or pass the control the existing module ``fixtures`` already has.
 
     If you have a different grammar in ``./fixtures``, or you are going to send a completely different grammar file
     under our HTTP port, we recommend disabling `control_no_help` to keep things straightforward. Check

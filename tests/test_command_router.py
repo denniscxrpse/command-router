@@ -6,12 +6,13 @@ import pytest
 
 import cmd_router as command_router_module
 from cmd_router import CommandRouter
+from cmd_router.api import Control
 from cmd_router.utils.cli import flags
-from cmd_router.utils.context import error, paths, uctx_k
+from cmd_router.utils.context import error, paths, uctx
 
-CMD_ROUTER = uctx_k.cmd_router
-SCHEMA_VERSION = uctx_k.schema_version
-GRAMMAR = uctx_k.grammar
+CMD_ROUTER = uctx.cmd_router
+SCHEMA_VERSION = uctx.schema_version
+GRAMMAR = uctx.grammar
 
 
 def _json_grammar(command: str = "say") -> str:
@@ -211,3 +212,71 @@ def test_lazy_init_reuses_an_identical_persisted_grammar(
     assert len(list((tmp_path / "http").glob(f"grammar-*{extension}"))) == 1
     assert second._grammars == {"say": "<message...>"}
     assert second._info == {SCHEMA_VERSION: 1}
+
+
+def _initialized_control_router() -> CommandRouter:
+    router = CommandRouter.__new__(CommandRouter)
+    router._grammars = {}
+    router._info = {}
+    router.control = Control()
+    assert router.control.initialize({"say": "<message...>"}).ok
+    return router
+
+
+def test_control_loop_executes_commands_until_quit(monkeypatch: pytest.MonkeyPatch) -> None:
+    router = _initialized_control_router()
+    commands = iter(("/say hello", "quit"))
+    monkeypatch.setattr("builtins.input", lambda _prompt: next(commands))
+
+    try:
+        assert router._control_loop() == error.Succeed
+        assert router.control.deeper_level.last_result is not None
+        assert router.control.deeper_level.last_result.command == "say"
+    finally:
+        router.control.close()
+
+
+def test_control_loop_keeps_running_after_a_command_error(monkeypatch: pytest.MonkeyPatch) -> None:
+    router = _initialized_control_router()
+    commands = iter(("/unknown", "quit"))
+    monkeypatch.setattr("builtins.input", lambda _prompt: next(commands))
+
+    try:
+        assert router._control_loop() == error.Succeed
+    finally:
+        router.control.close()
+
+
+@pytest.mark.parametrize(
+    ("input_exception", "expected"),
+    [(EOFError(), error.Succeed), (KeyboardInterrupt(), error.Interrupted)],
+)
+def test_control_loop_converts_input_termination_to_status(
+    input_exception: BaseException, expected: int, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    router = _initialized_control_router()
+
+    def read_input(_prompt: str) -> str:
+        raise input_exception
+
+    monkeypatch.setattr("builtins.input", read_input)
+
+    try:
+        assert router._control_loop() == expected
+    finally:
+        router.control.close()
+
+
+def test_control_loop_converts_execution_exception_to_abort(monkeypatch: pytest.MonkeyPatch) -> None:
+    router = _initialized_control_router()
+    monkeypatch.setattr("builtins.input", lambda _prompt: "/say hello")
+
+    def fail(_command: str) -> None:
+        raise RuntimeError("broken control")
+
+    monkeypatch.setattr(router.control, "execute", fail)
+
+    try:
+        assert router._control_loop() == error.Abort
+    finally:
+        router.control.close()

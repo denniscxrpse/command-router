@@ -34,9 +34,10 @@ __all__ = (
     "FixturesSetup",
     "control",
     "deeper_level",
+    "initialize",
     "execute",
     "execute_async",
-    "initialize",
+    "listener",
 )
 
 from cmd_router.lib.control.api import (
@@ -51,4 +52,5 @@ from cmd_router.lib.control.api import (
     execute,
     execute_async,
     initialize,
+    listener,
 )

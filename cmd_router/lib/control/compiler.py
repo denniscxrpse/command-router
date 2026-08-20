@@ -327,7 +327,9 @@ def _compile_grammars(
 
         def help_action(**_arguments: Any) -> dict[str, Any]:
             """Return the available command names."""
-            return {"commands": command_names, "prefix": command_prefix}
+            r = {"commands": command_names, "prefix": command_prefix}
+            log.stderr(r)
+            return r
 
         dispatcher.register(CmdNode.Literal("help", command=help_action))
         log.info("compiler: installed built-in help for %d command(s)", len(command_names))

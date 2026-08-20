@@ -44,21 +44,37 @@ class ControlResult:
     and ``handler`` identifies the handler that was selected.
     """
 
+    def __bool__(self) -> bool:
+        """Use the result status as its boolean value."""
+        return self.ok
+
     ok: bool
+    """Whether the control operation succeeded."""
     code: int
+    """Centralized status or error code for the operation."""
     kind: str
+    """Stage that produced the result, such as "command" or "parse_error"."""
     input: Any
+    """Exact value supplied by the caller, before parsing or prefix handling."""
     command: str | None = None
+    """Matched command name, without the command prefix."""
     value: Any = None
+    """Value returned by the action, or pass-through input value."""
     parse_result: CmdParse.Result | None = None
+    """Original parser result before control overrides."""
     context: CmdParse.Context | None = None
+    """Parsed context, including final controlled arguments."""
     handler: _Action | None = None
+    """Handler selected for the matched command."""
     error: CmdParse.Error | None = None
+    """Structured parser error for a failed parse."""
     message: str = ""
+    """Human-readable explanation of the result."""
     exception: str | None = None
+    """Formatted exception details from a failed action."""
 
     @property
-    def success(self) -> bool:
+    def is_success(self) -> bool:
         """Return whether the operation succeeded."""
         return self.ok
 
@@ -73,10 +89,6 @@ class ControlResult:
     def result(self) -> Any:
         """Return the action result value."""
         return self.value
-
-    def __bool__(self) -> bool:
-        """Use the result status as its boolean value."""
-        return self.ok
 
     def to_dict(self) -> dict[str, Any]:
         """Return a transport-friendly result mapping."""

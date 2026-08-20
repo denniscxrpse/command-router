@@ -5,20 +5,19 @@
 
 """Shared constants and paths used by the command-router packages.
 
-``uctx`` is deliberately not a mutable command configuration object.  Its
-``c`` and ``k`` namespaces provide schema constants and serialized grammar
-keys; fixture-owned settings such as ``cmd_prefix``, the help policy, action
-functions, and argument overrides live on ``FixturesSetup`` instances in the
-control API.  Keeping this module limited to constants avoids a hidden global
-state between independent control surfaces and fixture initializations.
+``uctx`` is deliberately not a mutable command configuration object.  It
+provides schema constants, serialized grammar keys, and a read-only listener
+for the latest stderr message; fixture-owned settings such as ``cmd_prefix``,
+the help policy, action functions, and argument overrides live on
+``FixturesSetup`` instances in the control API.  Keeping command settings out
+of this module avoids hidden global state between independent control surfaces
+and fixture initializations.
 """
 
 __all__ = (
     "paths",
     "error",
     "uctx",
-    "uctx_c",
-    "uctx_k",
 )
 
 from dataclasses import dataclass
@@ -74,29 +73,20 @@ class _Error(IntEnum):
 
 @dataclass(frozen=True, slots=True)
 class _UniversalContext:
-    """Namespace containing constants only; no command settings are stored here."""
+    """Namespace containing shared constants and read-only observations."""
 
-    # noinspection pep8-naming
-    class c:
-        """Constant values used while validating grammar files."""
+    # Constant values used while validating grammar files.
+    EMPTY_STR: Final[str] = ""
+    "Yeah, literally. This is meant for readability."
+    VALID_SCHEMAS: Final[frozenset[int]] = frozenset({1})
+    "The valid schemas for the grammars."
 
-        EMPTY_STR: Final[str] = ""
-        "Yeah, literally. This is meant for readability."
-        VALID_SCHEMAS: Final[frozenset[int]] = frozenset({1})
-        "The valid schemas for the grammars."
-
-    # noinspection pep8-naming
-    class k:
-        """Serialized key names used by grammar containers."""
-
-        cmd_router: Final[str] = "cmd-router"
-        grammar: Final[str] = "grammar"
-        schema_version: Final[str] = "schema-version"
+    # Serialized key names used by grammar containers.
+    cmd_router: Final[str] = "cmd-router"
+    grammar: Final[str] = "grammar"
+    schema_version: Final[str] = "schema-version"
 
 
 paths: Final[_Paths] = _Paths()
 error: Final[type[_Error]] = _Error
-
 uctx: Final[_UniversalContext] = _UniversalContext()
-uctx_c: Final[type[_UniversalContext.c]] = uctx.c
-uctx_k: Final[type[_UniversalContext.k]] = uctx.k

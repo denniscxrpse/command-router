@@ -54,19 +54,38 @@ class _LockedStderr:
 
 
 class _StderrWriter:
-    """Callable stderr writer supporting both synchronous and async callers."""
+    """Callable stderr writer supporting async callers and latest-call observation."""
 
     def __init__(self, lock: RLock) -> None:
         self._lock = lock
+        self.__latest: str = ""
+
+    @property
+    def _latest(self) -> str:
+        """Read the latest emitted message while holding the stderr lock."""
+        with self._lock:
+            return self.__latest
+
+    @_latest.setter
+    def _latest(self, v: str) -> None:
+        """Store the latest emitted message for this writer."""
+        with self._lock:
+            self.__latest = v
 
     def __call__(self, *message: Any, sep: str = " ", end: str = "\n") -> Awaitable[None]:
-        text = sep.join(str(arg) for arg in message) + end
+        text: str = sep.join(str(arg) for arg in message) + end
         with self._lock:
+            self._latest = text
             print(text, sep="", end="", file=sys.stderr, flush=True)
         return _CompletedWrite()  # pyrefly: ignore [bad-return]
 
     async def async_write(self, *message: Any, sep: str = " ", end: str = "\n") -> None:
         self(*message, sep=sep, end=end)
+
+    @property
+    def latest_call(self) -> str:
+        """Return the most recent message emitted by this writer."""
+        return self._latest
 
 
 @final
@@ -145,18 +164,6 @@ class LoggerHandler:
         color = self._colors.get(level, "#291f1c")
         return HTML(f'<style fg="{color}">{escape(msg)}</style>')
 
-    @staticmethod
-    def _format_message(message: tuple[Any, ...], sep: str) -> str:
-        """Format logger arguments without breaking its existing print-like API."""
-        if len(message) > 1 and isinstance(message[0], str) and "%" in message[0]:
-            try:
-                return message[0] % tuple(message[1:])
-            except (TypeError, ValueError):
-                # A malformed diagnostic should still be visible rather than
-                # raising a second exception while reporting the first one.
-                pass
-        return sep.join(str(arg) for arg in message)
-
     def log(self, level: int, *message: Any, sep: str, end: str) -> None:
         """Write a colored, timestamped level message to stdout.
 
@@ -180,7 +187,7 @@ class LoggerHandler:
     def raw(self, *message: Any, sep: str, end: str) -> None:
         """Write an unadorned progress/status message to stdout.
 
-        Unlike :meth:`log`, this method does not add a timestamp or level.  It
+        Unlike ``log``, this method does not add a timestamp or level.  It
         is useful for a two-part status such as ``"grammar: "`` followed by
         ``"OK"`` or ``"FAILURE"``.
 
@@ -193,6 +200,18 @@ class LoggerHandler:
 
         with self._stdout_lock:
             print_formatted_text(HTML(final_message), sep="", end="", file=sys.stdout, flush=True)
+
+    @staticmethod
+    def _format_message(message: tuple[Any, ...], sep: str) -> str:
+        """Format logger arguments without breaking its existing print-like API."""
+        if len(message) > 1 and isinstance(message[0], str) and "%" in message[0]:
+            try:
+                return message[0] % tuple(message[1:])
+            except (TypeError, ValueError):
+                # A malformed diagnostic should still be visible rather than
+                # raising a second exception while reporting the first one.
+                pass
+        return sep.join(str(arg) for arg in message)
 
 
 log_handler = LoggerHandler()

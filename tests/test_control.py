@@ -5,6 +5,7 @@ from typing import Any
 
 import pytest
 
+from cmd_router import api
 from cmd_router.lib.control import Control, FixturesContextHolder, FixturesSetup
 from cmd_router.utils.logger import log
 
@@ -90,9 +91,7 @@ def test_fixture_initialization_creates_holder_then_setup() -> None:
         ("command_args_ctrl", None, "command_args_ctrl must be a dict, got NoneType"),
     ),
 )
-def test_fixture_setup_type_errors_name_the_property(
-    name: str, value: Any, message: str
-) -> None:
+def test_fixture_setup_type_errors_name_the_property(name: str, value: Any, message: str) -> None:
     setup = FixturesSetup(logic=object())
 
     with pytest.raises(TypeError, match=message):
@@ -155,3 +154,5 @@ def test_stderr_writer_can_be_awaited(capsys: pytest.CaptureFixture[str]) -> Non
     asyncio.run(write())
 
     assert capsys.readouterr().err == "controlled stderr\n"
+    assert log.stderr.latest_call == "controlled stderr\n"
+    assert api.listener() == "controlled stderr\n"

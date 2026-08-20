@@ -25,16 +25,6 @@ available only for shared constants and schema keys; command settings must be
 read from or written through a ``FixturesSetup``/``DeeperLevelContext``.
 """
 
-from collections.abc import Mapping
-from pathlib import Path
-from types import ModuleType
-from typing import Any, Final
-
-from .context import DeeperLevelContext, _DeeperLevelContext
-from .control import Control
-from .fixtures import FixturesContextHolder, FixturesSetup
-from .result import ControlInitialization, ControlResult
-
 __all__ = (
     "Control",
     "ControlInitialization",
@@ -44,10 +34,23 @@ __all__ = (
     "FixturesSetup",
     "control",
     "deeper_level",
+    "initialize",
     "execute",
     "execute_async",
-    "initialize",
+    "listener",
 )
+
+from collections.abc import Mapping
+from pathlib import Path
+from types import ModuleType
+from typing import Any, Final
+
+from cmd_router.utils.logger import log
+
+from .context import DeeperLevelContext, _DeeperLevelContext
+from .control import Control
+from .fixtures import FixturesContextHolder, FixturesSetup
+from .result import ControlInitialization, ControlResult
 
 control: Final[Control] = Control()
 deeper_level: Final[_DeeperLevelContext] = control.deeper_level
@@ -61,7 +64,7 @@ def initialize(
 ) -> ControlInitialization:
     """Initialize the shared control surface from grammars and an optional fixture.
 
-    See :meth:`Control.initialize` for fixture discovery, setup binding, help
+    See ``Control.initialize`` for fixture discovery, setup binding, help
     policy, and structured failure behavior.
     """
     return control.initialize(grammars, fixture=fixture, keep_help=keep_help)
@@ -75,3 +78,8 @@ def execute(command: Any) -> ControlResult:
 async def execute_async(command: Any) -> ControlResult:
     """Execute *command* asynchronously through the shared control surface."""
     return await control.execute_async(command)
+
+
+def listener() -> str:
+    """Return the latest message emitted through the ``stderr`` writer."""
+    return log.stderr.latest_call
