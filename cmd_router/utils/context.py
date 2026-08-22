@@ -76,8 +76,6 @@ class _UniversalContext:
     """Namespace containing shared constants and read-only observations."""
 
     # Constant values used while validating grammar files.
-    EMPTY_STR: Final[str] = ""
-    "Yeah, literally. This is meant for readability."
     VALID_SCHEMAS: Final[frozenset[int]] = frozenset({1})
     "The valid schemas for the grammars."
 

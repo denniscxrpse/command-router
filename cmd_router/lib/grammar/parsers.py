@@ -5,12 +5,12 @@
 
 __all__ = ("grammar_parsers",)
 
+import tomllib
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any, Final
 
 import json5
-import tomllib
 
 from cmd_router.utils.context import *
 from cmd_router.utils.logger import *

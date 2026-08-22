@@ -11,17 +11,17 @@ __all__ = (
     "init_flags",
 )
 
+import tomllib
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
 from typing import Any
 from uuid import uuid4
 
 import json5
-import tomllib
 from icecream import ic
 
 from cmd_router.api import Control, ControlInitialization, ControlResult, listener
-from cmd_router.grammar.loader import *
+from cmd_router.lib.grammar.loader import *
 from cmd_router.utils.cli import *
 from cmd_router.utils.context import *
 from cmd_router.utils.logger import *

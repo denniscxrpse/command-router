@@ -19,6 +19,17 @@ until the matching behavior is proven.
   the user explicitly asks to implement that layer.
 - Preserve unrelated working-tree changes. Inspect before editing and keep changes narrowly scoped to the request.
 
+## Type stubs
+
+- Keep the current implementation-module `.pyi` stubs under `cmd_router.stubs` (`cmd_router/stubs` on disk) rather than
+  beside the implementation files.
+- Do not create or update stub files for future implementation changes unless the user explicitly requests it.
+- Stubs may be omitted for `cmd_router.api`, `main.py`, `fixtures/`, and `cmd_router.utils.cli`; those are convenience
+  or application surfaces rather than implementation APIs.
+- Keep stubs in their dedicated root and avoid mirroring the implementation tree when a flat layout is valid.  If a
+  type checker requires import-compatible package resolution, retain only the minimal `cmd_router/stubs/cmd_router/...`
+  hierarchy needed for that resolution; do not add extra duplicate directories or initializers.
+
 ## Public API and imports
 
 The command package exposes concise namespaces. Example from

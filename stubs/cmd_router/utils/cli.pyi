@@ -1,0 +1,19 @@
+import click
+from dataclasses import dataclass
+from typing import Final
+
+__all__ = ["flags", "init_flags"]
+
+class _CliCommand(click.Command):
+    def main(self, *args, **kwargs): ...
+
+@dataclass
+class EnvFlags:
+    lazy: bool = ...
+    ignore: frozenset[str] = ...
+    control: bool = ...
+    control_no_help: bool = ...
+
+flags: Final[EnvFlags]
+
+def init_flags(**kwargs) -> None: ...

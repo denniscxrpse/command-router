@@ -13,6 +13,7 @@ __all__ = ("CmdError", "CmdNode", "CmdParse", "CmdType")
 
 from typing import Final
 
+from cmd_router.lib import tokenize as _tokenize
 from cmd_router.lib.command.context import CommandContext as _CommandContext
 from cmd_router.lib.command.context import ParseError as _ParseError
 from cmd_router.lib.command.context import ParseResult as _ParseResult
@@ -30,7 +31,6 @@ from cmd_router.lib.command.typing import greedy as _greedy_string
 from cmd_router.lib.command.typing import integer as _integer
 from cmd_router.lib.command.typing import string as _string
 from cmd_router.lib.command.typing import word as _word
-from cmd_router.lib.tokenizer import tokenize as _tokenize
 from cmd_router.utils.context import _Error
 
 

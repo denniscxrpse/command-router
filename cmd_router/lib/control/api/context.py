@@ -15,8 +15,8 @@ The control lifecycle replaces ``fixture_setup`` when a fixture is initialized.
 Before that happens, a private default ``FixturesSetup`` provides the normal
 prefix, help policy, empty action mapping, and empty argument-override mapping
 so direct programmatic use of ``Control`` remains possible without a fixture.
-The public properties in this module delegate to the active setup and are the
 supported way to inspect or change live configuration after initialization.
+The public properties in this module delegate to the active setup and are the
 
 Argument overrides are separate from grammar compilation.  They are applied
 to parsed arguments immediately before an action runs, so
@@ -56,7 +56,7 @@ class _DeeperLevelContext:
     """
 
     def __init__(self, setup: FixturesSetup | None = None) -> None:
-        """Create live control state backed by *setup* or fresh defaults."""
+        """Create a live control state backed by *setup* or fresh defaults."""
         if setup is not None and not isinstance(setup, FixturesSetup):
             raise TypeError("setup must be a FixturesSetup instance")
         self._setup = setup if setup is not None else FixturesSetup(logic=object())
@@ -155,8 +155,8 @@ class _DeeperLevelContext:
         parsed values, and a flat entry whose key matches a parsed argument is
         also accepted for small integrations.
 
-        :raises ValueError: if *command* is not a non-empty string.
-        :raises TypeError: if an existing command entry is not a mapping.
+        :raises ValueError: If *command* is not a non-empty string.
+        :raises TypeError: If an existing command entry is not a mapping.
         """
         if not isinstance(command, str) or not command:
             raise ValueError("command must be a non-empty string")

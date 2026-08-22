@@ -30,7 +30,7 @@ class CommandNode:
         """Return the syntax shown when this node is expected next."""
         return self.name
 
-    def add_child(self, child: "CommandNode") -> "CommandNode":
+    def add_child(self, child: CommandNode) -> CommandNode:
         """Attach *child* and return it for convenient hand-built trees."""
         if getattr(self, "greedy", False):
             raise ValueError("greedy argument nodes must be terminal")
@@ -47,7 +47,7 @@ class CommandNode:
         self.children.append(child)
         return child
 
-    def set_command(self, command: _Handler) -> "CommandNode":
+    def set_command(self, command: _Handler) -> CommandNode:
         """Attach a handler to this node and return the node."""
         if not callable(command):
             raise TypeError(f"command must be callable, got {type(command).__name__}")
@@ -55,7 +55,7 @@ class CommandNode:
         return self
 
     @staticmethod
-    def _duplicates(left: "CommandNode", right: "CommandNode") -> bool:
+    def _duplicates(left: CommandNode, right: CommandNode) -> bool:
         if left.kind == right.kind == NodeKind.LITERAL:
             return left.name == right.name
         if left.kind == right.kind == NodeKind.ARGUMENT:

@@ -3,7 +3,7 @@
 # Read the *justfile* documentation if you really do not know what to do:
 # - https://just.systems/man/en/introduction.html
 # - https://just.systems/man/en/packages.html
-# Last edit: 20/Aug/2026
+# Last edit: 21/Aug/2026
 
 # Initialize the project. This will only work if you have `just` in your ENV already.
 init:
@@ -29,6 +29,15 @@ test:
     uv run pytest -q
 
 # Check all lints
-lint:
-    uv run ruff check .
-    uv run pyrefly check .
+lint PATH="./cmd_router/":
+    # Note: Avoid checking stub files. It will raise a lot (and I mean A LOT) of errors.
+    uv run ruff check {{ PATH }}
+    uv run pyrefly check {{ PATH }}
+
+# Automatically generate stub files.
+stub:
+    # ==> Running stubgen...
+    uv run stubgen ./cmd_router/ -o ./stubs/
+    # ==> Running black...
+    uv run black --pyi ./stubs/** --quiet
+    # done

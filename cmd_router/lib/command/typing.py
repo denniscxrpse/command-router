@@ -32,8 +32,8 @@ _ValueT = TypeVar("_ValueT")
 ArgumentParseError = error.ArgumentParseError
 
 
-class _ArgType(Generic[_ValueT]):
-    """Base class for values accepted by an :class:`ArgumentNode`."""
+class _ArgType(Generic[_ValueT]):  # noqa: UP046
+    """Base class for values accepted by an ``ArgumentNode``."""
 
     name: ClassVar[str] = "string"
     greedy: ClassVar[bool] = False

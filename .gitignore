@@ -1,5 +1,7 @@
 [.v]env/*
 [.]idea/*
 *.py[icx]
+!stubs/cmd_router
+!stubs/**/*.pyi
 *cache*
 fixtures/http/**
