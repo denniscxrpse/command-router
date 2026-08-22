@@ -1,17 +1,25 @@
+from pathlib import Path
+from typing import Any
+
+from _typeshed import Incomplete
+
+from cmd_router.api import (
+    Control as Control,
+)
+from cmd_router.api import (
+    ControlInitialization as ControlInitialization,
+)
+from cmd_router.api import (
+    ControlResult as ControlResult,
+)
 from cmd_router.lib.grammar.loader import *
 from cmd_router.utils.cli import *
 from cmd_router.utils.context import *
 from cmd_router.utils.logger import *
-from _typeshed import Incomplete
-from cmd_router.api import (
-    Control as Control,
-    ControlInitialization as ControlInitialization,
-    ControlResult as ControlResult,
-)
-from pathlib import Path
-from typing import Any
 
-__all__ = ["Control", "ControlInitialization", "ControlResult", "init_flags", "CommandRouter", "_Handler@60"]
+__all__ = ["Control", "ControlInitialization", "ControlResult", "CommandRouter", "_Handler@59"]
+
+_Dict = dict[str, Any]
 
 class _CmdRouter:
     grammars: _Dict
@@ -23,13 +31,15 @@ class _CmdRouter:
     def control_init(self) -> bool: ...
 
 class CommandRouter:
+    _grammars: Incomplete
+    _info: Incomplete
     control: Incomplete
     def __init__(self) -> None: ...
     def execute(self, command: Any) -> ControlResult: ...
     async def execute_async(self, command: Any) -> ControlResult: ...
     @property
     def deeper_level(self) -> Any: ...
+    def _control_loop(self) -> int: ...
 
 # Names in __all__ with no definition:
-#   _Handler@60
-#   init_flags
+#   _Handler@59

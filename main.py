@@ -3,7 +3,8 @@
 #  Copyright (c) 2026 Ian Hylton
 #  All rights reserved.
 
-from cmd_router import CommandRouter, init_flags
+from cmd_router import CommandRouter
+from cmd_router.utils.cli import init_flags
 from cmd_router.utils.context import error
 from cmd_router.utils.logger import log
 
@@ -12,8 +13,6 @@ def main() -> int:
     """Start the command router and return its process exit status."""
     log.info("main: starting command router")
     try:
-        init_flags(standalone_mode=False)
-        log.debug("main: command-line flags initialized")
         CommandRouter()
     except KeyboardInterrupt:
         log.warning("main: interrupted; shutting down")
@@ -27,4 +26,5 @@ def main() -> int:
 
 
 if __name__ == "__main__":
+    init_flags(standalone_mode=False)
     raise SystemExit(main())

@@ -3,7 +3,7 @@
 # Read the *justfile* documentation if you really do not know what to do:
 # - https://just.systems/man/en/introduction.html
 # - https://just.systems/man/en/packages.html
-# Last edit: 21/Aug/2026
+# Last edit: 22/Aug/2026
 
 # Initialize the project. This will only work if you have `just` in your ENV already.
 init:
@@ -12,9 +12,9 @@ init:
     uv sync
     @echo "Run: `source .venv/bin/activate` if needed."
 
-# Run with sane defaults. Use `FLASG` to specify a flag, use `--help` for details.
-run FLAGS="":
-    uv run python main.py {{ FLAGS }}
+# Run with sane defaults. Use `what` to specify a flag, use `--help` for details.
+run what="":
+    uv run python main.py {{ what }}
 
 # Run with `--lazy` flag.
 lazy:
@@ -28,16 +28,25 @@ control:
 test:
     uv run pytest -q
 
-# Check all lints
-lint PATH="./cmd_router/":
-    # Note: Avoid checking stub files. It will raise a lot (and I mean A LOT) of errors.
-    uv run ruff check {{ PATH }}
-    uv run pyrefly check {{ PATH }}
+# Check all lints. Use `path` to lint someting else.
+lint path="./cmd_router/ ./fixtures/":
+    ###> Avoid checking stub files, linters will go crazy on them.
+    uv run ruff check {{ path }}
+    uv run pyrefly check {{ path }}
+
+# Auto fix all (and only) ruff lints.
+autofix path="./cmd_router/ ./fixtures/":
+    uv run ruff check {{ path }} --fix
+
+# Format the code. Use `what` to inject extra flags into the `black` formatter.
+format what="./cmd_router/**":
+    uv run ruff check --select I --fix {{ what }}
+    uv run black {{ what }}
 
 # Automatically generate stub files.
 stub:
-    # ==> Running stubgen...
-    uv run stubgen ./cmd_router/ -o ./stubs/
-    # ==> Running black...
-    uv run black --pyi ./stubs/** --quiet
-    # done
+    ###> Running stubgen...
+    uv run stubgen ./cmd_router/ -o ./stubs/ --include-private
+    ###> Running black...
+    uv run black --pyi "./stubs/**"
+    ###> done

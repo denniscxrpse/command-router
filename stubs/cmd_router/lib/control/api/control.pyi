@@ -1,14 +1,20 @@
-from ..compiler import _GrammarSource
-from .context import _DeeperLevelContext
-from .fixtures import FixturesSetup
-from .result import ControlInitialization, ControlResult
-from cmd_router.lib.command import CmdParse
+from asyncio import Lock
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from pathlib import Path
 from types import ModuleType
 from typing import Any, Self
 
+from cmd_router.lib.command import CmdParse
+from cmd_router.lib.control.compiler import _GrammarSource
+
+from .context import _DeeperLevelContext
+from .fixtures import FixturesSetup
+from .result import ControlInitialization, ControlResult
+
 __all__ = ["Control"]
+
+_Action = Callable[..., Any]
 
 @dataclass(frozen=True, slots=True)
 class _Invocation:
@@ -19,6 +25,8 @@ class _Invocation:
 
 class Control:
     deeper_level: _DeeperLevelContext
+    _async_lock: Lock
+    _stderr_locked: bool
     def __init__(self, *, setup: FixturesSetup | None = None, deeper: _DeeperLevelContext | None = None) -> None: ...
     @property
     def context(self) -> FixturesSetup: ...
@@ -32,6 +40,10 @@ class Control:
         keep_help: bool | None = None,
     ) -> ControlInitialization: ...
     def configure(self, grammars: _GrammarSource) -> ControlInitialization: ...
+    def _initialize_fixture(self, fixture: ModuleType | str | Path) -> ControlInitialization: ...
+    def _initialization_error(
+        self, message: str, exception: Exception | None = None, code: int = ...
+    ) -> ControlInitialization: ...
     def close(self) -> None: ...
     def __enter__(self) -> Self: ...
     def __exit__(self, *_arguments: Any) -> None: ...
@@ -40,3 +52,7 @@ class Control:
     async def execute_async(self, command: Any) -> ControlResult: ...
     async_dispatch = execute_async
     aexecute = execute_async
+    def _execute_sync(self, command: Any) -> ControlResult: ...
+    def _prepare(self, command: Any) -> ControlResult | _Invocation: ...
+    def _controlled_arguments(self, command: str, arguments: Mapping[str, Any]) -> dict[str, Any]: ...
+    def _remember(self, result: ControlResult) -> ControlResult: ...

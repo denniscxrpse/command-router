@@ -1,12 +1,18 @@
-from .fixtures import FixturesSetup
-from .result import ControlInitialization, ControlResult
-from _typeshed import Incomplete
+from collections.abc import Callable
 from types import ModuleType
 from typing import Any, Final
 
+from _typeshed import Incomplete
+
+from .fixtures import FixturesSetup
+from .result import ControlInitialization, ControlResult
+
 __all__ = ["DeeperLevelContext"]
 
+_Action = Callable[..., Any]
+
 class _DeeperLevelContext:
+    _setup: Incomplete
     dispatcher: Incomplete
     grammars: dict[str, str]
     fixture_module: ModuleType | None
@@ -23,6 +29,7 @@ class _DeeperLevelContext:
     def context(self, value: FixturesSetup) -> None: ...
     @property
     def fixture_setup(self) -> FixturesSetup: ...
+    def _replace_setup(self, value: FixturesSetup) -> None: ...
     def attach_fixture(self, module: ModuleType, logic: Any, setup: FixturesSetup) -> None: ...
     @property
     def cmd_prefix(self) -> str: ...

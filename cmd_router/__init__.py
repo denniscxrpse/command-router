@@ -8,7 +8,6 @@ __all__ = (
     "Control",
     "ControlInitialization",
     "ControlResult",
-    "init_flags",
 )
 
 import tomllib
@@ -99,7 +98,7 @@ class _CmdRouter:
                 for candidate, parser in ((".json5", json5.loads), (".toml", tomllib.loads)):
                     try:
                         parsed = parser(text)
-                    except (ValueError, tomllib.TOMLDecodeError):
+                    except ValueError, tomllib.TOMLDecodeError:
                         continue
                     if isinstance(parsed, dict):
                         suffix = candidate
@@ -199,7 +198,7 @@ class _CmdRouter:
                 continue
             try:
                 ignored_paths.add(candidate.resolve())
-            except (OSError, RuntimeError):
+            except OSError, RuntimeError:
                 ignored_paths.add(candidate.absolute())
 
         # Load grammars unless their name or path was explicitly ignored.
@@ -210,7 +209,7 @@ class _CmdRouter:
             if ignored_paths:
                 try:
                     file_path = file.resolve()
-                except (OSError, RuntimeError):
+                except OSError, RuntimeError:
                     file_path = file.absolute()
                 if any(file_path == ignored or ignored in file_path.parents for ignored in ignored_paths):
                     log.debug("router: ignoring grammar file by path: %s", file)

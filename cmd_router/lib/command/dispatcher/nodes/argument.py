@@ -3,7 +3,6 @@
 #  Copyright (c) 2026 Ian Hylton
 #  All rights reserved.
 
-
 from collections.abc import Callable
 from typing import Any
 

@@ -48,11 +48,11 @@ from types import ModuleType
 from typing import Any, Self
 
 from cmd_router.lib.command import CmdError, CmdParse
+from cmd_router.lib.control.compiler import _compile_grammars, _GrammarSource, _GrammarSyntaxError
+from cmd_router.lib.control.fixture import _load_fixture_module
 from cmd_router.utils.context import error
 from cmd_router.utils.logger import log, log_handler
 
-from ..compiler import _compile_grammars, _GrammarSource, _GrammarSyntaxError
-from ..fixture import _load_fixture_module
 from .context import _DeeperLevelContext
 from .fixtures import FixturesContextHolder, FixturesSetup
 from .result import ControlInitialization, ControlResult

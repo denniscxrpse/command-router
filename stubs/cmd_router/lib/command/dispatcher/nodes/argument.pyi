@@ -1,8 +1,14 @@
+from collections.abc import Callable
+from typing import Any
+
+from _typeshed import Incomplete
+
 from cmd_router.lib.command.typing import *
+
 from .command import *
 from .kinds import *
-from _typeshed import Incomplete
-from typing import Any
+
+_Handler = Callable[..., Any]
 
 class ArgumentNode(CommandNode):
     kind: Incomplete

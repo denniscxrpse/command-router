@@ -1,8 +1,9 @@
-from _typeshed import Incomplete
 from collections.abc import Awaitable, Generator
-from prompt_toolkit import HTML
 from threading import RLock
 from typing import Any, Final, TextIO
+
+from _typeshed import Incomplete
+from prompt_toolkit import HTML
 
 __all__ = ["log_handler", "log"]
 
@@ -10,13 +11,21 @@ class _CompletedWrite:
     def __await__(self) -> Generator[None]: ...
 
 class _LockedStderr:
+    _stream: Incomplete
+    _lock: Incomplete
     def __init__(self, stream: TextIO, lock: RLock) -> None: ...
     def write(self, text: str) -> int: ...
     def flush(self) -> None: ...
     def __getattr__(self, name: str) -> Any: ...
 
 class _StderrWriter:
+    _lock: Incomplete
+    __latest: str
     def __init__(self, lock: RLock) -> None: ...
+    @property
+    def _latest(self) -> str: ...
+    @_latest.setter
+    def _latest(self, v: str) -> None: ...
     def __call__(self, *message: Any, sep: str = " ", end: str = "\n") -> Awaitable[None]: ...
     async def async_write(self, *message: Any, sep: str = " ", end: str = "\n") -> None: ...
     @property
@@ -24,7 +33,13 @@ class _StderrWriter:
 
 class LoggerHandler:
     logger: Incomplete
+    _colors: dict[int, str]
     log_id: Incomplete
+    _stdout_lock: Incomplete
+    _stderr_lock: Incomplete
+    _stderr_proxy: _LockedStderr | None
+    _stderr_original: TextIO | None
+    _stderr_users: int
     def __init__(self) -> None: ...
     def lock_stderr(self) -> None: ...
     def unlock_stderr(self) -> None: ...
@@ -33,6 +48,8 @@ class LoggerHandler:
     def html(self, msg: str, level: int = ...) -> HTML: ...
     def log(self, level: int, *message: Any, sep: str, end: str) -> None: ...
     def raw(self, *message: Any, sep: str, end: str) -> None: ...
+    @staticmethod
+    def _format_message(message: tuple[Any, ...], sep: str) -> str: ...
 
 log_handler: Incomplete
 

@@ -1,7 +1,13 @@
-from .kinds import *
+from collections.abc import Callable
+from typing import Any
+
 from _typeshed import Incomplete
 
+from .kinds import *
+
 __all__ = ["CommandNode"]
+
+_Handler = Callable[..., Any]
 
 class CommandNode:
     kind: Incomplete
@@ -13,3 +19,5 @@ class CommandNode:
     def label(self) -> str: ...
     def add_child(self, child: CommandNode) -> CommandNode: ...
     def set_command(self, command: _Handler) -> CommandNode: ...
+    @staticmethod
+    def _duplicates(left: CommandNode, right: CommandNode) -> bool: ...

@@ -1,5 +1,6 @@
+from typing import ClassVar, Final, Generic, TypeVar
+
 from _typeshed import Incomplete
-from typing import ClassVar, Final, Generic
 
 __all__ = [
     "ArgumentParseError",
@@ -15,6 +16,7 @@ __all__ = [
     "greedy",
 ]
 
+_ValueT = TypeVar("_ValueT")
 ArgumentParseError: Incomplete
 
 class _ArgType(Generic[_ValueT]):
@@ -36,11 +38,11 @@ class _GreedyStringType(_StringType):
     name: str
     greedy: bool
 
-ArgumentType: Incomplete
-Word: Incomplete
-String: Incomplete
-Int: Incomplete
-GreedyString: Incomplete
+ArgumentType = _ArgType
+Word = _WordType
+String = _StringType
+Int = _IntegerType
+GreedyString = _GreedyStringType
 arg_type: Final[ArgumentType[str]]
 
 def word() -> ArgumentType[str]: ...

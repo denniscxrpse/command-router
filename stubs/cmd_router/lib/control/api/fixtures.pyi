@@ -1,15 +1,24 @@
-from typing import Any, Self
+from collections.abc import Callable
+from typing import Any, ClassVar, Self
 
 __all__ = ["FixturesContextHolder", "FixturesSetup"]
 
+_Action = Callable[..., Any]
+
 class FixturesContextHolder:
+    _current: ClassVar[Self | None]
     calls: list[tuple[str, dict[str, Any]]]
     def __init__(self) -> None: ...
     @classmethod
     def current(cls) -> Self | None: ...
+    def _record(self, name: str, arguments: dict[str, Any]) -> dict[str, Any]: ...
 
 class FixturesSetup:
     logic: Any
+    _cmd_prefix: str
+    _control_no_help_keeps_help: bool
+    _command_action: dict[str, _Action]
+    _command_args_ctrl: dict[str, Any]
     def __init__(self, logic: Any = None) -> None: ...
     @staticmethod
     def __typerror__(name: str, value: Any, expected: type[Any]) -> TypeError: ...

@@ -7,11 +7,9 @@ __all__ = ("flags", "init_flags")
 
 import sys
 from dataclasses import dataclass
-from typing import Final, final
+from typing import Any, Final, final
 
 import click
-
-from cmd_router.utils.logger import log
 
 _help = ["-h", "--help"]
 
@@ -20,13 +18,13 @@ class _CliCommand(click.Command):
     """Keep eager CLI exits from becoming tracebacks in embedded callers."""
 
     def main(self, *args, **kwargs):
-        arguments = args[0] if args else None
+        arguments: Any | None = args[0] if args else None
         if arguments is None:
             arguments = sys.argv[1:]
-        help_requested = any(argument in _help for argument in arguments)
+        help_requested: bool = any(argument in _help for argument in arguments)
 
         try:
-            result = super().main(*args, **kwargs)
+            result: Any = super().main(*args, **kwargs)
         except click.exceptions.Exit as e:
             # Click raises ``Exit`` for its eager help option.  With
             # ``standalone_mode=False`` that exception is normally exposed to
@@ -158,4 +156,3 @@ def init_flags(**kwargs) -> None:
         # caller that has already configured `flags` programmatically.
         if value is not None and hasattr(flags, key):
             setattr(flags, key, value)
-    log.debug("cli: flags initialized: %r", flags)

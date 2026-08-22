@@ -62,6 +62,8 @@ class FixturesContextHolder(_FixturesContextHolder):
         """Record and return arguments for the ``bar`` action family."""
         return self._record("bar", arguments)
 
+    ...
+
 
 context_holder = FixturesContextHolder
 
@@ -86,3 +88,5 @@ class SetupFixtures(_FixturesSetup):
             "advancement": self.logic.bar,
             "say": self.logic.bar,
         }
+
+        ...

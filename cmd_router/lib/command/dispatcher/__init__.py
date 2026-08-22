@@ -68,7 +68,7 @@ class CommandDispatcher:
         return ParseResult(error=result)
 
     def dispatch(self, command: str) -> ParseResult:
-        """Alias for :meth:`parse` for callers thinking in dispatcher terms."""
+        """Alias for `parse` for callers thinking in dispatcher terms."""
         return self.parse(command)
 
     def _walk(

@@ -1,8 +1,12 @@
-from cmd_router.lib.command import CmdParse
+from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any
 
+from cmd_router.lib.command import CmdParse
+
 __all__ = ["ControlResult", "ControlInitialization"]
+
+_Action = Callable[..., Any]
 
 @dataclass(frozen=True, slots=True)
 class ControlResult:
