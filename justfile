@@ -5,13 +5,12 @@
 # - https://just.systems/man/en/packages.html
 # Last edit: 20/Aug/2026
 
-# Initialize the project. Use `PREFIX` to specify `.bat`, `.fish`, etcetera.
-init PREFIX="":
+# Initialize the project. This will only work if you have `just` in your ENV already.
+init:
     #!/usr/bin/env bash
     if [ -d ".venv" ]; then echo "Virtual environment already exists!"; exit 1; fi
-    uv venv
-    source .venv/bin/activate{{ PREFIX }}
     uv sync
+    @echo "Run: `source .venv/bin/activate` if needed."
 
 # Run with sane defaults. Use `FLASG` to specify a flag, use `--help` for details.
 run FLAGS="":

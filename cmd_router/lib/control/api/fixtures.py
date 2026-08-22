@@ -111,7 +111,7 @@ class FixturesContextHolder:
         type(self)._current = self
         FixturesContextHolder._current = self
         self.calls: list[tuple[str, dict[str, Any]]] = []
-        log.debug("fixtures: context holder initialized (%s)", type(self).__name__)
+        log.info("fixtures: context holder initialized (%s)", type(self).__name__)
 
     @classmethod
     def current(cls) -> Self | None:
