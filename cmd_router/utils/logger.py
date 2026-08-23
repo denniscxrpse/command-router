@@ -14,9 +14,13 @@ from collections.abc import Awaitable
 from datetime import datetime
 from html import escape
 from threading import RLock
+from types import FrameType
 from typing import Any, Final, TextIO, final
 
 from prompt_toolkit import HTML, print_formatted_text
+
+_LOGGER_GLOBALS = globals()
+_PROJECT_PACKAGE_PREFIX = "cmd_router."
 
 
 class _CompletedWrite:
@@ -203,21 +207,59 @@ class LoggerHandler:
 
     @staticmethod
     def _format_message(message: tuple[Any, ...], sep: str) -> str:
-        """Format logger arguments without breaking its existing print-like API."""
+        """Format logger arguments with caller information and optional %-style formatting.
+
+        This method walks the call stack to identify the original caller (skipping
+        internal logger frames), prepends the caller's qualified name to the message,
+        and supports print-like variadic arguments as well as %-style formatting.
+
+        Args:
+            message: Tuple of arguments to format into a log message.
+            sep: Separator string to join multiple message arguments.
+
+        Returns:
+            Formatted string in the form "LEVEL - caller: formatted_message", where
+            the caller's module prefix is stripped if it matches the project package.
+            If the first argument contains % markers and additional arguments are
+            provided, attempts %-style formatting; falls back to sep-joined output
+            if formatting fails.
+        """
+
+        # noinspection protected-member
+        frame: FrameType | None = sys._getframe(1)
+        while frame is not None and frame.f_globals is _LOGGER_GLOBALS:
+            frame = frame.f_back
+
+        if frame is None:
+            caller = "<unknown>"
+        else:
+            module_name = frame.f_globals.get("__name__", "")
+            qualname = frame.f_code.co_qualname
+            if qualname == "<module>":
+                caller = module_name or "<unknown>"
+            elif module_name:
+                caller = f"{module_name}.{qualname}"
+            else:
+                caller = qualname
+
+        caller = caller.replace(_PROJECT_PACKAGE_PREFIX, "")
+
         if len(message) > 1 and isinstance(message[0], str) and "%" in message[0]:
             try:
-                return message[0] % tuple(message[1:])
+                return f"{caller}: {message[0] % tuple(message[1:])}"
             except TypeError, ValueError:
                 # A malformed diagnostic should still be visible rather than
                 # raising a second exception while reporting the first one.
                 pass
-        return sep.join(str(arg) for arg in message)
+        return f"{caller}: {sep.join(str(arg) for arg in message)}"
 
 
 log_handler = LoggerHandler()
 
 
 class Logger:
+    """``LoggerHandler`` wrapper with a consistent API."""
+
     @staticmethod
     def debug(*message: Any, sep=" ", end="\n") -> None:
         log_handler.log(_log.DEBUG, *message, sep=sep, end=end)

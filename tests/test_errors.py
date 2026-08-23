@@ -8,8 +8,13 @@ import pytest
 import main as entrypoint
 from cmd_router.lib.command import CmdError
 from cmd_router.lib.command.typing import ArgumentParseError
+from cmd_router.lib.control.compiler import _compile_grammars
 from cmd_router.utils.context import error
 from cmd_router.utils.logger import log
+
+
+def _emit_callsite_log() -> None:
+    log.info("logger callsite")
 
 
 def test_error_codes_do_not_classify_exceptions() -> None:
@@ -44,3 +49,17 @@ def test_diagnostic_logs_are_formatted_on_stdout(capsys: pytest.CaptureFixture[s
     captured = capsys.readouterr()
     assert "logger smoke test: stdout" in captured.out
     assert captured.err == ""
+
+
+def test_diagnostic_logs_include_callsite(capsys: pytest.CaptureFixture[str]) -> None:
+    _emit_callsite_log()
+
+    captured = capsys.readouterr()
+    assert f"{__name__}._emit_callsite_log: logger callsite" in captured.out
+
+
+def test_diagnostic_logs_skip_project_package_prefix(capsys: pytest.CaptureFixture[str]) -> None:
+    _compile_grammars({}, lambda: {}, False, "/")
+
+    captured = capsys.readouterr()
+    assert "lib.control.compiler._compile_grammars: compiler: starting compilation of 0 grammar entries" in captured.out

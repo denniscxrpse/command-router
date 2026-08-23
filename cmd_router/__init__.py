@@ -287,11 +287,11 @@ class CommandRouter:
         # Note: If `flags.control` is somehow false and `ctrl_init` is true, the loop will run anyway.
         #       This is intentional, since `_control_init` owns the rights to this initialization.
         if ctrl_init:
-            v = self._control_loop()
-            log.info("router: control loop exited with status %s", v)
+            c = self._control_loop()
+            log.info("router: control loop exited with status %s", c)
             return
 
-        log.info("router: initialization completed (%d command grammar(s))", len(self._grammars))
+        log.info("router: ready (%d command grammar(s))", len(self._grammars))
 
     def execute(self, command: Any) -> ControlResult:
         """Execute through the configured control surface."""
@@ -320,11 +320,11 @@ class CommandRouter:
         try:
             initialized = self.control.deeper_level.initialized
         except Exception as exception:
-            log.error("router: cannot inspect control state before starting the loop: %s", exception)
+            log.error("router.control: cannot inspect control state before starting the loop: %s", exception)
             return error.Abort
 
         if not initialized:
-            log.error("router: cannot start control loop; control is not initialized")
+            log.error("router.control: cannot start control loop; control is not initialized")
             return int(error.ControlNotInitializedError)
 
         log.info("router: control loop started (type 'exit'/'e' or 'quit'/'q' to stop)")
