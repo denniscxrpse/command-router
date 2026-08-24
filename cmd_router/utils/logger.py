@@ -22,6 +22,8 @@ from prompt_toolkit import HTML, print_formatted_text
 _LOGGER_GLOBALS = globals()
 _PROJECT_PACKAGE_PREFIX = "cmd_router."
 
+_end = "\n"
+
 
 class _CompletedWrite:
     """An awaitable that is already complete.
@@ -76,14 +78,14 @@ class _StderrWriter:
         with self._lock:
             self.__latest = v
 
-    def __call__(self, *message: Any, sep: str = " ", end: str = "\n") -> Awaitable[None]:
+    def __call__(self, *message: Any, sep: str = " ", end: str = _end) -> Awaitable[None]:
         text: str = sep.join(str(arg) for arg in message) + end
         with self._lock:
             self._latest = text
             print(text, sep="", end="", file=sys.stderr, flush=True)
         return _CompletedWrite()  # pyrefly: ignore [bad-return]
 
-    async def async_write(self, *message: Any, sep: str = " ", end: str = "\n") -> None:
+    async def async_write(self, *message: Any, sep: str = " ", end: str = _end) -> None:
         self(*message, sep=sep, end=end)
 
     @property
@@ -261,34 +263,34 @@ class Logger:
     """``LoggerHandler`` wrapper with a consistent API."""
 
     @staticmethod
-    def debug(*message: Any, sep=" ", end="\n") -> None:
+    def debug(*message: Any, sep=" ", end=_end) -> None:
         log_handler.log(_log.DEBUG, *message, sep=sep, end=end)
 
     @staticmethod
-    def info(*message: Any, sep=" ", end="\n") -> None:
+    def info(*message: Any, sep=" ", end=_end) -> None:
         log_handler.log(_log.INFO, *message, sep=sep, end=end)
 
     @staticmethod
-    def warning(*message: Any, sep=" ", end="\n") -> None:
+    def warning(*message: Any, sep=" ", end=_end) -> None:
         log_handler.log(_log.WARNING, *message, sep=sep, end=end)
 
     @staticmethod
-    def error(*message: Any, sep=" ", end="\n") -> None:
+    def error(*message: Any, sep=" ", end=_end) -> None:
         log_handler.log(_log.ERROR, *message, sep=sep, end=end)
 
     @staticmethod
-    def critical(*message: Any, sep=" ", end="\n") -> None:
+    def critical(*message: Any, sep=" ", end=_end) -> None:
         log_handler.log(_log.CRITICAL, *message, sep=sep, end=end)
 
     @staticmethod
-    def raw(*message: Any, sep=" ", end="\n") -> None:
+    def raw(*message: Any, sep=" ", end=_end) -> None:
         log_handler.raw(*message, sep=sep, end=end)
 
     # noinspection protected-member
     stderr: Final[_StderrWriter] = _StderrWriter(log_handler._stderr_lock)
 
     @staticmethod
-    async def stderr_async(*message: Any, sep=" ", end="\n") -> None:
+    async def stderr_async(*message: Any, sep=" ", end=_end) -> None:
         """Awaitable stderr helper for code already running in an event loop."""
         await Logger.stderr.async_write(*message, sep=sep, end=end)
 

@@ -40,6 +40,39 @@ def test_control_returns_structured_results_and_keeps_deeper_state() -> None:
         runner.close()
 
 
+def test_control_emits_compact_data_and_error_responses_to_stderr(capsys: pytest.CaptureFixture[str]) -> None:
+    runner = Control()
+    try:
+        runner.deeper_level.command_action = {"tell": lambda **arguments: arguments}
+        assert runner.initialize({"tell": "<target> <message...>"}).ok
+
+        failed = runner.execute("/tell Alex")
+        failure_output = capsys.readouterr().err
+        assert failed.data is None
+        assert failed.err is failed.error
+        assert failed.error is not None
+        assert failed.error.partial_args == {"target": "Alex"}
+        assert "'data': None" in failure_output
+        assert "'err': {'kind': 'incomplete_command'" in failure_output
+        assert "'partial_args': {'target': 'Alex'}" in failure_output
+
+        succeeded = runner.execute("/tell Alex hello")
+        assert succeeded.data == {"target": "Alex", "message": "hello"}
+        assert succeeded.err is None
+        assert capsys.readouterr().err == "{'data': {'target': 'Alex', 'message': 'hello'}, 'err': None}\n"
+    finally:
+        runner.close()
+
+
+def test_control_result_preserves_explicit_data_and_error_payloads() -> None:
+    fallback = object()
+    result = api.ControlResult(True, 0, "custom", None, data={"answer": 42}, err=fallback)
+
+    assert result.data == {"answer": 42}
+    assert result.err is fallback
+    assert result.to_response() == {"data": result.data, "err": fallback}
+
+
 def test_builtin_help_lists_commands_and_searches_a_specific_command() -> None:
     runner = Control()
     try:

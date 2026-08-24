@@ -62,4 +62,4 @@ def test_diagnostic_logs_skip_project_package_prefix(capsys: pytest.CaptureFixtu
     _compile_grammars({}, lambda: {}, False, "/")
 
     captured = capsys.readouterr()
-    assert "lib.control.compiler._compile_grammars: compiler: starting compilation of 0 grammar entries" in captured.out
+    assert "lib.control.compiler._compile_grammars: starting compilation of 0 grammar entries" in captured.out

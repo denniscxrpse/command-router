@@ -162,6 +162,26 @@ def test_dispatcher_returns_tokenization_error_codes() -> None:
     assert result.error.code == CmdError.TokenizeInvalidError
 
 
+def test_parse_error_exposes_failure_context_for_debugging() -> None:
+    dispatcher, _ = _phase_one_dispatcher()
+
+    result = dispatcher.parse("tell Alex")
+
+    assert result.error is not None
+    assert result.error.position == 2
+    assert result.error.cursor == 2
+    assert result.error.expectations == ("<message...>",)
+    assert result.error.parsed_args == {"target": "Alex"}
+    assert result.error.to_dict() == {
+        "kind": "incomplete_command",
+        "token_index": 2,
+        "expected": ("<message...>",),
+        "message": "expected one of: <message...>",
+        "partial_args": {"target": "Alex"},
+        "code": None,
+    }
+
+
 def test_literal_branches_take_precedence_over_argument_branches() -> None:
     def literal_handler() -> None:
         return None

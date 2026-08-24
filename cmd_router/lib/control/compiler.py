@@ -234,12 +234,12 @@ def _make_action_handler(
         values.update(arguments)
         action = action_provider().get(command_name)
         if action is not None and not callable(action):
-            log.error("compiler: action for %r is no longer callable", command_name)
+            log.error("action for %r is no longer callable", command_name)
             raise TypeError(f"action for {command_name!r} must be callable")
         if action is None:
-            log.warning("compiler: no action is registered for %r; returning None", command_name)
+            log.warning("no action is registered for %r; returning None", command_name)
             return None
-        log.debug("compiler: invoking action for %r with arguments %r", command_name, values)
+        log.debug("invoking action for %r with arguments %r", command_name, values)
         return action(**values)
 
     return handler
@@ -280,9 +280,9 @@ def _compile_grammars(
     :return: A dispatcher containing one registered root per compiled command.
     """
     actions = action_provider()
-    log.info("compiler: starting compilation of %d grammar entr%s", len(grammars), "y" if len(grammars) == 1 else "ies")
+    log.info("starting compilation of %d grammar entr%s", len(grammars), "y" if len(grammars) == 1 else "ies")
     log.debug(
-        "compiler: options (keep_help=%s, command_prefix=%r, actions=%s)",
+        "options (keep_help=%s, command_prefix=%r, actions=%s)",
         keep_help,
         command_prefix,
         tuple(actions),
@@ -290,26 +290,26 @@ def _compile_grammars(
     dispatcher = CmdNode.Dispatcher()
 
     for command_name, syntax in grammars.items():
-        log.debug("compiler: processing %r with syntax %r", command_name, syntax)
+        log.debug("processing %r with syntax %r", command_name, syntax)
         if not isinstance(command_name, str) or not command_name:
             raise _GrammarSyntaxError("command names must be non-empty strings")
         if not isinstance(syntax, str):
             raise _GrammarSyntaxError(f"grammar for {command_name!r} must be a string")
         if command_name == "help" and keep_help:
-            log.warning("compiler: skipping user-defined 'help' grammar because built-in help is enabled")
+            log.warning("skipping user-defined 'help' grammar because built-in help is enabled")
             continue
 
         action = actions.get(command_name)
         if action is not None and not callable(action):
-            log.error("compiler: configured action for %r is not callable", command_name)
+            log.error("configured action for %r is not callable", command_name)
             raise _GrammarSyntaxError(f"action for {command_name!r} must be callable")
 
         expression = _GrammarParser(syntax).parse()
         paths = _expand_sequence(expression)
-        log.debug("compiler: expanded %r into %d concrete path(s)", command_name, len(paths))
+        log.debug("expanded %r into %d concrete path(s)", command_name, len(paths))
         root = CmdNode.Literal(command_name)
         for terms, defaults in paths:
-            log.debug("compiler: materializing %r path terms=%r defaults=%r", command_name, terms, defaults)
+            log.debug("materializing %r path terms=%r defaults=%r", command_name, terms, defaults)
             current = root
             for term in terms:
                 child = _find_child(current, term)
@@ -322,7 +322,7 @@ def _compile_grammars(
                 current = child
             current.set_command(_make_action_handler(command_name, action_provider, defaults))
         dispatcher.register(root)
-        log.debug("compiler: registered command root %r", command_name)
+        log.debug("registered command root %r", command_name)
 
     if keep_help:
         command_names = tuple(name for name in grammars if name != "help")
@@ -337,21 +337,20 @@ def _compile_grammars(
             r: dict[str, Any] = {"commands": command_names, "prefix": command_prefix, "target": None}
             target = arguments.get("target")
             if target is None:
-                log.debug("compiler.help: help overview requested")
+                log.debug("help overview requested")
             else:
                 s = command_syntax.get(target)
                 if s is None:
-                    log.warning("compiler.help: help target for %r was not found!", target)
+                    log.warning("help target for %r was not found!", target)
                 else:
                     r["target"] = f'{target} = "{s}"'
-                    log.debug("compiler.help: help target %r matched", target)
-            log.stderr(r)
+                    log.debug("help target %r matched", target)
             return r
 
         help_node = CmdNode.Literal("help", command=help_action)
         help_node.add_child(CmdNode.Argument("target", CmdType.GreedyString(), command=help_action))
         dispatcher.register(help_node)
-        log.info("compiler: installed built-in help for %d command(s)", len(command_names))
+        log.info("installed built-in help for %d command(s)", len(command_names))
 
-    log.info("compiler: compilation completed")
+    log.info("compilation completed")
     return dispatcher

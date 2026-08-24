@@ -17,8 +17,8 @@ _DictOrError = _Dict | int
 
 
 def _logerr(c: int, s: str) -> int:
-    log.raw("grammar: validation: FAILURE")
-    log.error("grammar: %s (code=%s)", s, c)
+    log.raw("validation: FAILURE")
+    log.error("%s (code=%s)", s, c)
     return c
 
 
@@ -33,15 +33,15 @@ def load_grammars(path: Path) -> tuple[_Dict, _Dict] | int:
     p = grammar_parsers.get(path.suffix.casefold())
 
     if p is None:
-        log.debug("grammar: ignoring unsupported file format %s", path)
+        log.debug("ignoring unsupported file format %s", path)
         return error.UnsupportedGrammarFormatError
 
-    log.info("grammar: parsing and validating (%s)", path.name)
-    log.debug("grammar: selected %s parser for %s", p.__name__, path)
+    log.info("parsing and validating (%s)", path.name)
+    log.debug("selected %s parser for %s", p.__name__, path)
 
     parsed = p(path)
     if isinstance(parsed, int):
-        log.error("grammar: parser rejected %s with code %s", path, parsed)
+        log.error("parser rejected %s with code %s", path, parsed)
         return parsed
 
     container = parsed.get(uctx.cmd_router)
@@ -73,13 +73,13 @@ def load_grammars(path: Path) -> tuple[_Dict, _Dict] | int:
         errors.append(f"Unsupported schema version: {schema_version}.")
 
     if errors:
-        log.raw(f"grammar: validation ({path.name}): FAILURE")
+        log.raw(f"validation ({path.name}): FAILURE")
         log.warning("Validation failed!")
         log.debug(f"Parsed data: {parsed}, from: {path}")
         for e in errors:
-            log.error("grammar: %s", e)
+            log.error("%s", e)
         return error.Abort
 
-    log.raw(f"grammar: validation ({path.name}): OK")
-    log.info("grammar: loaded %d command entr%s from %s", len(grammar), "y" if len(grammar) == 1 else "ies", path.name)
+    log.raw(f"validation ({path.name}): OK")
+    log.info("loaded %d command entr%s from %s", len(grammar), "y" if len(grammar) == 1 else "ies", path.name)
     return grammar, info

@@ -67,7 +67,7 @@ class _DeeperLevelContext:
         self.initialized = False
         self.last_result: ControlResult | None = None
         self.last_initialization: ControlInitialization | None = None
-        log.debug("context: deeper control state created (custom_setup=%s)", setup is not None)
+        log.debug("deeper control state created (custom_setup=%s)", setup is not None)
 
     @property
     def setup(self) -> FixturesSetup:
@@ -94,7 +94,7 @@ class _DeeperLevelContext:
         if not isinstance(value, FixturesSetup):
             raise TypeError("setup must be a FixturesSetup instance")
         self._setup = value
-        log.info("context: active fixture setup replaced (%s)", type(value).__name__)
+        log.info("active fixture setup replaced (%s)", type(value).__name__)
 
     def attach_fixture(self, module: ModuleType, logic: Any, setup: FixturesSetup) -> None:
         """Store a successfully initialized fixture and make its setup active."""
@@ -105,7 +105,7 @@ class _DeeperLevelContext:
         self._setup = setup
         self.fixture_module = module
         self.fixture_logic = logic
-        log.info("context: attached fixture %s with setup %s", module.__name__, type(setup).__name__)
+        log.info("attached fixture %s with setup %s", module.__name__, type(setup).__name__)
 
     @property
     def cmd_prefix(self) -> str:
@@ -164,16 +164,16 @@ class _DeeperLevelContext:
         if not isinstance(overrides, dict):
             raise TypeError(f"argument overrides for {command!r} must be a dictionary")
         overrides.update(arguments)
-        log.debug("context: set %d argument override(s) for %r", len(arguments), command)
+        log.debug("set %d argument override(s) for %r", len(arguments), command)
 
     def clear_command_args(self, command: str | None = None) -> None:
         """Clear one command's overrides, or all active setup overrides."""
         if command is None:
             self.command_args_ctrl.clear()
-            log.debug("context: cleared all command argument overrides")
+            log.debug("cleared all command argument overrides")
         else:
             self.command_args_ctrl.pop(command, None)
-            log.debug("context: cleared argument overrides for %r", command)
+            log.debug("cleared argument overrides for %r", command)
 
 
 DeeperLevelContext: Final[type[_DeeperLevelContext]] = _DeeperLevelContext

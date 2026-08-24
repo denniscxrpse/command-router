@@ -1,11 +1,9 @@
+from .fixtures import FixturesSetup
+from .result import ControlInitialization, ControlResult
+from _typeshed import Incomplete
 from collections.abc import Callable
 from types import ModuleType
 from typing import Any, Final
-
-from _typeshed import Incomplete
-
-from .fixtures import FixturesSetup
-from .result import ControlInitialization, ControlResult
 
 __all__ = ["DeeperLevelContext"]
 

@@ -30,6 +30,7 @@ from cmd_router.lib.command import CmdParse
 __all__ = ("ControlResult", "ControlInitialization")
 
 _Action = Callable[..., Any]
+_UNSET = object()
 
 
 @dataclass(frozen=True, slots=True)
@@ -72,6 +73,22 @@ class ControlResult:
     """Human-readable explanation of the result."""
     exception: str | None = None
     """Formatted exception details from a failed action."""
+    data: Any = _UNSET
+    """Primary response data, defaulting to the legacy ``value`` field."""
+    err: Any = _UNSET
+    """Response error payload; arbitrary caller-provided values are preserved."""
+
+    def __post_init__(self) -> None:
+        """Fill the response aliases without changing existing constructors."""
+        if self.data is _UNSET:
+            object.__setattr__(self, "data", self.value)
+        if self.err is _UNSET:
+            response_error: Any = self.error
+            if response_error is None:
+                response_error = self.exception
+            if response_error is None and not self.ok:
+                response_error = self.message or None
+            object.__setattr__(self, "err", response_error)
 
     @property
     def is_success(self) -> bool:
@@ -88,7 +105,20 @@ class ControlResult:
     @property
     def result(self) -> Any:
         """Return the action result value."""
-        return self.value
+        return self.data
+
+    @staticmethod
+    def _transport_value(value: Any) -> Any:
+        """Convert known structured errors while preserving arbitrary payloads."""
+        if isinstance(value, CmdParse.Error):
+            return value.to_dict()
+        return value
+
+    def to_response(self) -> dict[str, Any]:
+        """Return the compact ``data``/``err`` response written to stderr."""
+        return {"data": self.data, "err": self._transport_value(self.err)}
+
+    as_response = to_response
 
     def to_dict(self) -> dict[str, Any]:
         """Return a transport-friendly result mapping."""
@@ -99,18 +129,13 @@ class ControlResult:
             "input": self.input,
             "command": self.command,
             "value": self.value,
+            "data": self.data,
+            "err": self._transport_value(self.err),
         }
         if self.context is not None:
             data["parsed_args"] = dict(self.context.args)
         if self.error is not None:
-            data["error"] = {
-                "kind": self.error.kind,
-                "token_index": self.error.token_index,
-                "expected": self.error.expected,
-                "message": self.error.message,
-                "partial_args": dict(self.error.partial_args),
-                "code": None if self.error.code is None else self.error.code,
-            }
+            data["error"] = self.error.to_dict()
         if self.message:
             data["message"] = self.message
         if self.exception is not None:

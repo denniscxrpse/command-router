@@ -1,15 +1,11 @@
+from .context import DeeperLevelContext as DeeperLevelContext, _DeeperLevelContext
+from .control import Control as Control
+from .fixtures import FixturesContextHolder as FixturesContextHolder, FixturesSetup as FixturesSetup
+from .result import ControlInitialization as ControlInitialization, ControlResult as ControlResult
 from collections.abc import Mapping
 from pathlib import Path
 from types import ModuleType
 from typing import Any, Final
-
-from .context import DeeperLevelContext as DeeperLevelContext
-from .context import _DeeperLevelContext
-from .control import Control as Control
-from .fixtures import FixturesContextHolder as FixturesContextHolder
-from .fixtures import FixturesSetup as FixturesSetup
-from .result import ControlInitialization as ControlInitialization
-from .result import ControlResult as ControlResult
 
 __all__ = [
     "DeeperLevelContext",

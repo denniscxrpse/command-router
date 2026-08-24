@@ -1,3 +1,4 @@
+from _typeshed import Incomplete
 from collections.abc import Callable
 from typing import Any, ClassVar, Self
 
@@ -15,7 +16,7 @@ class FixturesContextHolder:
 
 class FixturesSetup:
     logic: Any
-    _cmd_prefix: str
+    _cmd_prefix: Incomplete
     _control_no_help_keeps_help: bool
     _command_action: dict[str, _Action]
     _command_args_ctrl: dict[str, Any]

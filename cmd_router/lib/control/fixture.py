@@ -84,9 +84,9 @@ def _load_fixture_module(source: ModuleType | str | Path, identifier: int) -> Mo
     :raises ImportError: If Python cannot create a usable file-module spec.
     :return: The existing module or the newly executed file-backed module.
     """
-    log.debug("fixture-loader: resolving source %r", source)
+    log.debug("resolving source %r", source)
     if isinstance(source, ModuleType):
-        log.debug("fixture-loader: using existing module %s", source.__name__)
+        log.debug("using existing module %s", source.__name__)
         return source
 
     if isinstance(source, Path):
@@ -94,29 +94,29 @@ def _load_fixture_module(source: ModuleType | str | Path, identifier: int) -> Mo
     elif isinstance(source, str):
         candidate = Path(source)
         if not candidate.exists() and not source.endswith(".py"):
-            log.debug("fixture-loader: importing module by name %r", source)
+            log.debug("importing module by name %r", source)
             try:
                 module = importlib.import_module(source)
             except Exception as exception:
-                log.error("fixture-loader: module import failed: %s", exception)
+                log.error("module import failed: %s", exception)
                 raise
-            log.debug("fixture-loader: imported module %s", module.__name__)
+            log.debug("imported module %s", module.__name__)
             return module
     else:
         raise TypeError("fixture must be a module, module name, or path")
 
     if candidate.is_dir():
-        log.debug("fixture-loader: resolving package directory %s", candidate)
+        log.debug("resolving package directory %s", candidate)
         candidate = candidate / "__init__.py"
     if not candidate.is_file():
-        log.error("fixture-loader: fixture file does not exist: %s", candidate)
+        log.error("fixture file does not exist: %s", candidate)
         raise FileNotFoundError(f"fixture module does not exist: {candidate}")
 
     module_name = f"_cmd_router_fixture_{identifier}"
-    log.debug("fixture-loader: loading %s as %s", candidate, module_name)
+    log.debug("loading %s as %s", candidate, module_name)
     spec = importlib.util.spec_from_file_location(module_name, candidate)
     if spec is None or spec.loader is None:
-        log.error("fixture-loader: could not create an import spec for %s", candidate)
+        log.error("could not create an import spec for %s", candidate)
         raise ImportError(f"could not load fixture module: {candidate}")
     module = importlib.util.module_from_spec(spec)
     sys.modules[module_name] = module
@@ -124,7 +124,7 @@ def _load_fixture_module(source: ModuleType | str | Path, identifier: int) -> Mo
         spec.loader.exec_module(module)
     except Exception as exception:
         sys.modules.pop(module_name, None)
-        log.error("fixture-loader: execution of %s failed: %s", candidate, exception)
+        log.error("execution of %s failed: %s", candidate, exception)
         raise
-    log.info("fixture-loader: loaded fixture %s", candidate)
+    log.info("loaded fixture %s", candidate)
     return module

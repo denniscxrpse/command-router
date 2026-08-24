@@ -26,14 +26,14 @@ def tokenize(command: str) -> list[str] | int:
     malformed command strings return the corresponding tokenizer error code.
     """
 
-    log.debug("tokenizer: received input of type %s", type(command).__name__)
+    log.debug("received input of type %s", type(command).__name__)
     if not isinstance(command, str):
-        log.warning("tokenizer: cannot tokenize non-string input (%s)", type(command).__name__)
+        log.warning("cannot tokenize non-string input (%s)", type(command).__name__)
         return error.TokenizeUnsupportedTypeError
     try:
         tokens = shlex.split(command, comments=False, posix=True)
     except ValueError as exception:
-        log.error("tokenizer: malformed command input: %s", exception)
+        log.error("malformed command input: %s", exception)
         return error.TokenizeInvalidError
-    log.debug("tokenizer: produced %d token(s): %r", len(tokens), tokens)
+    log.debug("produced %d token(s): %r", len(tokens), tokens)
     return tokens

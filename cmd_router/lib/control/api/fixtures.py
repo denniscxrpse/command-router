@@ -85,6 +85,7 @@ from cmd_router.utils.logger import log
 __all__ = ("FixturesContextHolder", "FixturesSetup")
 
 _Action = Callable[..., Any]
+_default_pfx = "/"
 
 
 class FixturesContextHolder:
@@ -111,7 +112,7 @@ class FixturesContextHolder:
         type(self)._current = self
         FixturesContextHolder._current = self
         self.calls: list[tuple[str, dict[str, Any]]] = []
-        log.info("fixtures: context holder initialized (%s)", type(self).__name__)
+        log.info("context holder initialized (%s)", type(self).__name__)
 
     @classmethod
     def current(cls) -> Self | None:
@@ -128,9 +129,9 @@ class FixturesContextHolder:
         """
         recorded = dict(arguments)
         self.calls.append((name, recorded))
-        log.debug("fixtures: recorded action %r with %d argument(s)", name, len(recorded))
+        log.debug("recorded action %r with %d argument(s)", name, len(recorded))
         if recorded:
-            print(*recorded.values())
+            log.debug("captured values:", *recorded.values())
         return recorded
 
 
@@ -179,7 +180,7 @@ class FixturesSetup:
 
         :raises RuntimeError: If no fixture logic can be associated with the setup.
         """
-        log.debug("fixtures: constructing setup (%s)", type(self).__name__)
+        log.debug("constructing setup (%s)", type(self).__name__)
         if logic is not None:
             self.logic = logic
         if self.logic is None:
@@ -190,11 +191,11 @@ class FixturesSetup:
                 "create a context_holder first or let Control initialize the fixture."
             )
 
-        self._cmd_prefix = "/"
+        self._cmd_prefix = _default_pfx
         self._control_no_help_keeps_help = True
         self._command_action: dict[str, _Action] = {}
         self._command_args_ctrl: dict[str, Any] = {}
-        log.debug("fixtures: setup defaults initialized for logic=%s", type(self.logic).__name__)
+        log.debug("setup defaults initialized for logic=%s", type(self.logic).__name__)
 
     @staticmethod
     def __typerror__(name: str, value: Any, expected: type[Any]) -> TypeError:
@@ -208,7 +209,7 @@ class FixturesSetup:
         object, or another value without ``__name__``.
         """
         actual = type(value).__name__
-        log.error("fixtures: invalid %s value; expected %s, got %s", name, expected.__name__, actual)
+        log.error("invalid %s value; expected %s, got %s", name, expected.__name__, actual)
         return TypeError(f"{name} must be a {expected.__name__}, got {actual}")
 
     @property
@@ -218,11 +219,18 @@ class FixturesSetup:
 
     @cmd_prefix.setter
     def cmd_prefix(self, v: str) -> None:
-        """Set the command prefix, rejecting non-string configuration."""
+        """
+        Set the command prefix, rejecting non-string configuration.
+        Any input that does not start with this prefix is treated as greedy
+        (non-command) input.
+        """
+        if v == "":
+            log.warning("empty strings are not allowed as command prefixes; using defaults.")
+            v = _default_pfx
         if not isinstance(v, str):
             raise self.__typerror__("cmd_prefix", v, str)
         self._cmd_prefix = v
-        log.debug("fixtures: command prefix set to %r", v)
+        log.debug("command prefix set to %r", v)
 
     @property
     def control_no_help_keeps_help(self) -> bool:
@@ -231,11 +239,16 @@ class FixturesSetup:
 
     @control_no_help_keeps_help.setter
     def control_no_help_keeps_help(self, v: bool) -> None:
-        """Set the help policy, requiring an actual boolean value."""
+        """
+        Controls whether the built-in help command remains available. When set to ``True``,
+        the help command will always be available, even if no help text is defined for
+        commands. When set to ``False``, the help command can be overridden
+        or hidden.
+        """
         if not isinstance(v, bool):
             raise self.__typerror__("control_no_help_keeps_help", v, bool)
         self._control_no_help_keeps_help = v
-        log.debug("fixtures: built-in help policy set to %s", v)
+        log.debug("built-in help policy set to %s", v)
 
     @property
     def command_action(self) -> dict[str, _Action]:
@@ -244,11 +257,16 @@ class FixturesSetup:
 
     @command_action.setter
     def command_action(self, v: dict[str, _Action]) -> None:
-        """Replace the action mapping after validating its container type."""
+        """
+        Maps command names to their executable action functions. This dictionary
+        defines the behavior of each command. Each key is a command name (as defined
+        in your grammar files), and each value is a callable that will be executed
+        when that command is invoked.
+        """
         if not isinstance(v, dict):
             raise self.__typerror__("command_action", v, dict)
         self._command_action = v
-        log.debug("fixtures: command actions set (%d name(s))", len(v))
+        log.debug("command actions set (%d name(s))", len(v))
 
     @property
     def command_args_ctrl(self) -> dict[str, Any]:
@@ -257,8 +275,13 @@ class FixturesSetup:
 
     @command_args_ctrl.setter
     def command_args_ctrl(self, v: dict[str, Any]) -> None:
-        """Replace argument overrides after validating their container type."""
+        """Replace argument overrides after validating their container type.
+        The preferred shape is ``{"command": {"argument": value}}``.  Keeping
+        this on the shared context preserves the small existing configuration
+        surface; ``DeeperLevelContext`` exposes the same mapping for callers
+        that need runtime control.
+        """
         if not isinstance(v, dict):
             raise self.__typerror__("command_args_ctrl", v, dict)
         self._command_args_ctrl = v
-        log.debug("fixtures: argument overrides set (%d command(s))", len(v))
+        log.debug("argument overrides set (%d command(s))", len(v))

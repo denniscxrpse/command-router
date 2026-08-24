@@ -103,13 +103,15 @@ Structural invariant:
 
 **Goal:** failures that explain themselves.
 
-- [ ] Track token index / cursor as you parse.
-- [ ] Produce a consistent error object:
+- [x] Track token index / cursor as you parse.
+- [x] Produce a consistent error object:
     - where it failed
     - “expected next” (literal candidates and/or argument types)
     - maybe: partial parsed args (for debugging)
 
-**Exit condition:** failing fixtures produce predictable, testable errors.
+**Exit condition:** failing fixtures produce predictable, testable errors. The
+control API also emits a compact ``{"data": ..., "err": ...}`` response to
+stderr for every execution result.
 
 ---
 

@@ -1,13 +1,11 @@
-from collections.abc import Callable
-from typing import Any, Final
-
-from _typeshed import Incomplete
-
 from cmd_router.lib import *
 from cmd_router.lib.command.context import *
 from cmd_router.lib.command.dispatcher.nodes import *
 from cmd_router.lib.command.typing import *
 from cmd_router.utils.logger import *
+from _typeshed import Incomplete
+from collections.abc import Callable
+from typing import Any, Final
 
 __all__ = ["ArgumentNode", "CommandNode", "LiteralNode", "RootNode", "CommandDispatcher", "cmd_dispatcher"]
 

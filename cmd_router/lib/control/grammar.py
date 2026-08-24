@@ -154,10 +154,10 @@ class _GrammarParser:
         parsing begins.  The resulting tokens are immutable for the lifetime of this parser, and the cursor is
         initialized to zero.
         """
-        log.debug("grammar: scanning source %r", source)
+        log.debug("scanning source %r", source)
         self._tokens = self._scan(source)
         self._position = 0
-        log.debug("grammar: scanner produced %d token(s)", len(self._tokens))
+        log.debug("scanner produced %d token(s)", len(self._tokens))
 
     def parse(self) -> tuple[Any, ...]:
         """Parse and return the complete grammar expression.
@@ -175,7 +175,7 @@ class _GrammarParser:
         if self._position != len(self._tokens):
             token = self._tokens[self._position]
             raise _GrammarSyntaxError(f"unexpected grammar token {token!r}")
-        log.debug("grammar: parsed %d top-level alternative(s)", len(alternatives))
+        log.debug("parsed %d top-level alternative(s)", len(alternatives))
         return (_ChoiceTerm(alternatives),)
 
     def _parse_alternatives(self, closing: str | None) -> tuple[tuple[Any, ...], ...]:

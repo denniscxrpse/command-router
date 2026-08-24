@@ -91,7 +91,7 @@ class Control:
         self._async_lock: Lock = asyncio.Lock()
         self._stderr_locked: bool = False
         log.debug(
-            "control: created (setup=%s, deeper=%s)",
+            "created (setup=%s, deeper=%s)",
             type(self.deeper_level.setup).__name__,
             deeper is not None,
         )
@@ -120,9 +120,9 @@ class Control:
         it replaces the active setup's help policy for this control.  Omitting
         it preserves the setup's configured value.
         """
-        log.info("control: initialization started")
+        log.info("initialization started")
         log.debug(
-            "control: initialization options (grammars=%s, fixture=%r, keep_help=%r)",
+            "initialization options (grammars=%s, fixture=%r, keep_help=%r)",
             type(grammars).__name__ if grammars is not None else "stored",
             fixture,
             keep_help,
@@ -130,7 +130,7 @@ class Control:
         if fixture is not None:
             fixture_result = self._initialize_fixture(fixture)
             if not fixture_result.ok:
-                log.warning("control: fixture setup failed; grammar compilation was skipped")
+                log.warning("fixture setup failed; grammar compilation was skipped")
                 self.deeper_level.last_initialization = fixture_result
                 return fixture_result
 
@@ -142,7 +142,7 @@ class Control:
         selected = self.deeper_level.grammars if grammars is None else grammars
         result = self.configure(selected)
         self.deeper_level.last_initialization = result
-        log.debug("control: initialization finished (ok=%s, code=%s)", result.ok, result.code)
+        log.debug("initialization finished (ok=%s, code=%s)", result.ok, result.code)
         return result
 
     def configure(self, grammars: _GrammarSource) -> ControlInitialization:
@@ -151,9 +151,9 @@ class Control:
             return self._initialization_error("grammars must be a mapping of command names to syntax")
 
         normalized = dict(grammars)
-        log.info("control: compiling %d grammar entr%s", len(normalized), "y" if len(normalized) == 1 else "ies")
+        log.info("compiling %d grammar entr%s", len(normalized), "y" if len(normalized) == 1 else "ies")
         log.debug(
-            "control: compiler settings (prefix=%r, keep_help=%s, actions=%s)",
+            "compiler settings (prefix=%r, keep_help=%s, actions=%s)",
             self.deeper_level.cmd_prefix,
             self.deeper_level.control_no_help_keeps_help,
             tuple(self.deeper_level.command_action),
@@ -174,7 +174,7 @@ class Control:
         result = ControlInitialization(True, error.Succeed, command_count=len(normalized))
         self.deeper_level.last_initialization = result
         log.info(
-            "control: compilation completed (%d grammar entr%s)",
+            "compilation completed (%d grammar entr%s)",
             len(normalized),
             "y" if len(normalized) == 1 else "ies",
         )
@@ -194,15 +194,15 @@ class Control:
         were removed from the API.  The returned initialization error names the
         new contract when a legacy or incomplete module is supplied.
         """
-        log.info("control: loading fixture")
-        log.debug("control: fixture source=%r", fixture)
+        log.info("loading fixture")
+        log.debug("fixture source=%r", fixture)
         if not self._stderr_locked:
             log_handler.lock_stderr()
             self._stderr_locked = True
 
         try:
             module = _load_fixture_module(fixture, id(self))
-            log.debug("control: fixture module loaded (%s)", module.__name__)
+            log.debug("fixture module loaded (%s)", module.__name__)
             holder_factory = getattr(module, "context_holder", None)
             setup_factory = getattr(module, "SetupFixtures", None)
             if not isinstance(holder_factory, type) or not issubclass(holder_factory, FixturesContextHolder):
@@ -211,15 +211,15 @@ class Control:
                 raise TypeError("fixture must define SetupFixtures as a FixturesSetup child class")
 
             logic = holder_factory()
-            log.debug("control: fixture context holder created (%s)", type(logic).__name__)
+            log.debug("fixture context holder created (%s)", type(logic).__name__)
             setup_factory.logic = logic
             setup = setup_factory()
-            log.debug("control: fixture setup created (%s)", type(setup).__name__)
+            log.debug("fixture setup created (%s)", type(setup).__name__)
             self.deeper_level.attach_fixture(module, logic, setup)
         except Exception as exception:
             return self._initialization_error("fixture initialization failed", exception, error.ControlFixtureError)
 
-        log.info("control: fixture ready (%s)", module.__name__)
+        log.info("fixture ready (%s)", module.__name__)
         return ControlInitialization(True, error.Succeed, "fixture initialized")
 
     def _initialization_error(
@@ -237,7 +237,7 @@ class Control:
         )
         self.deeper_level.last_initialization = result
         detail = f": {result.exception}" if result.exception is not None else ""
-        log.error("control: initialization failed (%s)%s", message, detail)
+        log.error("initialization failed (%s)%s", message, detail)
         return result
 
     def close(self) -> None:
@@ -245,7 +245,7 @@ class Control:
         if self._stderr_locked:
             log_handler.unlock_stderr()
             self._stderr_locked = False
-            log.debug("control: released fixture stderr wrapper")
+            log.debug("released fixture stderr wrapper")
 
     def __enter__(self) -> Self:
         """Return this control surface to a context manager."""
@@ -257,22 +257,22 @@ class Control:
 
     def execute(self, command: Any) -> ControlResult:
         """Execute one command synchronously."""
-        log.debug("control: execute requested (input_type=%s)", type(command).__name__)
+        log.debug("execute requested (input_type=%s)", type(command).__name__)
         try:
             asyncio.get_running_loop()
         except RuntimeError:
-            log.debug("control: no running event loop; bridging through execute_async")
+            log.debug("no running event loop; bridging through execute_async")
             return asyncio.run(self.execute_async(command))
-        log.debug("control: running inside an event loop; using synchronous action path")
+        log.debug("running inside an event loop; using synchronous action path")
         return self._execute_sync(command)
 
     dispatch = execute
 
     async def execute_async(self, command: Any) -> ControlResult:
         """Execute one command while serializing async actions."""
-        log.debug("control: async execution waiting for action lock")
+        log.debug("async execution waiting for action lock")
         async with self._async_lock:
-            log.debug("control: async action lock acquired")
+            log.debug("async action lock acquired")
             prepared = self._prepare(command)
             if isinstance(prepared, ControlResult):
                 return self._remember(prepared)
@@ -280,7 +280,7 @@ class Control:
             arguments = self._controlled_arguments(prepared.command, prepared.context.args)
             invocation_context = replace(prepared.context, args=arguments)
             log.debug(
-                "control: invoking %r asynchronously with %d argument%s",
+                "invoking %r asynchronously with %d argument%s",
                 prepared.command,
                 len(arguments),
                 "" if len(arguments) == 1 else "s",
@@ -288,7 +288,7 @@ class Control:
             try:
                 value = prepared.handler(**arguments)
                 if inspect.isawaitable(value):
-                    log.debug("control: awaiting action result for %r", prepared.command)
+                    log.debug("awaiting action result for %r", prepared.command)
                     value = await value
             except Exception as exception:
                 return self._remember(
@@ -325,7 +325,7 @@ class Control:
 
     def _execute_sync(self, command: Any) -> ControlResult:
         """Execute a prepared command in a synchronous context."""
-        log.debug("control: entering synchronous action path")
+        log.debug("entering synchronous action path")
         prepared = self._prepare(command)
         if isinstance(prepared, ControlResult):
             return self._remember(prepared)
@@ -333,7 +333,7 @@ class Control:
         arguments = self._controlled_arguments(prepared.command, prepared.context.args)
         invocation_context = replace(prepared.context, args=arguments)
         log.debug(
-            "control: invoking %r synchronously with %d argument%s",
+            "invoking %r synchronously with %d argument%s",
             prepared.command,
             len(arguments),
             "" if len(arguments) == 1 else "s",
@@ -341,7 +341,7 @@ class Control:
         try:
             value = prepared.handler(**arguments)
             if inspect.isawaitable(value):
-                log.debug("control: synchronous action returned an awaitable for %r", prepared.command)
+                log.debug("synchronous action returned an awaitable for %r", prepared.command)
                 try:
                     asyncio.get_running_loop()
                 except RuntimeError:
@@ -396,7 +396,7 @@ class Control:
     def _prepare(self, command: Any) -> ControlResult | _Invocation:
         """Validate input and parse it into an invocation."""
         if not self.deeper_level.initialized:
-            log.debug("control: rejected command because the control surface is not initialized")
+            log.debug("rejected command because the control surface is not initialized")
             return ControlResult(
                 False,
                 error.ControlNotInitializedError,
@@ -405,7 +405,7 @@ class Control:
                 message="control has not been initialized",
             )
         if not isinstance(command, str):
-            log.debug("control: rejected non-string command input (%s)", type(command).__name__)
+            log.debug("rejected non-string command input (%s)", type(command).__name__)
             return ControlResult(
                 False,
                 CmdError.TokenizeUnsupportedTypeError,
@@ -416,7 +416,7 @@ class Control:
 
         prefix = self.deeper_level.cmd_prefix
         if not isinstance(prefix, str):
-            log.debug("control: active command prefix has invalid type (%s)", type(prefix).__name__)
+            log.debug("active command prefix has invalid type (%s)", type(prefix).__name__)
             return ControlResult(
                 False,
                 error.ControlGrammarError,
@@ -425,12 +425,12 @@ class Control:
                 message="cmd_prefix must be a string",
             )
         if prefix and not command.startswith(prefix):
-            log.debug("control: treating input as ordinary text; prefix %r was not present", prefix)
+            log.debug("treating input as ordinary text; prefix %r was not present", prefix)
             return ControlResult(True, error.Succeed, "input", command, value=command)
 
         command_text = command[len(prefix) :] if prefix else command
         if not command_text.strip():
-            log.debug("control: command prefix was supplied without a command")
+            log.debug("command prefix was supplied without a command")
             return ControlResult(
                 False,
                 error.Abort,
@@ -439,13 +439,13 @@ class Control:
                 message="command prefix must be followed by a command",
             )
 
-        log.debug("control: parsing command text %r", command_text)
+        log.debug("parsing command text %r", command_text)
         parsed = self.deeper_level.dispatcher.parse(command_text)
         if not parsed.ok or parsed.context is None or parsed.handler is None:
             parse_error = parsed.error
             code = error.Abort if parse_error is None or parse_error.code is None else parse_error.code
             log.debug(
-                "control: parser returned no invocation (kind=%s, token=%s)",
+                "parser returned no invocation (kind=%s, token=%s)",
                 None if parse_error is None else parse_error.kind,
                 None if parse_error is None else parse_error.token_index,
             )
@@ -461,7 +461,7 @@ class Control:
             )
 
         command_name = parsed.context.tokens[0]
-        log.debug("control: command %r matched with parsed arguments %r", command_name, parsed.context.args)
+        log.debug("command %r matched with parsed arguments %r", command_name, parsed.context.args)
         return _Invocation(command_name, parsed, parsed.context, parsed.handler)
 
     def _controlled_arguments(self, command: str, arguments: Mapping[str, Any]) -> dict[str, Any]:
@@ -479,7 +479,7 @@ class Control:
                 values[name] = value
                 applied = True
         if applied:
-            log.debug("control: applied argument overrides for %r; final names=%s", command, tuple(values))
+            log.debug("applied argument overrides for %r; final names=%s", command, tuple(values))
         return values
 
     def _remember(self, result: ControlResult) -> ControlResult:
@@ -487,13 +487,14 @@ class Control:
         self.deeper_level.last_result = result
         if result.ok:
             if result.kind == "input":
-                log.debug("control: ordinary input passed through unchanged")
+                log.debug("ordinary input passed through unchanged")
             else:
-                log.info("control: command %r completed successfully", result.command)
+                log.info("command %r completed successfully", result.command)
         elif result.kind in {"not_initialized", "invalid_input"}:
-            log.warning("control: command was not executed (%s): %s", result.kind, result.message)
+            log.warning("command was not executed (%s): %s", result.kind, result.message)
         else:
             detail = f"; {result.exception}" if result.exception is not None else ""
-            log.error("control: command failed (%s): %s%s", result.kind, result.message, detail)
-        log.debug("control: result=%s code=%s", result.kind, result.code)
+            log.error("command failed (%s): %s%s", result.kind, result.message, detail)
+        log.debug("result=%s code=%s", result.kind, result.code)
+        log.stderr(result.to_response())
         return result

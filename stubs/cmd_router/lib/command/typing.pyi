@@ -1,6 +1,5 @@
-from typing import ClassVar, Final, Generic, TypeVar
-
 from _typeshed import Incomplete
+from typing import ClassVar, Final, Generic, TypeVar
 
 __all__ = [
     "ArgumentParseError",

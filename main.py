@@ -11,17 +11,17 @@ from cmd_router.utils.logger import log
 
 def main() -> int:
     """Start the command router and return its process exit status."""
-    log.info("main: starting command router")
+    log.info("starting command router")
     try:
         CommandRouter()
     except KeyboardInterrupt:
-        log.warning("main: interrupted; shutting down")
+        log.warning("interrupted; shutting down")
         return error.Interrupted
     except Exception as exception:
-        log.debug("main: an unrecoverable startup exception was raised")
+        log.debug("an unrecoverable startup exception was raised")
         log.critical(str(exception))
         return error.Abort
-    log.info("main: command router exited successfully")
+    log.info("command router exited successfully")
     return error.Succeed
 
 

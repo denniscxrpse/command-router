@@ -72,6 +72,29 @@ class ParseError:
         """Alias useful to callers that prefer the noun form."""
         return self.expected
 
+    @property
+    def cursor(self) -> int:
+        """Alias for the token cursor at which parsing failed."""
+        return self.token_index
+
+    @property
+    def parsed_args(self) -> dict[str, Any]:
+        """Return the arguments captured before the failure."""
+        return dict(self.partial_args)
+
+    def to_dict(self) -> dict[str, Any]:
+        """Return the failure details in a transport-friendly mapping."""
+        return {
+            "kind": self.kind,
+            "token_index": self.token_index,
+            "expected": self.expected,
+            "message": self.message,
+            "partial_args": dict(self.partial_args),
+            "code": self.code,
+        }
+
+    as_dict = to_dict
+
 
 @dataclass(frozen=True, slots=True)
 class ParseResult:

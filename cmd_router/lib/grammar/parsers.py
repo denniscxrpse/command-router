@@ -24,32 +24,32 @@ _JSON_EXTENSIONS: Final[_Tstr] = (".json", ".jsonc", ".json5")
 
 
 def parse_json(f: Path) -> _DictOrError:
-    log.debug("grammar-parser: reading JSON5 file %s", f)
+    log.debug("reading JSON5 file %s", f)
     try:
         with f.open("r", encoding="utf-8") as file:
             data = json5.loads(file.read())
         if not isinstance(data, dict):
-            log.raw(f"grammar-parser: {f.name}: FAILURE")
-            log.error("grammar-parser: %s must contain an object", f)
+            log.raw(f"{f.name}: FAILURE")
+            log.error("%s must contain an object", f)
             return error.InvalidGrammarError
     except (OSError, UnicodeError, ValueError) as exception:
-        log.raw(f"grammar-parser: {f.name}: FAILURE")
-        log.error("grammar-parser: could not read JSON5 file %s: %s", f, exception)
+        log.raw(f"{f.name}: FAILURE")
+        log.error("could not read JSON5 file %s: %s", f, exception)
         return error.InvalidGrammarError
-    log.debug("grammar-parser: read JSON5 object from %s", f)
+    log.debug("read JSON5 object from %s", f)
     return data
 
 
 def parse_toml(f: Path) -> _DictOrError:
-    log.debug("grammar-parser: reading TOML file %s", f)
+    log.debug("reading TOML file %s", f)
     try:
         with f.open("rb") as file:
             data = tomllib.load(file)
     except (OSError, tomllib.TOMLDecodeError, UnicodeError) as exception:
-        log.raw(f"grammar-parser: {f.name}: FAILURE")
-        log.error("grammar-parser: could not read TOML file %s: %s", f, exception)
+        log.raw(f"{f.name}: FAILURE")
+        log.error("could not read TOML file %s: %s", f, exception)
         return error.InvalidGrammarError
-    log.debug("grammar-parser: read TOML object from %s", f)
+    log.debug("read TOML object from %s", f)
     return data
 
 
