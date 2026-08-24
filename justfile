@@ -3,18 +3,43 @@
 # Read the *justfile* documentation if you really do not know what to do:
 # - https://just.systems/man/en/introduction.html
 # - https://just.systems/man/en/packages.html
-# Last edit: 22/Aug/2026
+# Example project requires `dotnet` to be accessiable in your ENV. `just dotrun` will
+# not work without `dotnet` installed:
+# - https://dotnet.microsoft.com/download
+# Last edit: 24/Aug/2026
 
 # Initialize the project. This will only work if you have `just` in your ENV already.
 init:
     #!/usr/bin/env bash
     if [ -d ".venv" ]; then echo "Virtual environment already exists!"; exit 1; fi
     uv sync
-    @echo "Run: `source .venv/bin/activate` if needed."
+    echo "Run: `source .venv/bin/activate` if needed."
 
 # Run with sane defaults. Use `what` to specify a flag, use `--help` for details.
 run what="":
     uv run python main.py {{ what }}
+
+# Run example project; requires `dotnet` (.NET) to work. To build, pass `build=1`.
+dotrun build="0" path="$PWD":
+    #!/usr/bin/env bash
+    # Use simple but smart path recursion.
+    # Allowing `path` to be modified should avoid enough edge cases.
+    set -e
+    build={{build}}; path={{path}}; project="$path/Example.csproj"
+    # If the project is not in the requested location, try ../example.
+    if [[ ! -f "$project" ]]; then
+        cd ..; echo "#### Current: $PWD"
+        path="./example"; project="$path/Example.csproj"
+    fi
+    # Fail if the fallback location also does not contain the project.
+    if [[ ! -f "$project" ]]; then
+        echo "#### Could not find 'Example.csproj' in '$path'! Did we traverse too far upward?" >&2
+        exit 1
+    fi
+    echo "#### Using: $path"
+    if [[ $build == "1" ]]; then dotnet build "$path"; fi
+    dotnet run --project "$path"
+
 
 # Run with `--lazy` flag.
 lazy:
@@ -30,7 +55,7 @@ test:
 
 # Check all lints. Use `path` to lint someting else.
 lint path="./cmd_router/ ./fixtures/":
-    ###> Avoid checking stub files, linters will go crazy on them.
+    #### Avoid checking stub files, linters go crazy on them.
     uv run ruff check {{ path }}
     uv run pyrefly check {{ path }}
 

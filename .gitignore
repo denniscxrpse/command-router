@@ -1,7 +1,11 @@
-[.v]env/*
-[.]idea/*
+# Generics
+[.v]env
+**/[.]idea
+!**/[.]idea/copyright
+**/obj
+**/bin
+# Project
 *.py[icx]
 !stubs/cmd_router
 !stubs/**/*.pyi
-*cache*
-fixtures/http/**
+fixtures/http
