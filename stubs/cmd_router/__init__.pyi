@@ -1,6 +1,7 @@
 from cmd_router.lib.grammar.loader import *
 from cmd_router.utils.cli import *
 from cmd_router.utils.context import *
+from cmd_router.utils.lazy_server import *
 from cmd_router.utils.logger import *
 from _typeshed import Incomplete
 from cmd_router.api import (
@@ -11,7 +12,7 @@ from cmd_router.api import (
 from pathlib import Path
 from typing import Any
 
-__all__ = ["Control", "ControlInitialization", "ControlResult", "CommandRouter", "_Handler@59"]
+__all__ = ["Control", "ControlInitialization", "ControlResult", "CommandRouter", "Lazy@60"]
 
 _Dict = dict[str, Any]
 
@@ -36,4 +37,4 @@ class CommandRouter:
     def _control_loop(self) -> int: ...
 
 # Names in __all__ with no definition:
-#   _Handler@59
+#   Lazy@60

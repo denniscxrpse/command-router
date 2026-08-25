@@ -26,6 +26,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from cmd_router.lib.command import CmdParse
+from cmd_router.utils.cli import flags
 
 __all__ = ("ControlResult", "ControlInitialization")
 
@@ -39,7 +40,7 @@ class ControlResult:
 
     ``kind`` distinguishes the control-layer stage that produced the result.
     For a successful command, ``context`` contains parsed and override-applied
-    arguments while ``parse_result`` contains the original parser result.  For
+    arguments, while ``parse_result`` contains the original parser result.  For
     a parse failure, ``error`` contains the structured furthest failure.  For
     an action failure, ``exception`` contains a printable exception summary
     and ``handler`` identifies the handler that was selected.
@@ -107,16 +108,16 @@ class ControlResult:
         """Return the action result value."""
         return self.data
 
-    @staticmethod
-    def _transport_value(value: Any) -> Any:
-        """Convert known structured errors while preserving arbitrary payloads."""
-        if isinstance(value, CmdParse.Error):
-            return value.to_dict()
-        return value
+    @property
+    def suggestions(self) -> list[str]:
+        if flags.suggestions:
+            # TODO: implement suggestions logic
+            ...
+        return []
 
     def to_response(self) -> dict[str, Any]:
         """Return the compact ``data``/``err`` response written to stderr."""
-        return {"data": self.data, "err": self._transport_value(self.err)}
+        return {"data": self.data, "err": self._transport_value(self.err), "suggestions": self.suggestions}
 
     as_response = to_response
 
@@ -143,6 +144,13 @@ class ControlResult:
         return data
 
     as_dict = to_dict
+
+    @staticmethod
+    def _transport_value(value: Any) -> Any:
+        """Convert known structured errors while preserving arbitrary payloads."""
+        if isinstance(value, CmdParse.Error):
+            return value.to_dict()
+        return value
 
 
 @dataclass(frozen=True, slots=True)

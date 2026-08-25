@@ -6,7 +6,7 @@
 # Example project requires `dotnet` to be accessiable in your ENV. `just dotrun` will
 # not work without `dotnet` installed:
 # - https://dotnet.microsoft.com/download
-# Last edit: 24/Aug/2026
+# Last edit: 25/Aug/2026
 
 # Initialize the project. This will only work if you have `just` in your ENV already.
 init:
@@ -20,26 +20,19 @@ run what="":
     uv run python main.py {{ what }}
 
 # Run example project; requires `dotnet` (.NET) to work. To build, pass `build=1`.
-dotrun build="0" path="$PWD":
+dotrun build="0" path="./example":
     #!/usr/bin/env bash
-    # Use simple but smart path recursion.
     # Allowing `path` to be modified should avoid enough edge cases.
     set -e
-    build={{build}}; path={{path}}; project="$path/Example.csproj"
-    # If the project is not in the requested location, try ../example.
-    if [[ ! -f "$project" ]]; then
-        cd ..; echo "#### Current: $PWD"
-        path="./example"; project="$path/Example.csproj"
-    fi
+    build={{ build }}; path={{ path }}; project="$path/Example.csproj"
+    echo "#### Env: $build, $path, $project"
     # Fail if the fallback location also does not contain the project.
     if [[ ! -f "$project" ]]; then
-        echo "#### Could not find 'Example.csproj' in '$path'! Did we traverse too far upward?" >&2
-        exit 1
+        echo "#### Could not find 'Example.csproj' in '$path'!" >&2; exit 1
     fi
     echo "#### Using: $path"
     if [[ $build == "1" ]]; then dotnet build "$path"; fi
     dotnet run --project "$path"
-
 
 # Run with `--lazy` flag.
 lazy:

@@ -11,7 +11,7 @@ __all__ = (
 )
 
 import tomllib
-from http.server import BaseHTTPRequestHandler, HTTPServer
+from http.server import HTTPServer
 from pathlib import Path
 from typing import Any
 from uuid import uuid4
@@ -23,6 +23,7 @@ from cmd_router.api import Control, ControlInitialization, ControlResult, listen
 from cmd_router.lib.grammar.loader import *
 from cmd_router.utils.cli import *
 from cmd_router.utils.context import *
+from cmd_router.utils.lazy_server import *
 from cmd_router.utils.logger import *
 
 _Dict = dict[str, Any]
@@ -56,48 +57,16 @@ class _CmdRouter:
         router = self
 
         # Define the small HTTP protocol used to receive a grammar.
-        class _Handler(BaseHTTPRequestHandler):
-            def _reply(self, status: int, body: bytes = b"") -> None:
-                self.send_response(status)
-                self.send_header("Content-Length", str(len(body)))
-                self.end_headers()
-                if body:
-                    self.wfile.write(body)
-
-            def _invalid(self, message: str) -> None:
-                log.warning("lazy request rejected: %s", message)
-                log.error("rejecting malformed lazy request; waiting for another request")
-                log.stderr(1)
-                self._reply(400, b"1\n")
-
+        class Lazy(LazyServer):
             # noinspection pep8-naming
             def do_POST(self) -> None:
-                log.debug("lazy server received POST request for %s", self.path)
-                # Read and validate the request body length.
-                try:
-                    content_length = int(self.headers.get("Content-Length", "-1"))
-                except ValueError:
-                    self._invalid("Invalid HTTP content length.")
-                    return
-
-                if content_length < 0:
-                    self._invalid("HTTP request has no content.")
-                    return
-
-                # Decode the grammar as UTF-8 text.
-                payload = self.rfile.read(content_length)
-                log.debug("lazy request body read (%d byte(s))", len(payload))
-                try:
-                    text = payload.decode("utf-8")
-                except UnicodeDecodeError:
-                    self._invalid("HTTP grammar is not valid UTF-8.")
-                    return
+                self.post()
 
                 # Detect whether the body is a JSON5 or TOML object.
                 suffix: str | None = None
                 for candidate, parser in ((".json5", json5.loads), (".toml", tomllib.loads)):
                     try:
-                        parsed = parser(text)
+                        parsed = parser(self.text)
                     except ValueError, tomllib.TOMLDecodeError:
                         continue
                     if isinstance(parsed, dict):
@@ -114,7 +83,7 @@ class _CmdRouter:
                 try:
                     for candidate in http_dir.glob(f"grammar-*{suffix}"):
                         try:
-                            if candidate.is_file() and candidate.read_bytes() == payload:
+                            if candidate.is_file() and candidate.read_bytes() == self.payload:
                                 existing = candidate
                                 break
                         except OSError:
@@ -143,7 +112,7 @@ class _CmdRouter:
                 target = http_dir / f"grammar-{uuid4().hex}{suffix}"
                 try:
                     http_dir.mkdir(parents=True, exist_ok=True)
-                    target.write_bytes(payload)
+                    target.write_bytes(self.payload)
                     result = load_grammars(target)
                 except OSError as exception:
                     log.error("could not persist lazy grammar %s: %s", target, exception)
@@ -164,13 +133,8 @@ class _CmdRouter:
                 state["success"] = True
                 self._reply(204)
 
-            # pyrefly: ignore [bad-override]
-            def log_message(self, *_args: Any) -> None:
-                # The lazy protocol reserves stderr for the port and errors.
-                return
-
         # Bind an ephemeral localhost port and announce it to the client.
-        server = HTTPServer(("127.0.0.1", 0), _Handler)
+        server = HTTPServer(("127.0.0.1", 0), Lazy)
         log.info("lazy grammar server listening on localhost")
         log.stderr(server.server_port)
         try:

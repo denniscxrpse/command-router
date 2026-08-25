@@ -203,7 +203,6 @@ class LoggerHandler:
         """
         m: str = sep.join(str(arg) for arg in message)
         final_message = m + end
-
         with self._stdout_lock:
             print_formatted_text(HTML(final_message), sep="", end="", file=sys.stdout, flush=True)
 

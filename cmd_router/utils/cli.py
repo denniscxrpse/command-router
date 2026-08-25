@@ -45,55 +45,61 @@ class _CliCommand(click.Command):
 class EnvFlags:
     lazy: bool = False
     """
-    This flag determines how the Command Router (cmd-router) should behave at startup:
+    This flag determines how the Command Router (``cmd-router``) should behave at startup:
 
-    **False** (default): The `./fixtures` path contains every single grammar path. By default, we provide two files:
-    `grammars.toml` and `grammars.json5`. Both of these files are loaded and parsed, and you may use them as examples.
-    You can create as many TOML or JSON files as you want (JSON5 is supported), the fixtures path is the entry
-    point of "grammar" files, and we read the whole directory, searching for both TOML and JSON files. Any file that
-    is not supported **will be ignored**. Keep in mind that the loader is sensitive for TOML files, but we leave some
-    leisure for JSON files as the "JSON with Comments" format can contain different prefixes.
+    - ``False`` (**default**): The ``./fixtures`` path contains every single grammar path. By default, we provide two 
+      files: ``grammars`.toml` and ``grammars.json5``. Both of these files are loaded and parsed, and you may use them 
+      as examples. The file ``err.json5`` is ignored by default; unless the flag ``ignore`` is modified, it won't be 
+      loaded.
+      You can create as many TOML or JSON files as you want (JSON5 is supported), the ``fixtures`` path is the entry
+      point of "grammar" files, and we read the whole directory, looking for both TOML and JSON files. Any file that
+      is not supported **will be ignored**. Keep in mind that the loader is sensitive for TOML files, but we leave some
+      leisure for JSON files as the "JSON with Comments" format can contain different prefixes.
 
-    **True**: The cmd-router will start normally, but will defer from loading anything; instead, we will wait and
-    listen to the HTTP port (::0). To access this port listen to the `stderr` until the port is open; we force the
-    application to use a random port by default (this behavior cannot be changed). You may read the very first
-    line of `stderr` to get the port number. Read the documentation so you don't have to worry about doing weird
-    hacks. **Note**: You must keep listening to the `stderr` after receiving the port number, as it will tell you if
-    either there was an `error` (1) or `success` (0). If `error` is caught (1), the application will not exit,
-    instead, it will keep listening to the HTTP port until a valid TOML or JSON file format is provided. If `success`
-    (0) is caught, anything after that number should be expected as tokenized data, and the port itself is closed/free;
-    meaning that the application is ready.
+    - ``True``: The ``cmd-router`` will start normally, but will defer from loading anything; instead, we will wait and
+      listen to the HTTP port (``::0``). To access this port listen to the ``stderr`` until the port is open; we force 
+      the application to use a random port by default (this behavior cannot be changed). You may read the very first
+      line of `stderr` to get the port number. Read the documentation so you don't have to worry about doing weird
+      hacks. 
+      **Note**: You must keep listening to the `stderr` after receiving the port number, as it will tell you if either 
+      there was an ``error`` (``1``) or `success` (``0``). If ``error`` is caught (``1``), the application 
+      **will not exit**, instead, it will keep listening to the HTTP port until a valid TOML or JSON file format 
+      is provided. If ``success`` (``0``) is caught, anything after that number should be expected as tokenized data, 
+      and the port itself is closed/free; meaning that the application is ready.
     """
 
     ignore: frozenset[str] = frozenset({"err.json5"})
     """
-    When `lazy` is **False**, this flag will force the grammar loader to ignore specific files. By default,
-    we only ignore `err.json5`.
+    When ``lazy`` is ``False``, this flag will force the grammar loader to ignore specific files. By default,
+    we only ignore ``err.json5``.
 
     Values may be filenames, full file paths, or directory paths. Bare filenames are faster to process; directory
     paths ignore files beneath them.
+    
+    If you do not set your ``ignore`` flag correctly, the library will stop at the very first error it encounters.
+    The library will still work, and you can still use your commands as intended, but not all of them will be loaded.
     """
 
     control: bool = False
     """
-    This flag will tell the Command Router to initialize the `control` module. A test suite provided by the
+    This flag will tell the Command Router to initialize the ``control`` module. A test suite provided by the
     Command Router (cmd-router), **not recommended** to use it in production for obvious reasons.
 
-    After determining the flags ``lazy`` and ``ignore``, we use this flag to either (if `True`) enable or (if `False`)
-    disable the initialization of the `control` module. This flag defaults to `False`.
+    After determining the flags ``lazy`` and ``ignore``, we use this flag to either (if ``True``) enable or 
+    (if ``False``) disable the initialization of the `control` module. This flag defaults to ``False``.
 
     This module initializes the cmd-router under (either) default or custom conditions, depending on the flags; if
-    ``lazy`` is `True`, the `control` module will not be initialized unless the user enters the correct TOML or JSON
-    file to the HTTP port, otherwise (``lazy`` is `False`), we'll wait until we have loaded all ``./fixtures`` files. 
+    ``lazy`` is ``True``, the ``control`` module will not be initialized unless the user enters the correct TOML or JSON
+    file to the HTTP port, otherwise (``lazy`` is ``False``), we'll wait until we have loaded all ``./fixtures`` files. 
     The same goes with ``ignore`` as we wait to handle and load the correct specified filenames, full file paths, or
-    directory paths. In summary, you'll have to wait until everything is loaded before you can use the 
-    ``control`` module.
+    directory paths. In summary, you'll have to wait until everything is loaded before you can use the ``control`` 
+    module.
 
-    Once ready, we'll pass control to the ``control`` module, which will do, in summary: 1. Initialize a `shell` like
+    Once ready, we'll pass control to the ``control`` module, which will do, in summary: 1. Initialize a shell like
     interface (this is mainly for comfort, we **DO NOT** initialize an actual shell), you may write the commands in
     this interface, test their behaviour, and see live debug information. 2. Test of special, built-in commands which
     will help you to understand even further how the `cmd-notation` works. You can disable this by setting
-    `control_no_help` to `True`.
+    `control_no_help` to ``True``, or use ``control_no_help_keeps_help`` at ``_FixturesSetup``. See: ``./fixtures``.
     
     Note (after 6c75deb2): This flag doesn't directly pass control to the ``control`` module, but to the ``cmd_router``.
     The ``control`` module is an independent module that is not aware of the ``cmd_router`` and its fixtures. The 
@@ -110,8 +116,15 @@ class EnvFlags:
 
     control_no_help: bool = False
     """
-    Disables the built-in help command in the `control` module. It has an effect only when `control` is enabled.
+    Disables the built-in help command in the ``control`` module. It has an effect only when ``control`` is enabled.
+    
+    If you disable this flag, it will skip the compilation of step of ``/help``, which may improve startup performance.
+    
+    Using internal variable ``_FixturesSetup.control_no_help_keeps_help`` does the exact same thing as this flag, 
+    but instead of compiling everything at startup, we compile at runtime.
     """
+
+    suggestions: bool = True
 
 
 flags: Final[EnvFlags] = EnvFlags()
@@ -147,6 +160,13 @@ flags: Final[EnvFlags] = EnvFlags()
     is_flag=True,
     default=None,
     help="Disable the built-in help command in the `control` module.",
+)
+@click.option(
+    "-S",
+    "--suggestions",
+    is_flag=True,
+    default=flags.suggestions,
+    help="Enable suggestions for unknown commands.",
 )
 def init_flags(**kwargs) -> None:
     """Initialize the process-wide environment flags from CLI options."""

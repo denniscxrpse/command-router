@@ -59,7 +59,9 @@ def test_control_emits_compact_data_and_error_responses_to_stderr(capsys: pytest
         succeeded = runner.execute("/tell Alex hello")
         assert succeeded.data == {"target": "Alex", "message": "hello"}
         assert succeeded.err is None
-        assert capsys.readouterr().err == "{'data': {'target': 'Alex', 'message': 'hello'}, 'err': None}\n"
+        assert capsys.readouterr().err == (
+            "{'data': {'target': 'Alex', 'message': 'hello'}, 'err': None, 'suggestions': []}\n"
+        )
     finally:
         runner.close()
 
@@ -70,7 +72,7 @@ def test_control_result_preserves_explicit_data_and_error_payloads() -> None:
 
     assert result.data == {"answer": 42}
     assert result.err is fallback
-    assert result.to_response() == {"data": result.data, "err": fallback}
+    assert result.to_response() == {"data": result.data, "err": fallback, "suggestions": []}
 
 
 def test_builtin_help_lists_commands_and_searches_a_specific_command() -> None:
