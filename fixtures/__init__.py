@@ -39,7 +39,7 @@ methods to it, and map grammar command names to those methods in
 ``fixtures/``; this Python module supplies behavior and setup only.
 """
 
-from typing import Any
+from typing import Any, final
 
 from cmd_router.api import FixturesContextHolder as _FixturesContextHolder
 from cmd_router.api import FixturesSetup as _FixturesSetup
@@ -47,6 +47,7 @@ from cmd_router.api import FixturesSetup as _FixturesSetup
 __all__ = ("FixturesContextHolder", "SetupFixtures", "context_holder")
 
 
+@final
 class FixturesContextHolder(_FixturesContextHolder):
     """Hold the example state and implement the fixture's command actions."""
 
@@ -68,6 +69,7 @@ class FixturesContextHolder(_FixturesContextHolder):
 context_holder = FixturesContextHolder
 
 
+@final
 class SetupFixtures(_FixturesSetup):
     """Configure the example prefix, help policy, and grammar actions."""
 

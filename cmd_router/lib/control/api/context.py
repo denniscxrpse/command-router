@@ -19,28 +19,30 @@ supported way to inspect or change live configuration after initialization.
 The public properties in this module delegate to the active setup and are the
 
 Argument overrides are separate from grammar compilation.  They are applied
-to parsed arguments immediately before an action runs, so
-``set_command_args`` can change behavior without rebuilding the dispatcher.
-The action mapping is also live: compiler-generated handlers look up actions
-through the active setup when invoked.
+to parsed arguments immediately before an action runs, so ``set_command_args``
+can change behavior without rebuilding the dispatcher. The action mapping
+is also live: compiler-generated handlers look up actions through the active
+setup when invoked.
 """
+
+__all__ = ("DeeperLevelContext",)
 
 from collections.abc import Callable
 from types import ModuleType
-from typing import Any, Final
+from typing import Any, final
 
 from cmd_router.lib.command import CmdNode
+from cmd_router.lib.command.dispatcher import CommandDispatcher
 from cmd_router.utils.logger import log
 
 from .fixtures import FixturesSetup
 from .result import ControlInitialization, ControlResult
 
-__all__ = ("DeeperLevelContext",)
-
 _Action = Callable[..., Any]
 
 
-class _DeeperLevelContext:
+@final
+class DeeperLevelContext:
     """Expose live dispatcher, fixture, setup, and execution state.
 
     The class remains private while ``DeeperLevelContext`` below is its public
@@ -58,13 +60,13 @@ class _DeeperLevelContext:
     def __init__(self, setup: FixturesSetup | None = None) -> None:
         """Create a live control state backed by *setup* or fresh defaults."""
         if setup is not None and not isinstance(setup, FixturesSetup):
-            raise TypeError("setup must be a FixturesSetup instance")
+            raise TypeError(f"setup must be a {FixturesSetup.__qualname__} instance")
         self._setup = setup if setup is not None else FixturesSetup(logic=object())
-        self.dispatcher = CmdNode.Dispatcher()
+        self.dispatcher: CommandDispatcher = CmdNode.Dispatcher()
         self.grammars: dict[str, str] = {}
         self.fixture_module: ModuleType | None = None
         self.fixture_logic: Any = None
-        self.initialized = False
+        self.initialized: bool = False
         self.last_result: ControlResult | None = None
         self.last_initialization: ControlInitialization | None = None
         log.debug("deeper control state created (custom_setup=%s)", setup is not None)
@@ -174,6 +176,3 @@ class _DeeperLevelContext:
         else:
             self.command_args_ctrl.pop(command, None)
             log.debug("cleared argument overrides for %r", command)
-
-
-DeeperLevelContext: Final[type[_DeeperLevelContext]] = _DeeperLevelContext

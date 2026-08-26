@@ -17,7 +17,7 @@ and installs the resulting setup before compiling grammars.
 fixture objects, configuration, argument overrides, and last results.  The
 module-level ``control`` and ``deeper_level`` values provide one shared
 application surface for simple integrations.  Use ``Control`` directly when
-an application needs isolated state or more than one independently configured
+an application needs an isolated state or more than one independently configured
 command surface.
 
 The old mutable ``uctx`` settings are not part of this API.  ``uctx`` remains
@@ -38,8 +38,10 @@ __all__ = (
     "execute",
     "execute_async",
     "listener",
+    "readable_listener",
 )
 
+import ast
 from collections.abc import Mapping
 from pathlib import Path
 from types import ModuleType
@@ -47,13 +49,13 @@ from typing import Any, Final
 
 from cmd_router.utils.logger import log
 
-from .context import DeeperLevelContext, _DeeperLevelContext
-from .control import Control
-from .fixtures import FixturesContextHolder, FixturesSetup
-from .result import ControlInitialization, ControlResult
+from .context import *
+from .control import *
+from .fixtures import *
+from .result import *
 
 control: Final[Control] = Control()
-deeper_level: Final[_DeeperLevelContext] = control.deeper_level
+deeper_level: Final[DeeperLevelContext] = control.deeper_level
 
 
 def initialize(
@@ -83,3 +85,13 @@ async def execute_async(command: Any) -> ControlResult:
 def listener() -> str:
     """Return the latest message emitted through the ``stderr`` writer."""
     return log.stderr.latest_call
+
+
+def readable_listener() -> dict[str, Any] | None:
+    """Return the latest message emitted through the ``stderr`` writer as a dictionary like object."""
+    try:
+        j: dict[str, Any] | None = ast.literal_eval(listener())
+    except ValueError, SyntaxError, TypeError:
+        log.critical("failed to parse listener output: %s. stderr output might be impossible to parse.", listener())
+        j = None
+    return j

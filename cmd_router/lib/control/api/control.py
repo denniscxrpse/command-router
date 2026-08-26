@@ -8,8 +8,8 @@
 ``Control`` coordinates three independent concerns:
 
 * ``FixturesSetup`` owns the active command prefix, help policy, action
-  mapping, and argument overrides.
 * ``_GrammarSource`` values are compiled into a fresh command dispatcher.
+  mapping, and argument overrides.
 * Execution validates input, preserves structured parse information, applies
   runtime argument overrides, and returns ``ControlResult`` instead of leaking
   expected command failures.
@@ -38,6 +38,8 @@ as ``ControlInitialization`` with ``ControlFixtureError``; grammar and action
 validation failures use the corresponding structured initialization path.
 """
 
+__all__ = ("Control",)
+
 import asyncio
 import inspect
 from asyncio import Lock
@@ -50,14 +52,13 @@ from typing import Any, Self
 from cmd_router.lib.command import CmdError, CmdParse
 from cmd_router.lib.control.compiler import _compile_grammars, _GrammarSource, _GrammarSyntaxError
 from cmd_router.lib.control.fixture import _load_fixture_module
+from cmd_router.utils.cli import *
 from cmd_router.utils.context import error
-from cmd_router.utils.logger import log, log_handler
+from cmd_router.utils.logger import *
 
-from .context import _DeeperLevelContext
-from .fixtures import FixturesContextHolder, FixturesSetup
-from .result import ControlInitialization, ControlResult
-
-__all__ = ("Control",)
+from .context import *
+from .fixtures import *
+from .result import *
 
 _Action = Callable[..., Any]
 
@@ -79,7 +80,7 @@ class Control:
         self,
         *,
         setup: FixturesSetup | None = None,
-        deeper: _DeeperLevelContext | None = None,
+        deeper: DeeperLevelContext | None = None,
     ) -> None:
         """Create a control surface backed by *setup* or isolated defaults.
 
@@ -87,7 +88,7 @@ class Control:
         ``deeper`` context preserves that context and its active setup, which
         is useful when a caller wants to share inspection state deliberately.
         """
-        self.deeper_level: _DeeperLevelContext = deeper if deeper is not None else _DeeperLevelContext(setup)
+        self.deeper_level: DeeperLevelContext = deeper if deeper is not None else DeeperLevelContext(setup)
         self._async_lock: Lock = asyncio.Lock()
         self._stderr_locked: bool = False
         log.debug(
@@ -102,7 +103,7 @@ class Control:
         return self.deeper_level.setup
 
     @property
-    def deeper(self) -> _DeeperLevelContext:
+    def deeper(self) -> DeeperLevelContext:
         """Return the deeper control state."""
         return self.deeper_level
 
@@ -293,11 +294,11 @@ class Control:
             except Exception as exception:
                 return self._remember(
                     ControlResult(
-                        False,
-                        error.ControlActionError,
-                        "action_error",
-                        command,
-                        prepared.command,
+                        ok=False,
+                        code=error.ControlActionError,
+                        kind="action_error",
+                        input=command,
+                        command=prepared.command,
                         parse_result=prepared.parsed,
                         context=invocation_context,
                         handler=prepared.handler,
@@ -308,15 +309,15 @@ class Control:
 
             return self._remember(
                 ControlResult(
-                    True,
-                    error.Succeed,
-                    "command",
-                    command,
-                    prepared.command,
-                    value,
-                    prepared.parsed,
-                    invocation_context,
-                    prepared.handler,
+                    ok=True,
+                    code=error.Succeed,
+                    kind="command",
+                    input=command,
+                    command=prepared.command,
+                    value=value,
+                    parse_result=prepared.parsed,
+                    context=invocation_context,
+                    handler=prepared.handler,
                 )
             )
 
@@ -352,11 +353,11 @@ class Control:
                         close()
                     return self._remember(
                         ControlResult(
-                            False,
-                            error.ControlActionError,
-                            "action_error",
-                            command,
-                            prepared.command,
+                            ok=False,
+                            code=error.ControlActionError,
+                            kind="action_error",
+                            input=command,
+                            command=prepared.command,
                             parse_result=prepared.parsed,
                             context=invocation_context,
                             handler=prepared.handler,
@@ -366,11 +367,11 @@ class Control:
         except Exception as exception:
             return self._remember(
                 ControlResult(
-                    False,
-                    error.ControlActionError,
-                    "action_error",
-                    command,
-                    prepared.command,
+                    ok=False,
+                    code=error.ControlActionError,
+                    kind="action_error",
+                    input=command,
+                    command=prepared.command,
                     parse_result=prepared.parsed,
                     context=invocation_context,
                     handler=prepared.handler,
@@ -398,19 +399,19 @@ class Control:
         if not self.deeper_level.initialized:
             log.debug("rejected command because the control surface is not initialized")
             return ControlResult(
-                False,
-                error.ControlNotInitializedError,
-                "not_initialized",
-                command,
+                ok=False,
+                code=error.ControlNotInitializedError,
+                kind="not_initialized",
+                input=command,
                 message="control has not been initialized",
             )
         if not isinstance(command, str):
             log.debug("rejected non-string command input (%s)", type(command).__name__)
             return ControlResult(
-                False,
-                CmdError.TokenizeUnsupportedTypeError,
-                "invalid_input",
-                command,
+                ok=False,
+                code=CmdError.TokenizeUnsupportedTypeError,
+                kind="invalid_input",
+                input=command,
                 message="command input must be a string",
             )
 
@@ -418,10 +419,10 @@ class Control:
         if not isinstance(prefix, str):
             log.debug("active command prefix has invalid type (%s)", type(prefix).__name__)
             return ControlResult(
-                False,
-                error.ControlGrammarError,
-                "invalid_context",
-                command,
+                ok=False,
+                code=error.ControlGrammarError,
+                kind="invalid_context",
+                input=command,
                 message="cmd_prefix must be a string",
             )
         if prefix and not command.startswith(prefix):
@@ -430,12 +431,12 @@ class Control:
 
         command_text = command[len(prefix) :] if prefix else command
         if not command_text.strip():
-            log.debug("command prefix was supplied without a command")
+            log.warning("logic or user error? command prefix was supplied without a command. this shouldn't be fatal.")
             return ControlResult(
-                False,
-                error.Abort,
-                "invalid_input",
-                command,
+                ok=False,
+                code=error.Abort,
+                kind="invalid_input",
+                input=command,
                 message="command prefix must be followed by a command",
             )
 
@@ -450,11 +451,11 @@ class Control:
                 None if parse_error is None else parse_error.token_index,
             )
             return ControlResult(
-                False,
-                code,
-                "parse_error" if parse_error is None else parse_error.kind,
-                command,
-                command_text.split(maxsplit=1)[0],
+                ok=False,
+                code=code,
+                kind="parse_error" if parse_error is None else parse_error.kind,
+                input=command,
+                command=command_text.split(maxsplit=1)[0],
                 parse_result=parsed,
                 error=parse_error,
                 message="command did not match the grammar" if parse_error is None else parse_error.message,
@@ -485,6 +486,7 @@ class Control:
     def _remember(self, result: ControlResult) -> ControlResult:
         """Store and return the latest control result."""
         self.deeper_level.last_result = result
+
         if result.ok:
             if result.kind == "input":
                 log.debug("ordinary input passed through unchanged")
@@ -495,6 +497,8 @@ class Control:
         else:
             detail = f"; {result.exception}" if result.exception is not None else ""
             log.error("command failed (%s): %s%s", result.kind, result.message, detail)
+
         log.debug("result=%s code=%s", result.kind, result.code)
-        log.stderr(result.to_response())
+        log.stderr(result.to_response() if not flags.expect_json else result.to_json())
+
         return result

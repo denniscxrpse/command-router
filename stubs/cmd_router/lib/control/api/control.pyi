@@ -1,6 +1,8 @@
-from .context import _DeeperLevelContext
-from .fixtures import FixturesSetup
-from .result import ControlInitialization, ControlResult
+from cmd_router.utils.cli import *
+from cmd_router.utils.logger import *
+from .context import *
+from .fixtures import *
+from .result import *
 from asyncio import Lock
 from cmd_router.lib.command import CmdParse
 from cmd_router.lib.control.compiler import _GrammarSource
@@ -22,14 +24,14 @@ class _Invocation:
     handler: _Action
 
 class Control:
-    deeper_level: _DeeperLevelContext
+    deeper_level: DeeperLevelContext
     _async_lock: Lock
     _stderr_locked: bool
-    def __init__(self, *, setup: FixturesSetup | None = None, deeper: _DeeperLevelContext | None = None) -> None: ...
+    def __init__(self, *, setup: FixturesSetup | None = None, deeper: DeeperLevelContext | None = None) -> None: ...
     @property
     def context(self) -> FixturesSetup: ...
     @property
-    def deeper(self) -> _DeeperLevelContext: ...
+    def deeper(self) -> DeeperLevelContext: ...
     def initialize(
         self,
         grammars: _GrammarSource | None = None,

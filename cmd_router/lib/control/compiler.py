@@ -162,10 +162,10 @@ def _argument_type(type_name: str) -> Any:
     ``int`` and ``greedy`` respectively.  The parser case-folds type names,
     and the mapping here also makes the accepted names explicit at the
     compiler boundary.  Returning a new instance on each call keeps this
-    helper independent of mutable state on argument-type objects while the
-    tree-merging logic compares their public ``name`` attributes.
+    helper independent of the mutable state on argument-type objects while
+    the tree-merging logic compares their public ``name`` attributes.
 
-    :raises _GrammarSyntaxError: if *type_name* is not one of the supported
+    :raises _GrammarSyntaxError: If *type_name* is not one of the supported
         names.
     """
     types = {

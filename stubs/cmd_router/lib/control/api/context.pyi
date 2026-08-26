@@ -1,17 +1,18 @@
 from .fixtures import FixturesSetup
 from .result import ControlInitialization, ControlResult
 from _typeshed import Incomplete
+from cmd_router.lib.command.dispatcher import CommandDispatcher
 from collections.abc import Callable
 from types import ModuleType
-from typing import Any, Final
+from typing import Any
 
 __all__ = ["DeeperLevelContext"]
 
 _Action = Callable[..., Any]
 
-class _DeeperLevelContext:
+class DeeperLevelContext:
     _setup: Incomplete
-    dispatcher: Incomplete
+    dispatcher: CommandDispatcher
     grammars: dict[str, str]
     fixture_module: ModuleType | None
     fixture_logic: Any
@@ -47,5 +48,3 @@ class _DeeperLevelContext:
     def command_action(self, value: dict[str, _Action]) -> None: ...
     def set_command_args(self, command: str, **arguments: Any) -> None: ...
     def clear_command_args(self, command: str | None = None) -> None: ...
-
-DeeperLevelContext: Final[type[_DeeperLevelContext]]

@@ -19,7 +19,7 @@ from uuid import uuid4
 import json5
 from icecream import ic
 
-from cmd_router.api import Control, ControlInitialization, ControlResult, listener
+from cmd_router.api import Control, ControlInitialization, ControlResult, readable_listener
 from cmd_router.lib.grammar.loader import *
 from cmd_router.utils.cli import *
 from cmd_router.utils.context import *
@@ -284,7 +284,7 @@ class CommandRouter:
         try:
             initialized = self.control.deeper_level.initialized
         except Exception as exception:
-            log.error("router.control: cannot inspect control state before starting the loop: %s", exception)
+            log.critical("router.control: cannot inspect control state before starting the loop: %s", exception)
             return error.Abort
 
         if not initialized:
@@ -302,7 +302,7 @@ class CommandRouter:
                 log.warning("control loop interrupted")
                 return error.Interrupted
             except Exception as exception:
-                log.error("control loop could not read input: %s", exception)
+                log.critical("control loop could not read input: %s", exception)
                 return error.Abort
 
             if not isinstance(command, str):
@@ -321,27 +321,28 @@ class CommandRouter:
                 result = self.execute(command)
 
                 if not isinstance(result, ControlResult):
-                    log.error("control execution returned an invalid result")
+                    log.critical("control execution returned an invalid result")
                     return error.Abort
 
                 if result.code == error.ControlNotInitializedError:
-                    log.error("control became uninitialized while the loop was running")
+                    log.critical("control became uninitialized while the loop was running")
                     return error.ControlNotInitializedError
 
                 if result.ok and result.kind != "input" and result.value is not None:
                     log.info("control result: %r", result.value)
 
-                ic(listener())
+                ic(readable_listener())
                 if result.command == "help":
                     log.info(
-                        "commands: '%s'\n  prefix: '%s'\n  target: '%s'",
+                        "commands: '%s'\n  prefix: '%s'\n  target: '%s'\n suggestions: '%s'",
                         result.value.get("commands", None),
                         result.value.get("prefix", None),
                         result.value.get("target", None),
+                        result.value.get("suggestions", None),
                     )
             except KeyboardInterrupt:
                 log.warning("control loop interrupted during command execution")
                 return error.Interrupted
             except Exception as exception:
-                log.error("control loop failed while executing a command: %s", exception)
+                log.critical("control loop failed while executing a command: %s", exception)
                 return error.Abort
