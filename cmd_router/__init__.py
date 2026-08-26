@@ -192,15 +192,12 @@ class _CmdRouter:
         return self.grammars, self.info
 
     def control_init(self) -> bool:
-        """Load fixture behavior only when the control flag requests it."""
-        if not flags.control:
-            log.debug("control initialization disabled")
-            return False
+        """Load fixture behavior and compile the active command surface."""
         log.info("initializing control")
         result = self.control.initialize(
             self.grammars,
             fixture=paths.FIXTURES,
-            keep_help=not flags.control_no_help,
+            keep_help=not flags.no_help,
         )
         if not result.ok:
             log.error("control initialization failed (%s): %s", result.code, result.message)
@@ -219,10 +216,10 @@ class CommandRouter:
         self._info = _cmd_router.info
         self.control = _cmd_router.control
         log.debug(
-            "flags (lazy=%s, control=%s, control_no_help=%s, ignore=%s)",
+            "flags (lazy=%s, test_suite=%s, no_help=%s, ignore=%s)",
             flags.lazy,
-            flags.control,
-            flags.control_no_help,
+            flags.test_suite,
+            flags.no_help,
             flags.ignore,
         )
 
@@ -231,8 +228,8 @@ class CommandRouter:
             log.info("lazy grammar loading enabled")
             _cmd_router.lazy_init()
             ctrl_init = _cmd_router.control_init()
-            if ctrl_init:
-                self._control_loop()
+            if ctrl_init and flags.test_suite:
+                self._test_suite_loop()
             log.info("initialization completed")
             return
 
@@ -242,17 +239,15 @@ class CommandRouter:
         if isinstance(result, int):
             log.error("grammar initialization failed (%s); continuing with loaded data", result)
 
-        # The control loop doesn't necessarily need to be initialized immediately.
+        # The test-suite loop doesn't need to be initialized for embedded use.
         ctrl_init = _cmd_router.control_init()
 
         log.debug("normalized grammars=%r; info=%r", self._grammars, self._info)
 
         # Technically, a lazy initialization is possible, but it's not worth the complexity.
-        # Note: If `flags.control` is somehow false and `ctrl_init` is true, the loop will run anyway.
-        #       This is intentional, since `_control_init` owns the rights to this initialization.
-        if ctrl_init:
-            c = self._control_loop()
-            log.info("control loop exited with status %s", c)
+        if ctrl_init and flags.test_suite:
+            c = self._test_suite_loop()
+            log.info("test-suite loop exited with status %s", c)
             return
 
         log.info("ready (%d command grammar(s))", len(self._grammars))
@@ -270,7 +265,7 @@ class CommandRouter:
         """Expose the live Python control state for embedded callers."""
         return self.control.deeper_level
 
-    def _control_loop(self) -> int:
+    def _test_suite_loop(self) -> int:
         """Run the fixture-backed command interface until it is closed.
 
         The router owns this loop because the control API only knows how to

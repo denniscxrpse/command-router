@@ -138,7 +138,7 @@ class Control:
         if keep_help is not None:
             if not isinstance(keep_help, bool):
                 return self._initialization_error("keep_help must be a boolean")
-            self.deeper_level.control_no_help_keeps_help = keep_help
+            self.deeper_level.lazy_init_help = keep_help
 
         selected = self.deeper_level.grammars if grammars is None else grammars
         result = self.configure(selected)
@@ -156,14 +156,14 @@ class Control:
         log.debug(
             "compiler settings (prefix=%r, keep_help=%s, actions=%s)",
             self.deeper_level.cmd_prefix,
-            self.deeper_level.control_no_help_keeps_help,
+            self.deeper_level.lazy_init_help,
             tuple(self.deeper_level.command_action),
         )
         try:
             dispatcher = _compile_grammars(
                 normalized,
                 lambda: self.deeper_level.command_action,
-                self.deeper_level.control_no_help_keeps_help,
+                self.deeper_level.lazy_init_help,
                 self.deeper_level.cmd_prefix,
             )
         except (AttributeError, TypeError, ValueError, _GrammarSyntaxError) as exception:

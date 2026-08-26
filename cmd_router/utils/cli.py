@@ -81,47 +81,44 @@ class EnvFlags:
     The library will still work, and you can still use your commands as intended, but not all of them will be loaded.
     """
 
-    control: bool = False
+    test_suite: bool = False
     """
-    This flag will tell the Command Router to initialize the ``control`` module. A test suite provided by the
-    Command Router (cmd-router), **not recommended** to use it in production for obvious reasons.
+    This flag will tell the Command Router to initialize the ``_test_suite_loop``. A **test suite** provided by the
+    Command Router (cmd-router), **not recommended** to use it in production for obvious reasons. This is how the
+    cmd-router behaves when it is invoked with this flag enabled (``True``).
 
     After determining the flags ``lazy`` and ``ignore``, we use this flag to either (if ``True``) enable or 
-    (if ``False``) disable the initialization of the `control` module. This flag defaults to ``False``.
+    (if ``False``) disable the test-suite loop. This flag defaults to ``False``.
 
     This module initializes the cmd-router under (either) default or custom conditions, depending on the flags; if
-    ``lazy`` is ``True``, the ``control`` module will not be initialized unless the user enters the correct TOML or JSON
-    file to the HTTP port, otherwise (``lazy`` is ``False``), we'll wait until we have loaded all ``./fixtures`` files. 
-    The same goes with ``ignore`` as we wait to handle and load the correct specified filenames, full file paths, or
-    directory paths. In summary, you'll have to wait until everything is loaded before you can use the ``control`` 
-    module.
+    ``lazy`` is ``True``, the **test suite** will not be initialized until the user enters the correct TOML or JSON
+    file to the HTTP port, otherwise (``lazy`` is ``False``), we'll wait until we have loaded all ``./fixtures/*``
+    files. The same goes with ``ignore`` as we wait to handle and load the correct specified filenames, full file paths,
+    or directory paths. In summary, you'll have to wait until everything is loaded before you can use the **test
+    suite**.
 
-    Once ready, we'll pass control to the ``control`` module, which will do, in summary: 1. Initialize a shell like
-    interface (this is mainly for comfort, we **DO NOT** initialize an actual shell), you may write the commands in
-    this interface, test their behaviour, and see live debug information. 2. Test of special, built-in commands which
-    will help you to understand even further how the `cmd-notation` works. You can disable this by setting
-    `control_no_help` to ``True``, or use ``control_no_help_keeps_help`` at ``_FixturesSetup``. See: ``./fixtures``.
+    Once ready, we'll pass control to the ``_test_suite_loop``, which will do, in summary:
+
+    1. Initialize a shell like interface (this is mainly for comfort, we **DO NOT** initialize an actual shell); you
+       may write the commands in this interface, test their behaviour, and see live debug information.
+
+    2. Test of special, built-in commands which will help you to understand even further how the `cmd-notation` works.
+       You can disable this by setting ``no_help`` to ``True``, or use ``lazy_init_help`` at ``_FixturesSetup``.
+       See: `./fixtures/__init__.py`.
     
-    Note (after 6c75deb2): This flag doesn't directly pass control to the ``control`` module, but to the ``cmd_router``.
-    The ``control`` module is an independent module that is not aware of the ``cmd_router`` and its fixtures. The 
-    ``cmd_router`` is aware of the entire codebase at the time of execution, and directly depends on the ``fixtures`` 
-    module to work. The "test suite," meant to test behaviour and see live debug information, is directly dependant on
-    how ``fixtures.__init__.py`` is configured. **WE DO NOT** reconfigure anything in our ``cmd_router.__init__()`` 
-    function as we do not have a way (yet) to revoke or pass the control the existing module ``fixtures`` already has.
-
-    If you have a different grammar in ``./fixtures``, or you are going to send a completely different grammar file
-    under our HTTP port, we recommend disabling `control_no_help` to keep things straightforward. Check
-    ``./fixtures/__init__.py`` for the ``context_holder`` and ``SetupFixtures`` fixture contract when customizing
-    command state or actions.
+    Note: The "test suite," meant to test behaviour and see live debug information, is directly dependant on how
+    `./fixtures/__init__.py` is configured. **WE DO NOT** reconfigure anything in our ``cmd_router.__init__()``
+    function as we do not have a way (yet) to pass the control the existing module ``fixtures`` already has.
     """
 
-    control_no_help: bool = False
+    no_help: bool = False
     """
-    Disables the built-in help command in the ``control`` module. It has an effect only when ``control`` is enabled.
+    Disables compilation of the built-in ``help`` command. This has an effect only when ``test_suite`` is enabled.
     
-    If you disable this flag, it will skip the compilation of step of ``/help``, which may improve startup performance.
+    If you enable this flag, it will skip the compilation of step of ``compiler.help_action(...)``, which may improve
+    startup performance.
     
-    Using internal variable ``_FixturesSetup.control_no_help_keeps_help`` does the exact same thing as this flag, 
+    Using internal variable ``_FixturesSetup.lazy_init_help`` does the exact same thing as this flag,
     but instead of compiling everything at startup, we compile at runtime.
     """
 
@@ -166,21 +163,22 @@ flags: Final[EnvFlags] = EnvFlags()
     help="Ignore specific files or directories when loading logical data.",
 )
 @click.option(
-    "--control",
+    "--test",
     is_flag=True,
     default=None,
-    help="Initialize the `control` module test suite.",
+    help="Initialize the test suite. Do not confuse with `pytest`.",
 )
 @click.option(
-    "--control-no-help",
+    "--no-help",
     is_flag=True,
     default=None,
-    help="Disable the built-in help command in the `control` module.",
+    help="Disable the built-in help command.",
 )
 @click.option(
     "-S",
     "--no-suggestions",
     is_flag=True,
+    flag_value=False,
     default=flags.suggestions,
     help="Disable suggestions for unknown commands.",
 )

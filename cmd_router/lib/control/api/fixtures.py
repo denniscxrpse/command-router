@@ -13,20 +13,20 @@ Those values belong to a ``FixturesSetup`` instance.
 
 A fixture module supplies two child classes and one factory alias:
 
-``context_holder``
-    A class derived from ``FixturesContextHolder``.  The control layer creates
-    exactly one instance for an initialization attempt and keeps it in
-    ``deeper_level.fixture_logic``.  The base class registers the instance as
-    the current fixture holder and provides the small ``calls``/``_record``
-    conveniences used by the example fixture.  Subclasses may add any state
-    and action methods they need; importing a fixture must not execute those
-    actions.
-``SetupFixtures``
-    A class derived from ``FixturesSetup``.  The control layer assigns the
-    newly created holder to the setup class's ``logic`` attribute before it
-    constructs the setup instance.  The subclass calls ``super().__init__``
-    and then fills in its configuration, normally with ordinary assignments
-    such as ``self.command_action = {...}``.
+- ``context_holder``:
+  A class derived from ``FixturesContextHolder``.  The control layer creates
+  exactly one instance for an initialization attempt and keeps it in
+  ``deeper_level.fixture_logic``.  The base class registers the instance as
+  the current fixture holder and provides the small ``calls``/``_record``
+  conveniences used by the example fixture.  Subclasses may add any state
+  and action methods they need; importing a fixture must not execute those
+  actions.
+- ``SetupFixtures``:
+  A class derived from ``FixturesSetup``.  The control layer assigns the
+  newly created holder to the setup class's ``logic`` attribute before it
+  constructs the setup instance.  The subclass calls ``super().__init__``
+  and then fills in its configuration, normally with ordinary assignments
+  such as ``self.command_action = {...}``.
 
 The lifecycle is therefore:
 
@@ -53,21 +53,17 @@ computed dynamically.
 
 The four settings are:
 
-``cmd_prefix``
-    A string required before a command.  ``Control`` treats input without this prefix
-    as ordinary non-command input.  The default is ``"/"``.
-``control_no_help_keeps_help``
-    A boolean controlling the compiler's generated ``help`` command.  The
-    default is ``True``.
-``command_action``
-    A mapping from grammar command names to callable actions.  It defaults to
-    an empty dictionary.  A command can still compile without an action; its
-    handler returns ``None`` when invoked.  The compiler rejects a configured
-    non-callable value.
-``command_args_ctrl``
-    A mapping of command names to argument overrides, defaulting to an empty
-    dictionary.  It is normally changed through
-    ``deeper_level.set_command_args`` rather than during fixture setup.
+- ``cmd_prefix``: A string required before a command.  ``Control`` treats input
+  without this prefix as ordinary non-command input.  The default is ``"/"``.
+- ``lazy_init_help``: A boolean controlling the compiler's generated ``help``
+  command. The default is ``True``.
+- ``command_action``: A mapping from grammar command names to callable actions.
+  It defaults to an empty dictionary.  A command can still compile without an
+  action; its handler returns ``None`` when invoked.  The compiler rejects a
+  configured non-callable value.
+- ``command_args_ctrl``: A mapping of command names to argument overrides,
+  defaulting to an empty dictionary.  It is normally changed through
+  ``deeper_level.set_command_args`` rather than during fixture setup.
 
 The setup class's ``logic`` attribute is an injection point, not a global
 context.  It is refreshed for every fixture initialization, so action methods
@@ -155,16 +151,16 @@ class FixturesSetup:
     .. code-block:: python
 
         class SetupFixtures(FixturesSetup):
-            def __init__(self):
-                super().__init__()
-                self.cmd_prefix = "/"
-                self.control_no_help_keeps_help = True
-                self.command_action = {"say": self.logic.say}
+        def __init__(self):
+            super().__init__()
+            self.cmd_prefix = "/"
+            self.lazy_init_help = True
+            self.command_action = {"say": self.logic.say}
 
-    Or they may override a property when a setting should be calculated from
-     the fixture state.  In that case the subclass still needs to call the base
-    initializer so ``logic`` is validated and the remaining settings have
-    their normal defaults.
+        Or they may override a property when a setting should be calculated from
+         the fixture state.  In that case the subclass still needs to call the base
+        initializer so ``logic`` is validated and the remaining settings have
+        their normal defaults.
     """
 
     logic: Any = None
@@ -192,7 +188,7 @@ class FixturesSetup:
             )
 
         self._cmd_prefix = _default_pfx
-        self._control_no_help_keeps_help = True
+        self._lazy_init_help = True
         self._command_action: dict[str, _Action] = {}
         self._command_args_ctrl: dict[str, Any] = {}
         log.debug("setup defaults initialized for logic=%s", type(self.logic).__name__)
@@ -233,12 +229,12 @@ class FixturesSetup:
         log.debug("command prefix set to %r", v)
 
     @property
-    def control_no_help_keeps_help(self) -> bool:
+    def lazy_init_help(self) -> bool:
         """Return whether the compiler should install its built-in help command."""
-        return self._control_no_help_keeps_help
+        return self._lazy_init_help
 
-    @control_no_help_keeps_help.setter
-    def control_no_help_keeps_help(self, v: bool) -> None:
+    @lazy_init_help.setter
+    def lazy_init_help(self, v: bool) -> None:
         """
         Controls whether the built-in help command remains available. When set to ``True``,
         the help command will always be available, even if no help text is defined for
@@ -246,8 +242,8 @@ class FixturesSetup:
         or hidden.
         """
         if not isinstance(v, bool):
-            raise self.__typerror__("control_no_help_keeps_help", v, bool)
-        self._control_no_help_keeps_help = v
+            raise self.__typerror__("lazy_init_help", v, bool)
+        self._lazy_init_help = v
         log.debug("built-in help policy set to %s", v)
 
     @property

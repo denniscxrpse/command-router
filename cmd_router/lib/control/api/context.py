@@ -120,14 +120,14 @@ class DeeperLevelContext:
         self._setup.cmd_prefix = value
 
     @property
-    def control_no_help_keeps_help(self) -> bool:
+    def lazy_init_help(self) -> bool:
         """Return the active setup's built-in-help policy."""
-        return self._setup.control_no_help_keeps_help
+        return self._setup.lazy_init_help
 
-    @control_no_help_keeps_help.setter
-    def control_no_help_keeps_help(self, value: bool) -> None:
+    @lazy_init_help.setter
+    def lazy_init_help(self, value: bool) -> None:
         """Update the active setup's built-in-help policy."""
-        self._setup.control_no_help_keeps_help = value
+        self._setup.lazy_init_help = value
 
     @property
     def command_args_ctrl(self) -> dict[str, Any]:

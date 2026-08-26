@@ -38,12 +38,12 @@ dotrun build="0" path="./example":
 lazy:
     just run --lazy
 
-# Run with `--control` flag.
-control:
-    just run --control
-
-# Pytest everything
+# Run with `--test` flag.
 test:
+    just run --test
+
+# Run tests at `./tests`.
+pytest:
     uv run pytest -q
 
 # Check all lints. Use `path` to lint someting else.

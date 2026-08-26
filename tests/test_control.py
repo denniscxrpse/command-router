@@ -153,9 +153,9 @@ def test_fixture_initialization_creates_holder_then_setup() -> None:
     (
         ("cmd_prefix", 1, "cmd_prefix must be a str, got int"),
         (
-            "control_no_help_keeps_help",
+            "lazy_init_help",
             "yes",
-            "control_no_help_keeps_help must be a bool, got str",
+            "lazy_init_help must be a bool, got str",
         ),
         ("command_action", [], "command_action must be a dict, got list"),
         ("command_args_ctrl", None, "command_args_ctrl must be a dict, got NoneType"),

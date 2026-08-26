@@ -59,7 +59,7 @@ def test_constructor_loads_non_lazy_fixtures(tmp_path: Path, monkeypatch: pytest
     grammar.write_text(_json_grammar(), encoding="utf-8")
     monkeypatch.setattr(paths, "FIXTURES", tmp_path)
     monkeypatch.setattr(flags, "lazy", False)
-    monkeypatch.setattr(flags, "control", False)
+    monkeypatch.setattr(flags, "test_suite", False)
 
     private = _CmdRouter()
     private.grammars = {}
@@ -227,26 +227,26 @@ def _initialized_control_router() -> CommandRouter:
     return router
 
 
-def test_control_loop_executes_commands_until_quit(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_suite_loop_executes_commands_until_quit(monkeypatch: pytest.MonkeyPatch) -> None:
     router = _initialized_control_router()
     commands = iter(("/say hello", "quit"))
     monkeypatch.setattr("builtins.input", lambda _prompt: next(commands))
 
     try:
-        assert router._control_loop() == error.Succeed
+        assert router._test_suite_loop() == error.Succeed
         assert router.control.deeper_level.last_result is not None
         assert router.control.deeper_level.last_result.command == "say"
     finally:
         router.control.close()
 
 
-def test_control_loop_keeps_running_after_a_command_error(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_suite_loop_keeps_running_after_a_command_error(monkeypatch: pytest.MonkeyPatch) -> None:
     router = _initialized_control_router()
     commands = iter(("/unknown", "quit"))
     monkeypatch.setattr("builtins.input", lambda _prompt: next(commands))
 
     try:
-        assert router._control_loop() == error.Succeed
+        assert router._test_suite_loop() == error.Succeed
     finally:
         router.control.close()
 
@@ -255,7 +255,7 @@ def test_control_loop_keeps_running_after_a_command_error(monkeypatch: pytest.Mo
     ("input_exception", "expected"),
     [(EOFError(), error.Succeed), (KeyboardInterrupt(), error.Interrupted)],
 )
-def test_control_loop_converts_input_termination_to_status(
+def test_suite_loop_converts_input_termination_to_status(
     input_exception: BaseException, expected: int, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     router = _initialized_control_router()
@@ -266,12 +266,12 @@ def test_control_loop_converts_input_termination_to_status(
     monkeypatch.setattr("builtins.input", read_input)
 
     try:
-        assert router._control_loop() == expected
+        assert router._test_suite_loop() == expected
     finally:
         router.control.close()
 
 
-def test_control_loop_converts_execution_exception_to_abort(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_suite_loop_converts_execution_exception_to_abort(monkeypatch: pytest.MonkeyPatch) -> None:
     router = _initialized_control_router()
     monkeypatch.setattr("builtins.input", lambda _prompt: "/say hello")
 
@@ -281,6 +281,6 @@ def test_control_loop_converts_execution_exception_to_abort(monkeypatch: pytest.
     monkeypatch.setattr(router.control, "execute", fail)
 
     try:
-        assert router._control_loop() == error.Abort
+        assert router._test_suite_loop() == error.Abort
     finally:
         router.control.close()

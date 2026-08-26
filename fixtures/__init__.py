@@ -14,19 +14,16 @@ create state, register actions, or execute commands.
 
 The two public extension points are:
 
-``FixturesContextHolder``
-    Subclass the API base when adding state and command methods.  Call
-    ``super().__init__()`` so the base class initializes ``calls`` and records
-    the current holder.  Methods such as ``foo`` and ``bar`` can return any
-    application value; this example uses ``_record`` to make executions easy
-    to inspect.
-``SetupFixtures``
-    Subclass the API setup base when defining configuration.  Call
-    ``super().__init__()`` first, then assign ``self.cmd_prefix``,
-    ``self.control_no_help_keeps_help``, ``self.command_action``, or
-    ``self.command_args_ctrl``.  ``self.logic`` is the holder created for the
-    current control initialization, so actions can be bound directly to its
-    methods.
+- ``FixturesContextHolder``: Subclass the API base when adding state and command
+  methods. Call ``super().__init__()`` so the base class initializes ``calls``
+  and records the current holder.  Methods such as ``foo`` and ``bar`` can return
+  any application value; this example uses ``_record`` to make executions easy
+  to inspect.
+- ``SetupFixtures``: Subclass the API setup base when defining configuration. Call
+  ``super().__init__()`` first, then assign ``self.cmd_prefix``, ``self.lazy_init_help``,
+  ``self.command_action``, or ``self.command_args_ctrl``. ``self.logic`` is the holder
+  created for the current control initialization, so actions can be bound directly to
+  its methods.
 
 The ``context_holder`` alias is part of the fixture contract.  Its name keeps
 the loader independent of the concrete class name and makes replacing this
@@ -81,7 +78,7 @@ class SetupFixtures(_FixturesSetup):
         self.cmd_prefix = "/"
 
         # Keep the generated /help command unless an application overrides it.
-        self.control_no_help_keeps_help = True
+        self.lazy_init_help = True
 
         # Bind grammar names to methods on this initialization's holder.
         self.command_action = {
