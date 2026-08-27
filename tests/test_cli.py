@@ -13,11 +13,11 @@ def test_cli_options_update_renamed_environment_flags(monkeypatch: pytest.Monkey
     monkeypatch.setattr(flags, "ignore", flags.ignore)
     monkeypatch.setattr(flags, "test_suite", False)
     monkeypatch.setattr(flags, "no_help", False)
-    monkeypatch.setattr(flags, "suggestions", True)
+    monkeypatch.setattr(flags, "no_suggestions", True)
 
-    result = CliRunner().invoke(init_flags, ["--test", "--no-help", "--no-suggestions"])
+    result = CliRunner().invoke(init_flags, ["-test", "--no-help", "--no-suggestions"])
 
     assert result.exit_code == 0
     assert flags.test_suite is True
     assert flags.no_help is True
-    assert flags.suggestions is False
+    assert flags.no_suggestions is False

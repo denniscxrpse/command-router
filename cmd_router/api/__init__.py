@@ -32,13 +32,9 @@ __all__ = (
     "DeeperLevelContext",
     "FixturesContextHolder",
     "FixturesSetup",
+    "api_symlink",
     "control",
     "deeper_level",
-    "initialize",
-    "execute",
-    "execute_async",
-    "listener",
-    "readable_listener",
 )
 
 from cmd_router.lib.control.api import *

@@ -225,4 +225,4 @@ def test_stderr_writer_can_be_awaited(capsys: pytest.CaptureFixture[str]) -> Non
 
     assert capsys.readouterr().err == "controlled stderr\n"
     assert log.stderr.latest_call == "controlled stderr\n"
-    assert api.listener() == "controlled stderr\n"
+    assert api.api_symlink.listener() == "controlled stderr\n"

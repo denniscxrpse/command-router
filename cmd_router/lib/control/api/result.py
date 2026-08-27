@@ -154,7 +154,7 @@ class ControlResult:
 
     @property
     def suggestions(self) -> list[str]:
-        if flags.suggestions:
+        if flags.no_suggestions:
             # TODO: implement suggestions logic
             ...
         return []

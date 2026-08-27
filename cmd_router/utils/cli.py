@@ -10,6 +10,7 @@ from dataclasses import dataclass
 from typing import Any, Final, final
 
 import click
+from click.exceptions import Exit, NoSuchOption
 from icecream import ic
 
 _help = ["-h", "--help"]
@@ -26,7 +27,9 @@ class _CliCommand(click.Command):
 
         try:
             result: Any = super().main(*args, **kwargs)
-        except click.exceptions.Exit as e:
+        except NoSuchOption as e:
+            raise SystemExit(e) from None
+        except Exit as e:
             # Click raises ``Exit`` for its eager help option.  With
             # ``standalone_mode=False`` that exception is normally exposed to
             # the caller, so translate it into Python's process-level exit.
@@ -122,7 +125,7 @@ class EnvFlags:
     but instead of compiling everything at startup, we compile at runtime.
     """
 
-    suggestions: bool = True
+    no_suggestions: bool = True
 
     expect_json: bool = False
     """
@@ -163,7 +166,8 @@ flags: Final[EnvFlags] = EnvFlags()
     help="Ignore specific files or directories when loading logical data.",
 )
 @click.option(
-    "--test",
+    "-test",
+    "--test-suite",
     is_flag=True,
     default=None,
     help="Initialize the test suite. Do not confuse with `pytest`.",
@@ -179,12 +183,12 @@ flags: Final[EnvFlags] = EnvFlags()
     "--no-suggestions",
     is_flag=True,
     flag_value=False,
-    default=flags.suggestions,
+    default=flags.no_suggestions,
     help="Disable suggestions for unknown commands.",
 )
 @click.option(
-    "--expect-json",
     "-json",
+    "--expect-json",
     is_flag=True,
     default=flags.expect_json,
     help="Expect JSON input instead of Python dictionary.",

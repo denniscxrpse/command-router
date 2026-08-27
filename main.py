@@ -4,9 +4,9 @@
 #  All rights reserved.
 
 from cmd_router import CommandRouter
-from cmd_router.utils.cli import init_flags
-from cmd_router.utils.context import error
-from cmd_router.utils.logger import log
+from cmd_router.utils.cli import *
+from cmd_router.utils.context import *
+from cmd_router.utils.logger import *
 
 
 def main() -> int:

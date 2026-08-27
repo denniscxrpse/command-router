@@ -19,7 +19,7 @@ from uuid import uuid4
 import json5
 from icecream import ic
 
-from cmd_router.api import Control, ControlInitialization, ControlResult, readable_listener
+from cmd_router.api import Control, ControlInitialization, ControlResult, api_symlink
 from cmd_router.lib.grammar.loader import *
 from cmd_router.utils.cli import *
 from cmd_router.utils.context import *
@@ -326,7 +326,7 @@ class CommandRouter:
                 if result.ok and result.kind != "input" and result.value is not None:
                     log.info("control result: %r", result.value)
 
-                ic(readable_listener())
+                ic(api_symlink.readable_listener())
                 if result.command == "help":
                     log.info(
                         "commands: '%s'\n  prefix: '%s'\n  target: '%s'\n suggestions: '%s'",

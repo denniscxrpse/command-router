@@ -40,7 +40,7 @@ lazy:
 
 # Run with `--test` flag.
 test:
-    just run --test
+    just run -test
 
 # Run tests at `./tests`.
 pytest:

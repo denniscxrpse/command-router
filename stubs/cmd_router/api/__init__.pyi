@@ -7,13 +7,9 @@ __all__ = [
     "FixturesSetup",
     "ControlResult",
     "ControlInitialization",
+    "api_symlink",
     "control",
     "deeper_level",
-    "initialize",
-    "execute",
-    "execute_async",
-    "listener",
-    "readable_listener",
 ]
 
 # Names in __all__ with no definition:
@@ -23,10 +19,6 @@ __all__ = [
 #   DeeperLevelContext
 #   FixturesContextHolder
 #   FixturesSetup
+#   api_symlink
 #   control
 #   deeper_level
-#   execute
-#   execute_async
-#   initialize
-#   listener
-#   readable_listener

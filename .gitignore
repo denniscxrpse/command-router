@@ -1,6 +1,5 @@
 # Generics
-[.v]env
-**/[.]idea
+**/*.*/
 !**/[.]idea/copyright
 **/obj
 **/bin
