@@ -49,7 +49,7 @@ from pathlib import Path
 from types import ModuleType
 from typing import Any, Self
 
-from cmd_router.lib.command import CmdError, CmdParse
+from cmd_router.lib.commands import CmdError, CmdParse
 from cmd_router.lib.control.compiler import _compile_grammars, _GrammarSource, _GrammarSyntaxError
 from cmd_router.lib.control.fixture import _load_fixture_module
 from cmd_router.utils.cli import *
@@ -296,7 +296,7 @@ class Control:
                     ControlResult(
                         ok=False,
                         code=error.ControlActionError,
-                        kind="action_error",
+                        kind=ControlResultKinds.ACTION_ERROR,
                         input=command,
                         command=prepared.command,
                         parse_result=prepared.parsed,
@@ -311,7 +311,7 @@ class Control:
                 ControlResult(
                     ok=True,
                     code=error.Succeed,
-                    kind="command",
+                    kind=ControlResultKinds.COMMAND,
                     input=command,
                     command=prepared.command,
                     value=value,
@@ -355,7 +355,7 @@ class Control:
                         ControlResult(
                             ok=False,
                             code=error.ControlActionError,
-                            kind="action_error",
+                            kind=ControlResultKinds.ACTION_ERROR,
                             input=command,
                             command=prepared.command,
                             parse_result=prepared.parsed,
@@ -369,7 +369,7 @@ class Control:
                 ControlResult(
                     ok=False,
                     code=error.ControlActionError,
-                    kind="action_error",
+                    kind=ControlResultKinds.ACTION_ERROR,
                     input=command,
                     command=prepared.command,
                     parse_result=prepared.parsed,
@@ -382,15 +382,15 @@ class Control:
 
         return self._remember(
             ControlResult(
-                True,
-                error.Succeed,
-                "command",
-                command,
-                prepared.command,
-                value,
-                prepared.parsed,
-                invocation_context,
-                prepared.handler,
+                ok=True,
+                code=error.Succeed,
+                kind=ControlResultKinds.COMMAND,
+                input=command,
+                command=prepared.command,
+                value=value,
+                parse_result=prepared.parsed,
+                context=invocation_context,
+                handler=prepared.handler,
             )
         )
 
@@ -401,7 +401,7 @@ class Control:
             return ControlResult(
                 ok=False,
                 code=error.ControlNotInitializedError,
-                kind="not_initialized",
+                kind=ControlResultKinds.NOT_INITIALIZED,
                 input=command,
                 message="control has not been initialized",
             )
@@ -410,7 +410,7 @@ class Control:
             return ControlResult(
                 ok=False,
                 code=CmdError.TokenizeUnsupportedTypeError,
-                kind="invalid_input",
+                kind=ControlResultKinds.INVALID_INPUT,
                 input=command,
                 message="command input must be a string",
             )
@@ -421,13 +421,13 @@ class Control:
             return ControlResult(
                 ok=False,
                 code=error.ControlGrammarError,
-                kind="invalid_context",
+                kind=ControlResultKinds.INVALID_CONTEXT,
                 input=command,
                 message="cmd_prefix must be a string",
             )
         if prefix and not command.startswith(prefix):
             log.debug("treating input as ordinary text; prefix %r was not present", prefix)
-            return ControlResult(True, error.Succeed, "input", command, value=command)
+            return ControlResult(True, error.Succeed, ControlResultKinds.INPUT, command, value=command)
 
         command_text = command[len(prefix) :] if prefix else command
         if not command_text.strip():
@@ -435,7 +435,7 @@ class Control:
             return ControlResult(
                 ok=False,
                 code=error.Abort,
-                kind="invalid_input",
+                kind=ControlResultKinds.INVALID_INPUT,
                 input=command,
                 message="command prefix must be followed by a command",
             )
@@ -453,7 +453,7 @@ class Control:
             return ControlResult(
                 ok=False,
                 code=code,
-                kind="parse_error" if parse_error is None else parse_error.kind,
+                kind=ControlResultKinds.PARSE_ERROR if parse_error is None else parse_error.kind,
                 input=command,
                 command=command_text.split(maxsplit=1)[0],
                 parse_result=parsed,
@@ -499,6 +499,6 @@ class Control:
             log.error("command failed (%s): %s%s", result.kind, result.message, detail)
 
         log.debug("result=%s code=%s", result.kind, result.code)
-        log.stderr(result.to_response() if not flags.expect_json else result.to_json())
+        log.stderr(result.to_response() if not flags.json_out else result.to_json())
 
         return result

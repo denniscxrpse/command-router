@@ -41,7 +41,7 @@ class _CompletedWrite:
 
 
 class _LockedStderr:
-    """Serialize writes to a stream shared by embedded command runners."""
+    """Serialize writes to a stream shared by embedded commands runners."""
 
     def __init__(self, stream: TextIO, lock: RLock) -> None:
         self._stream = stream

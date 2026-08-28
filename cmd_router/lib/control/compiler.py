@@ -74,7 +74,7 @@ paths directly.
 from collections.abc import Callable, Mapping
 from typing import Any
 
-from cmd_router.lib.command import CmdNode, CmdType
+from cmd_router.lib.commands import CmdNode, CmdType
 from cmd_router.utils.logger import log
 
 from .grammar import (

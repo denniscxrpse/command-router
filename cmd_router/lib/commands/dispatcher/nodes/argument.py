@@ -6,7 +6,7 @@
 from collections.abc import Callable
 from typing import Any
 
-from cmd_router.lib.command.typing import *
+from cmd_router.lib.commands.typing import *
 
 from .command import *
 from .kinds import *

@@ -6,8 +6,10 @@
 import pytest
 
 import main as entrypoint
-from cmd_router.lib.command import CmdError
-from cmd_router.lib.command.typing import ArgumentParseError
+from cmd_router.lib.commands import CmdError
+from cmd_router.lib.commands.typing import ArgumentParseError
+
+# noinspection protected-member
 from cmd_router.lib.control.compiler import _compile_grammars
 from cmd_router.utils.context import error
 from cmd_router.utils.logger import log

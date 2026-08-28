@@ -1,7 +1,7 @@
 from .fixtures import FixturesSetup
 from .result import ControlInitialization, ControlResult
 from _typeshed import Incomplete
-from cmd_router.lib.command.dispatcher import CommandDispatcher
+from cmd_router.lib.commands.dispatcher import CommandDispatcher
 from collections.abc import Callable
 from types import ModuleType
 from typing import Any

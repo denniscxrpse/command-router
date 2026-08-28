@@ -3,7 +3,8 @@ from typing import Any
 
 import pytest
 
-from cmd_router.lib.command import CmdError, CmdNode, CmdParse, CmdType
+from cmd_router.lib.commands import CmdError, CmdNode, CmdParse, CmdType
+from cmd_router.lib.control.api import ControlResultKinds
 
 
 def say_handler() -> None:
@@ -128,17 +129,17 @@ def test_phase_one_commands_parse_to_handlers_and_context(
     [
         (
             "gamemode hardcore",
-            "unexpected_token",
+            ControlResultKinds.UNEXPECTED_TOKEN,
             1,
             ("survival", "creative", "adventure", "spectator"),
         ),
-        ("tell Alex", "incomplete_command", 2, ("<message...>",)),
-        ("advancement grant Alex only", "incomplete_command", 4, ("<advancement>",)),
-        ("tp 1 nope 3", "invalid_argument", 2, ("<y:int>",)),
+        ("tell Alex", ControlResultKinds.UNEXPECTED_COMMAND, 2, ("<message...>",)),
+        ("advancement grant Alex only", ControlResultKinds.UNEXPECTED_COMMAND, 4, ("<advancement>",)),
+        ("tp 1 nope 3", ControlResultKinds.INVALID_ARGUMENT, 2, ("<y:int>",)),
     ],
 )
 def test_phase_one_failures_report_the_furthest_expectation(
-    command: str, kind: str, token_index: int, expected: tuple[str, ...]
+    command: str, kind: ControlResultKinds, token_index: int, expected: tuple[str, ...]
 ) -> None:
     dispatcher, _ = _phase_one_dispatcher()
 
@@ -158,7 +159,7 @@ def test_dispatcher_returns_tokenization_error_codes() -> None:
 
     assert not result.ok
     assert result.error is not None
-    assert result.error.kind == "tokenization"
+    assert result.error.kind == ControlResultKinds.TOKENIZATION
     assert result.error.code == CmdError.TokenizeInvalidError
 
 
@@ -173,7 +174,7 @@ def test_parse_error_exposes_failure_context_for_debugging() -> None:
     assert result.error.expectations == ("<message...>",)
     assert result.error.parsed_args == {"target": "Alex"}
     assert result.error.to_dict() == {
-        "kind": "incomplete_command",
+        "kind": ControlResultKinds.UNEXPECTED_COMMAND,
         "token_index": 2,
         "expected": ("<message...>",),
         "message": "expected one of: <message...>",
@@ -219,7 +220,7 @@ def test_empty_input_reports_root_expectations() -> None:
     assert isinstance(result, CmdParse.Result)
     assert not result.ok
     assert result.error is not None
-    assert result.error.kind == "incomplete_command"
+    assert result.error.kind == ControlResultKinds.UNEXPECTED_COMMAND
     assert result.error.token_index == 0
     assert result.error.expected == ("say", "tell", "gamemode", "advancement", "tp", "debug")
 

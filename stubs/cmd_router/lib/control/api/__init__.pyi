@@ -12,6 +12,7 @@ __all__ = [
     "Control",
     "FixturesContextHolder",
     "FixturesSetup",
+    "ControlResultKinds",
     "ControlResult",
     "ControlInitialization",
     "api_symlink",
@@ -43,6 +44,7 @@ deeper_level: Final[DeeperLevelContext]
 #   Control
 #   ControlInitialization
 #   ControlResult
+#   ControlResultKinds
 #   DeeperLevelContext
 #   FixturesContextHolder
 #   FixturesSetup

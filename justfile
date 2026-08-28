@@ -47,7 +47,7 @@ pytest:
     uv run pytest -q
 
 # Check all lints. Use `path` to lint someting else.
-lint path="./cmd_router/ ./fixtures/":
+lint path="./cmd_router/ ./fixtures/ ./tests/":
     #### Avoid checking stub files, linters go crazy on them.
     uv run ruff check {{ path }}
     uv run pyrefly check {{ path }}

@@ -38,14 +38,13 @@ methods to it, and map grammar command names to those methods in
 
 from typing import Any, final
 
-from cmd_router.api import FixturesContextHolder as _FixturesContextHolder
-from cmd_router.api import FixturesSetup as _FixturesSetup
+from cmd_router.api import Fixtures as _Fixtures
 
 __all__ = ("FixturesContextHolder", "SetupFixtures", "context_holder")
 
 
 @final
-class FixturesContextHolder(_FixturesContextHolder):
+class FixturesContextHolder(_Fixtures.ContextHolder):
     """Hold the example state and implement the fixture's command actions."""
 
     def __init__(self) -> None:
@@ -67,7 +66,7 @@ context_holder = FixturesContextHolder
 
 
 @final
-class SetupFixtures(_FixturesSetup):
+class SetupFixtures(_Fixtures.Setup):
     """Configure the example prefix, help policy, and grammar actions."""
 
     def __init__(self) -> None:

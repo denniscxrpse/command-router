@@ -3,7 +3,7 @@ from enum import IntEnum
 from pathlib import Path
 from typing import Final
 
-__all__ = ["paths", "error", "uctx"]
+__all__ = ["Error", "paths", "error", "uctx"]
 
 @dataclass
 class _Paths:
@@ -14,7 +14,7 @@ class _Paths:
     FIXTURES_HTTP: Path = ...
     LOGS_DIR: Path = ...
 
-class _Error(IntEnum):
+class Error(IntEnum):
     def __str__(self) -> str: ...
     Abort = -1
     Succeed = 0
@@ -42,5 +42,5 @@ class _UniversalContext:
     schema_version: Final[str] = ...
 
 paths: Final[_Paths]
-error: Final[type[_Error]]
+error: Final[type[Error]]
 uctx: Final[_UniversalContext]

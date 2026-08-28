@@ -31,8 +31,8 @@ from collections.abc import Callable
 from types import ModuleType
 from typing import Any, final
 
-from cmd_router.lib.command import CmdNode
-from cmd_router.lib.command.dispatcher import CommandDispatcher
+from cmd_router.lib.commands import CmdNode
+from cmd_router.lib.commands.dispatcher import CommandDispatcher
 from cmd_router.utils.logger import log
 
 from .fixtures import FixturesSetup

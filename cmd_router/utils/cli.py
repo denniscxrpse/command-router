@@ -11,7 +11,6 @@ from typing import Any, Final, final
 
 import click
 from click.exceptions import Exit, NoSuchOption
-from icecream import ic
 
 _help = ["-h", "--help"]
 
@@ -116,7 +115,7 @@ class EnvFlags:
 
     no_help: bool = False
     """
-    Disables compilation of the built-in ``help`` command. This has an effect only when ``test_suite`` is enabled.
+    Disables compilation of the built-in ``help`` commands. This has an effect only when ``test_suite`` is enabled.
     
     If you enable this flag, it will skip the compilation of step of ``compiler.help_action(...)``, which may improve
     startup performance.
@@ -127,7 +126,7 @@ class EnvFlags:
 
     no_suggestions: bool = True
 
-    expect_json: bool = False
+    json_out: bool = False
     """
     Every single time the Command Router (``cmd-router``) finishes compilation, and is ready to start parsing, 
     formatting, and outputting commands (data) into the ``stderr``, we either do two things depending on this flag:
@@ -176,7 +175,7 @@ flags: Final[EnvFlags] = EnvFlags()
     "--no-help",
     is_flag=True,
     default=None,
-    help="Disable the built-in help command.",
+    help="Disable the built-in help commands.",
 )
 @click.option(
     "-S",
@@ -188,17 +187,16 @@ flags: Final[EnvFlags] = EnvFlags()
 )
 @click.option(
     "-json",
-    "--expect-json",
+    "--json-out",
     is_flag=True,
-    default=flags.expect_json,
-    help="Expect JSON input instead of Python dictionary.",
+    default=flags.json_out,
+    help="Expect JSON output instead of Python dictionary.",
 )
 def init_flags(**kwargs) -> None:
     """Initialize the process-wide environment flags from CLI options."""
     for key, value in kwargs.items():
         # `None` means that Click did not receive this option.  Leaving the
-        # existing value alone is important when the command is invoked by a
+        # existing value alone is important when the commands is invoked by a
         # caller that has already configured `flags` programmatically.
         if value is not None and hasattr(flags, key):
             setattr(flags, key, value)
-    ic(flags)

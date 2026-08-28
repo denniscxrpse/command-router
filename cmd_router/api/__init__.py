@@ -30,11 +30,20 @@ __all__ = (
     "ControlInitialization",
     "ControlResult",
     "DeeperLevelContext",
-    "FixturesContextHolder",
-    "FixturesSetup",
+    "Fixtures",
     "api_symlink",
     "control",
     "deeper_level",
 )
 
+from typing import Final, final
+
 from cmd_router.lib.control.api import *
+
+
+@final
+class Fixtures:
+    """Namespace for the fixture-backed API."""
+
+    ContextHolder: Final[type[FixturesContextHolder]] = FixturesContextHolder
+    Setup: Final[type[FixturesSetup]] = FixturesSetup

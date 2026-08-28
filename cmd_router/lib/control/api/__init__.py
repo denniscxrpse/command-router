@@ -28,6 +28,7 @@ read from or written through a ``FixturesSetup``/``DeeperLevelContext``.
 __all__ = (
     "Control",
     "ControlInitialization",
+    "ControlResultKinds",
     "ControlResult",
     "DeeperLevelContext",
     "FixturesContextHolder",
@@ -88,10 +89,11 @@ class QuickAccess:
 
     def readable_listener(self) -> dict[str, Any] | None:
         """Return the latest message emitted through the ``stderr`` writer as a dictionary like object."""
+        j: dict[str, Any] | None
         try:
-            if flags.expect_json:
+            if flags.json_out:
                 return json.loads(self.listener())
-            j: dict[str, Any] | None = ast.literal_eval(self.listener())
+            j = ast.literal_eval(self.listener())
         except ValueError, SyntaxError, TypeError, json.JSONDecodeError:
             log.critical(
                 "failed to parse listener output: %s. stderr output might be impossible to parse.",

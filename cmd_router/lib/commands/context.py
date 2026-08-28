@@ -6,6 +6,7 @@
 __all__ = (
     "CommandContext",
     "ParseError",
+    "ParseErrorKinds",
     "ParseResult",
     "cmd_ctx",
 )
@@ -13,6 +14,8 @@ __all__ = (
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import Any, Final
+
+from cmd_router.lib.control.api.result import ControlResultKinds
 
 _Handler = Callable[..., Any]
 
@@ -25,6 +28,8 @@ class _CommandContext:
 
 
 cmd_ctx: Final[_CommandContext] = _CommandContext()
+ParseErrorKinds: Final[type[ControlResultKinds]] = ControlResultKinds
+"""Alias for the ``ControlResultKinds`` enum."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -55,7 +60,7 @@ class CommandContext:
 class ParseError:
     """The furthest failure encountered while traversing the command tree."""
 
-    kind: str
+    kind: ParseErrorKinds
     token_index: int
     expected: tuple[str, ...] = ()
     message: str = ""

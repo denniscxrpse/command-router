@@ -2,7 +2,7 @@ from typing import cast
 
 import pytest
 
-from cmd_router.lib.command import CmdError, CmdParse
+from cmd_router.lib.commands import CmdError, CmdParse
 
 
 @pytest.mark.parametrize(

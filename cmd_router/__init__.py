@@ -103,7 +103,7 @@ class _CmdRouter:
 
                     router.normalize(result)
                     log.stderr(0)
-                    log.debug("reused grammar normalized (%d command(s))", len(result[0]))
+                    log.debug("reused grammar normalized (%d commands(s))", len(result[0]))
                     state["success"] = True
                     self._reply(204)
                     return
@@ -129,7 +129,7 @@ class _CmdRouter:
                 router.normalize(result)
                 log.stderr(0)
                 log.info("saved and loaded lazy grammar %s", target.name)
-                log.debug("saved grammar normalized (%d command(s))", len(result[0]))
+                log.debug("saved grammar normalized (%d commands(s))", len(result[0]))
                 state["success"] = True
                 self._reply(204)
 
@@ -188,11 +188,11 @@ class _CmdRouter:
                 return result
             self.normalize(result)
 
-        log.info("grammar loading completed (%d command(s))", len(self.grammars))
+        log.info("grammar loading completed (%d commands(s))", len(self.grammars))
         return self.grammars, self.info
 
     def control_init(self) -> bool:
-        """Load fixture behavior and compile the active command surface."""
+        """Load fixture behavior and compile the active commands surface."""
         log.info("initializing control")
         result = self.control.initialize(
             self.grammars,
@@ -250,7 +250,7 @@ class CommandRouter:
             log.info("test-suite loop exited with status %s", c)
             return
 
-        log.info("ready (%d command grammar(s))", len(self._grammars))
+        log.info("ready (%d commands grammar(s))", len(self._grammars))
 
     def execute(self, command: Any) -> ControlResult:
         """Execute through the configured control surface."""
@@ -266,10 +266,10 @@ class CommandRouter:
         return self.control.deeper_level
 
     def _test_suite_loop(self) -> int:
-        """Run the fixture-backed command interface until it is closed.
+        """Run the fixture-backed commands interface until it is closed.
 
         The router owns this loop because the control API only knows how to
-        initialize and execute a command surface; it does not know whether
+        initialize and execute a commands surface; it does not know whether
         the surrounding application wants an interactive session.  Command
         failures are yet represented by ``ControlResult`` and therefore
         do not end the session.  Failures in the loop itself are converted to
@@ -336,8 +336,8 @@ class CommandRouter:
                         result.value.get("suggestions", None),
                     )
             except KeyboardInterrupt:
-                log.warning("control loop interrupted during command execution")
+                log.warning("control loop interrupted during commands execution")
                 return error.Interrupted
             except Exception as exception:
-                log.critical("control loop failed while executing a command: %s", exception)
+                log.critical("control loop failed while executing a commands: %s", exception)
                 return error.Abort

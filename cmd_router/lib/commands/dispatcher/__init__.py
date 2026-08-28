@@ -17,10 +17,10 @@ __all__ = (
 from collections.abc import Callable
 from typing import Any, Final
 
-from cmd_router.lib import *
-from cmd_router.lib.command.context import *
-from cmd_router.lib.command.dispatcher.nodes import *
-from cmd_router.lib.command.typing import *
+from cmd_router.lib.commands.context import *
+from cmd_router.lib.commands.dispatcher.nodes import *
+from cmd_router.lib.commands.token import *
+from cmd_router.lib.commands.typing import *
 from cmd_router.utils.logger import *
 
 _Handler = Callable[..., Any]
@@ -45,7 +45,7 @@ class CommandDispatcher:
         if isinstance(tokens, int):
             log.error("tokenization failed with code %s", tokens)
             failure = ParseError(
-                kind="tokenization",
+                kind=ParseErrorKinds.TOKENIZATION,
                 token_index=0,
                 expected=self._expected(self.root),
                 message=f"could not tokenize command ({tokens})",
@@ -121,7 +121,7 @@ class CommandDispatcher:
                 log.debug("argument %r rejected value %r: %s", child.label, value, parsed.message)
                 failures.append(
                     ParseError(
-                        kind="invalid_argument",
+                        kind=ParseErrorKinds.INVALID_ARGUMENT,
                         token_index=index,
                         expected=(child.label,),
                         message=parsed.message,
@@ -144,7 +144,7 @@ class CommandDispatcher:
             return self._best_error(failures)
         log.debug("no child matched token %r at index %d", tokens[index], index)
         return ParseError(
-            kind="unexpected_token",
+            kind=ParseErrorKinds.UNEXPECTED_TOKEN,
             token_index=index,
             expected=self._expected(node),
             message=f"unexpected token: {tokens[index]!r}",
@@ -156,7 +156,7 @@ class CommandDispatcher:
         message = "incomplete command" if not expected else f"expected one of: {', '.join(expected)}"
         log.debug("incomplete command at token %d; expected=%s", index, expected)
         return ParseError(
-            kind="incomplete_command",
+            kind=ParseErrorKinds.UNEXPECTED_COMMAND,
             token_index=index,
             expected=expected,
             message=message,

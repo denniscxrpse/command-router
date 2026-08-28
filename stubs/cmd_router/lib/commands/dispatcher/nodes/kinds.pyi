@@ -4,6 +4,6 @@ __all__ = ["NodeKind"]
 
 class NodeKind(StrEnum):
     ROOT = "root"
-    COMMAND = "commands"
+    COMMAND = "command"
     ARGUMENT = "argument"
     LITERAL = "literal"

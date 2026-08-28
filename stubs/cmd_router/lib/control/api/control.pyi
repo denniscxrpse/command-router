@@ -4,7 +4,7 @@ from .context import *
 from .fixtures import *
 from .result import *
 from asyncio import Lock
-from cmd_router.lib.command import CmdParse
+from cmd_router.lib.commands import CmdParse
 from cmd_router.lib.control.compiler import _GrammarSource
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass

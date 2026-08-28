@@ -34,7 +34,7 @@ The command package exposes concise namespaces. Example from
 `cmd_router.lib.command`:
 
 ```python
-from cmd_router.lib.command import CmdError, CmdNode, CmdParse, CmdType
+from cmd_router.lib.commands import CmdError, CmdNode, CmdParse, CmdType
 ```
 
 Use the namespace façade at outer call sites:

@@ -6,7 +6,7 @@ from .grammar import (
     _LiteralTerm as _LiteralTerm,
     _OptionalTerm as _OptionalTerm,
 )
-from cmd_router.lib.command import CmdNode as CmdNode, CmdType as CmdType
+from cmd_router.lib.commands import CmdNode as CmdNode, CmdType as CmdType
 from cmd_router.utils.logger import log as log
 from collections.abc import Callable, Mapping
 from typing import Any

@@ -21,21 +21,70 @@ failure context.  Both result types are immutable dataclasses, are truthy only
 when ``ok`` is true, and expose ``to_dict``/``as_dict`` for transport layers.
 """
 
-__all__ = ("ControlResult", "ControlInitialization")
+__all__ = ("ControlResultKinds", "ControlResult", "ControlInitialization")
 
 import json
 from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any
+from enum import StrEnum, auto
+from typing import TYPE_CHECKING, Any, Self, final
 
-from cmd_router.lib.command import CmdParse
 from cmd_router.utils.cli import *
 from cmd_router.utils.logger import *
 
 _Action = Callable[..., Any]
 
+if TYPE_CHECKING:
+    from cmd_router.lib.commands import CmdParse
+
 
 class _UNSET: ...
+
+
+@final
+class ControlResultKinds(StrEnum):
+    @final
+    @staticmethod
+    def _generate_next_value_(name, start, count, last_values) -> str:  # pyrefly: ignore [bad-override]
+        # By default, StrEnum returns name.lower() here.
+        # We override it to return the name as-is, which is already uppercase
+        # since Python enum member names are conventionally uppercase.
+        return name
+
+    INPUT = auto()
+    COMMAND = auto()
+    TOKENIZATION = auto()
+
+    NOT_INITIALIZED = auto()
+
+    PARSE_ERROR = auto()
+    ACTION_ERROR = auto()
+
+    INVALID_INPUT = auto()
+    INVALID_CONTEXT = auto()
+    INVALID_ARGUMENT = auto()
+
+    UNEXPECTED_TOKEN = auto()
+    UNEXPECTED_COMMAND = auto()
+
+    @property
+    def custom(self) -> Self:
+        """Return the custom kind configured for this result kind."""
+        custom = getattr(self, "_custom_kind", None)
+        return self if custom is None else custom
+
+    # noinspection unresolved-references
+    @custom.setter
+    def custom(self, kind: str) -> None:
+        """Configure a custom kind while keeping it a valid enum instance."""
+        if not isinstance(kind, str):
+            raise TypeError(f"custom kind must be a str, got {type(kind).__name__}")
+
+        # noinspection string-conversion-without-dunder-method
+        custom = str.__new__(type(self), kind)
+        custom._name_ = kind.upper()
+        custom._value_ = kind
+        object.__setattr__(self, "_custom_kind", custom)
 
 
 @dataclass(frozen=True, slots=True)
@@ -78,35 +127,6 @@ class ControlResult:
         """Use the result status as its boolean value."""
         return self.ok
 
-    ok: bool
-    """Whether the control operation succeeded."""
-    code: int
-    """Centralized status or error code for the operation."""
-    kind: str
-    """Stage that produced the result, such as "command" or "parse_error"."""
-    input: Any
-    """Exact value supplied by the caller, before parsing or prefix handling."""
-    command: str | None = None
-    """Matched command name, without the command prefix."""
-    value: Any = None
-    """Value returned by the action, or pass-through input value."""
-    parse_result: CmdParse.Result | None = None
-    """Original parser result before control overrides."""
-    context: CmdParse.Context | None = None
-    """Parsed context, including final controlled arguments."""
-    handler: _Action | None = None
-    """Handler selected for the matched command."""
-    error: CmdParse.Error | None = None
-    """Structured parser error for a failed parse."""
-    message: str = ""
-    """Human-readable explanation of the result."""
-    exception: str | None = None
-    """Formatted exception details from a failed action."""
-    data: Any = _UNSET
-    """Primary response data, defaulting to the legacy ``value`` field."""
-    error_payload: Any = _UNSET
-    """Response error payload; arbitrary caller-provided values are preserved. Do not confuse with ``error``."""
-
     def __set_attr__(self, name: str, value: Any) -> None:
         """Set one declared slot bypassing ``frozen`` for initialization."""
 
@@ -134,6 +154,35 @@ class ControlResult:
             if response_error is None and not self.ok:
                 response_error = self.message or None
             self.__set_attr__("error_payload", response_error)
+
+    ok: bool
+    """Whether the control operation succeeded."""
+    code: int
+    """Centralized status or error code for the operation."""
+    kind: ControlResultKinds
+    """Stage that produced the result, such as "command" or "parse_error"."""
+    input: Any
+    """Exact value supplied by the caller, before parsing or prefix handling."""
+    command: str | None = None
+    """Matched command name, without the command prefix."""
+    value: Any = None
+    """Value returned by the action, or pass-through input value."""
+    parse_result: "CmdParse.Result | None" = None  # noqa: UP037
+    """Original parser result before control overrides."""
+    context: "CmdParse.Context | None" = None  # noqa: UP037
+    """Parsed context, including final controlled arguments."""
+    handler: _Action | None = None
+    """Handler selected for the matched command."""
+    error: "CmdParse.Error | None" = None  # noqa: UP037
+    """Structured parser error for a failed parse."""
+    message: str = ""
+    """Human-readable explanation of the result."""
+    exception: str | None = None
+    """Formatted exception details from a failed action."""
+    data: Any = _UNSET
+    """Primary response data, defaulting to the legacy ``value`` field."""
+    error_payload: Any = _UNSET
+    """Response error payload; arbitrary caller-provided values are preserved. Do not confuse with ``error``."""
 
     @property
     def is_success(self) -> bool:
@@ -199,6 +248,8 @@ class ControlResult:
     @staticmethod
     def _transport_value(value: Any) -> Any:
         """Convert known structured errors while preserving arbitrary payloads."""
+        from cmd_router.lib.commands import CmdParse
+
         if isinstance(value, CmdParse.Error):
             return value.to_dict()
         return value
@@ -230,7 +281,7 @@ class ControlInitialization:
     ``command_count`` is populated on successful grammar compilation.  Fixture
     failures use the centralized ``ControlFixtureError`` code, while malformed
     setup or grammar values use the corresponding control initialization code.
-    The object is intentionally small so it can be returned directly from the
+    The object is intentionally small, so it can be returned directly from the
     module-level API and serialized with ``to_dict``.
     """
 

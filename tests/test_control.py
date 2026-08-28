@@ -7,6 +7,7 @@ import pytest
 
 from cmd_router import api
 from cmd_router.lib.control import Control, FixturesContextHolder, FixturesSetup
+from cmd_router.lib.control.api import ControlResultKinds
 from cmd_router.utils.logger import log
 
 
@@ -33,7 +34,7 @@ def test_control_returns_structured_results_and_keeps_deeper_state() -> None:
         assert runner.execute("/say changed").value == {"replacement": "changed"}
         outside = runner.execute("ordinary input")
         assert outside.ok
-        assert outside.kind == "input"
+        assert outside.kind == ControlResultKinds.INPUT
         assert runner.deeper_level.last_result is outside
         assert runner.deeper_level.dispatcher is not None
     finally:
@@ -53,7 +54,8 @@ def test_control_emits_compact_data_and_error_responses_to_stderr(capsys: pytest
         assert failed.error is not None
         assert failed.error.partial_args == {"target": "Alex"}
         assert "'data': None" in failure_output
-        assert "'err': {'kind': 'incomplete_command'" in failure_output
+        # noinspection string-conversion-without-dunder-method
+        assert f"'err': {{'kind': {ControlResultKinds.UNEXPECTED_COMMAND!r}" in failure_output
         assert "'partial_args': {'target': 'Alex'}" in failure_output
 
         succeeded = runner.execute("/tell Alex hello")
@@ -68,8 +70,13 @@ def test_control_emits_compact_data_and_error_responses_to_stderr(capsys: pytest
 
 def test_control_result_preserves_explicit_data_and_error_payloads() -> None:
     fallback = object()
-    result = api.ControlResult(True, 0, "custom", None, data={"answer": 42}, error_payload=fallback)
+    kind = ControlResultKinds.COMMAND
+    # noinspection unresolved-references
+    kind.custom = "custom"
+    result = api.ControlResult(True, 0, kind.custom, None, data={"answer": 42}, error_payload=fallback)
 
+    assert isinstance(result.kind, ControlResultKinds)
+    assert result.kind.value == "custom"
     assert result.data == {"answer": 42}
     assert result.error_payload is fallback
     assert result.to_response() == {"data": result.data, "err": fallback, "suggestions": []}
@@ -212,7 +219,7 @@ def test_help_can_be_disabled_and_async_actions_are_supported() -> None:
         assert command.ok
         assert command.value == {"message": "hi"}
         assert not help_result.ok
-        assert help_result.kind == "unexpected_token"
+        assert help_result.kind == ControlResultKinds.UNEXPECTED_TOKEN
     finally:
         runner.close()
 

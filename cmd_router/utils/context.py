@@ -3,19 +3,20 @@
 #  Copyright (c) 2026 Ian Hylton
 #  All rights reserved.
 
-"""Shared constants and paths used by the command-router packages.
+"""Shared constants and paths used by the commands-router packages.
 
-``uctx`` is deliberately not a mutable command configuration object.  It
+``uctx`` is deliberately not a mutable commands configuration object.  It
 provides schema constants, serialized grammar keys, and a read-only listener
 for the latest stderr message; fixture-owned settings such as ``cmd_prefix``,
 the help policy, action functions, and argument overrides live on
-``FixturesSetup`` instances in the control API.  Keeping command settings out
+``FixturesSetup`` instances in the control API.  Keeping commands settings out
 of this module avoids hidden global state between independent control surfaces
 and fixture initializations.
 """
 
 __all__ = (
     "paths",
+    "Error",
     "error",
     "uctx",
 )
@@ -23,7 +24,7 @@ __all__ = (
 from dataclasses import dataclass
 from enum import IntEnum
 from pathlib import Path
-from typing import Final
+from typing import Final, final
 
 
 @dataclass
@@ -45,7 +46,8 @@ class _Paths:
     LOGS_DIR: Path = ROOT / "logs"
 
 
-class _Error(IntEnum):
+@final
+class Error(IntEnum):
     def __str__(self) -> str:
         return self.name
 
@@ -86,5 +88,5 @@ class _UniversalContext:
 
 
 paths: Final[_Paths] = _Paths()
-error: Final[type[_Error]] = _Error
+error: Final[type[Error]] = Error
 uctx: Final[_UniversalContext] = _UniversalContext()
