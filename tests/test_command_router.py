@@ -160,11 +160,12 @@ def _post_to_lazy_router(
 
     class _RecordingHTTPServer(real_server):
         def __init__(self, *args: object, **kwargs: object) -> None:
-            # pyrefly: ignore [bad-argument-type]
+            # ty: ignore[invalid-argument-type]
             super().__init__(*args, **kwargs)
             servers.append(self)
             ready.set()
 
+    # noinspection unresolved-references
     monkeypatch.setattr(command_router_module, "HTTPServer", _RecordingHTTPServer)
     monkeypatch.setattr(paths, "FIXTURES", fixture_root)
     monkeypatch.setattr(paths, "FIXTURES_HTTP", fixture_root / "http")
@@ -182,7 +183,7 @@ def _post_to_lazy_router(
     server = servers[0]
     statuses: list[int] = []
     for payload in payloads:
-        # pyrefly: ignore [bad-argument-type]
+        # ty: ignore[invalid-argument-type, parameter-already-assigned]
         connection = http.client.HTTPConnection(*server.server_address, timeout=2)
         connection.request("POST", "/", body=payload)
         response = connection.getresponse()
@@ -278,6 +279,7 @@ def test_suite_loop_converts_execution_exception_to_abort(monkeypatch: pytest.Mo
     def fail(_command: str) -> None:
         raise RuntimeError("broken control")
 
+    # noinspection unresolved-references
     monkeypatch.setattr(router.control, "execute", fail)
 
     try:

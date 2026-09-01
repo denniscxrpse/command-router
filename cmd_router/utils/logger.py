@@ -83,7 +83,7 @@ class _StderrWriter:
         with self._lock:
             self._latest = text
             print(text, sep="", end="", file=sys.stderr, flush=True)
-        return _CompletedWrite()  # pyrefly: ignore [bad-return]
+        return _CompletedWrite()
 
     async def async_write(self, *message: Any, sep: str = " ", end: str = _end) -> None:
         self(*message, sep=sep, end=end)

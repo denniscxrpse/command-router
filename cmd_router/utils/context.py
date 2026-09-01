@@ -25,6 +25,7 @@ from dataclasses import dataclass
 from enum import IntEnum
 from pathlib import Path
 from typing import Final, final
+from warnings import deprecated
 
 
 @dataclass
@@ -47,6 +48,7 @@ class _Paths:
 
 
 @final
+@deprecated("Use `Error` object instead of `Error` enum.")
 class Error(IntEnum):
     def __str__(self) -> str:
         return self.name

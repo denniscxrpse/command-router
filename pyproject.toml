@@ -17,10 +17,10 @@ dependencies = [
     # Do not use `mypy` for anything else, if not at all.
     "mypy>=2.3.1",
     "prompt-toolkit>=3.0.53",
-    "pyrefly>=1.1.1",
     "pytest>=9.1.1",
     "ruff>=0.15.22",
     "rust-just>=1.57.0",
+    "ty>=0.0.77",
 ]
 
 [project.urls]

@@ -50,7 +50,7 @@ pytest:
 lint path="./cmd_router/ ./fixtures/ ./tests/":
     #### Avoid checking stub files, linters go crazy on them.
     uv run ruff check {{ path }}
-    uv run pyrefly check {{ path }}
+    uv run ty check {{ path }}
 
 # Auto fix all (and only) ruff lints.
 autofix path="./cmd_router/ ./fixtures/":

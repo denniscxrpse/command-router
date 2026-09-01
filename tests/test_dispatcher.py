@@ -232,5 +232,6 @@ def test_command_namespaces_expose_concise_aliases() -> None:
     assert CmdParse.Result.__name__ == "ParseResult"
     assert CmdNode.Root.__name__ == "RootNode"
     assert CmdNode.Literal.__name__ == "LiteralNode"
-    # pyrefly: ignore [bad-argument-type]
+    # noinspection bad-argument-type
+    # ty: ignore[unresolved-attribute, invalid-argument-type]
     assert CmdNode.Argument("value", CmdType.Int).argument_type.name == "int"

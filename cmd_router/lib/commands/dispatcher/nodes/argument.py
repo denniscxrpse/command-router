@@ -31,8 +31,11 @@ class ArgumentNode(CommandNode):
         selected_type = argument_type if argument_type is not None else arg_type
 
         if isinstance(selected_type, type):
+            # noinspection calling-non-callable
             selected_type = selected_type()
         elif not callable(getattr(selected_type, "parse", None)) and callable(selected_type):
+            # noinspection calling-non-callable
+            # ty: ignore[call-top-callable]
             selected_type = selected_type()
 
         if not callable(getattr(selected_type, "parse", None)):

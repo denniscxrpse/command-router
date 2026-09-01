@@ -37,7 +37,7 @@ def load_grammars(path: Path) -> tuple[_Dict, _Dict] | int:
         return error.UnsupportedGrammarFormatError
 
     log.info("parsing and validating (%s)", path.name)
-    log.debug("selected %s parser for %s", p.__name__, path)
+    log.debug("selected %s parser for %s", p.__name__, path)  # ty: ignore[unresolved-attribute]
 
     parsed = p(path)
     if isinstance(parsed, int):

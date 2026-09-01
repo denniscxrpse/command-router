@@ -18,13 +18,16 @@ _help = ["-h", "--help"]
 class _CliCommand(click.Command):
     """Keep eager CLI exits from becoming tracebacks in embedded callers."""
 
+    # noinspection method-overriding
     def main(self, *args, **kwargs):
         arguments: Any | None = args[0] if args else None
         if arguments is None:
             arguments = sys.argv[1:]
+        # noinspection not-iterable
         help_requested: bool = any(argument in _help for argument in arguments)
 
         try:
+            # noinspection not-iterable
             result: Any = super().main(*args, **kwargs)
         except NoSuchOption as e:
             raise SystemExit(e) from None

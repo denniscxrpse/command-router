@@ -280,7 +280,7 @@ class CommandRouter:
 
         if not initialized:
             log.error("router.control: cannot start control loop; control is not initialized")
-            return int(error.ControlNotInitializedError)
+            return error.ControlNotInitializedError
 
         log.info("control loop started (type 'exit'/'e' or 'quit'/'q' to stop)")
         while True:

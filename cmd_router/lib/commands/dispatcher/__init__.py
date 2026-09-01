@@ -139,7 +139,7 @@ class CommandDispatcher:
 
         for child in argument_children:
             value = " ".join(tokens[index:]) if child.greedy else tokens[index]
-            parsed = child.argument_type.parse(value)
+            parsed = child.argument_type.parse(value)  # ty: ignore[unresolved-attribute]
             if isinstance(parsed, ArgumentParseError):
                 log.debug("argument %r rejected value %r: %s", child.label, value, parsed.message)
                 failures.append(

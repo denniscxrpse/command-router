@@ -114,8 +114,8 @@ class _FixtureInnerContext:
         question: "did *this* fixture's components actually finish
         initializing?"
         """
-        _FixtureInnerContext.did_context_holder_ever_initialize = False
-        _FixtureInnerContext.did_fixture_setup_ever_initialize = False
+        _FixtureInnerContext.did_context_holder_ever_initialize = False  # ty: ignore[invalid-assignment]
+        _FixtureInnerContext.did_fixture_setup_ever_initialize = False  # ty: ignore[invalid-assignment]
 
     @staticmethod
     def validate() -> None:
@@ -163,7 +163,7 @@ class FixturesContextHolder:
         FixturesContextHolder._current = self
         self.calls: list[tuple[str, dict[str, Any]]] = []
         log.info("context holder initialized (%s)", type(self).__name__)
-        _FixtureInnerContext.did_context_holder_ever_initialize = True
+        _FixtureInnerContext.did_context_holder_ever_initialize = True  # ty: ignore[invalid-assignment]
 
     @classmethod
     def current(cls) -> Self | None:
@@ -252,7 +252,7 @@ class FixturesSetup:
         self._command_action: dict[str, _Action] = {}
         self._command_args_ctrl: dict[str, Any] = {}
         log.debug("setup defaults initialized for logic=%s", type(self.logic).__name__)
-        _FixtureInnerContext.did_fixture_setup_ever_initialize = True
+        _FixtureInnerContext.did_fixture_setup_ever_initialize = True  # ty: ignore[invalid-assignment]
 
     @staticmethod
     def __typerror__(name: str, value: Any, expected: type[Any]) -> TypeError:

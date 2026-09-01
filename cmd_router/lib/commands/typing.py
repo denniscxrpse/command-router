@@ -53,7 +53,7 @@ class ArgumentType(Generic[_ValueT]):  # noqa: UP046
 
     def parse(self, value: str) -> _ValueT | ArgumentParseError:
         """Convert *value* into the argument's Python representation."""
-        return value  # type: ignore[return-value]
+        return value  # ty: ignore[invalid-return-type]
 
 
 @final

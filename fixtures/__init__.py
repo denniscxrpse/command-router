@@ -44,7 +44,7 @@ __all__ = ("FixturesContextHolder", "SetupFixtures", "context_holder")
 
 
 @final
-class FixturesContextHolder(_Fixtures.ContextHolder):
+class FixturesContextHolder(_Fixtures.ContextHolder):  # ty: ignore[unsupported-base]
     """Hold the example state and implement the fixture's command actions."""
 
     def __init__(self) -> None:
@@ -66,7 +66,7 @@ context_holder = FixturesContextHolder
 
 
 @final
-class SetupFixtures(_Fixtures.Setup):
+class SetupFixtures(_Fixtures.Setup):  # ty: ignore[unsupported-base]
     """Configure the example prefix, help policy, and grammar actions."""
 
     def __init__(self) -> None:

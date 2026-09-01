@@ -21,11 +21,10 @@ until the matching behavior is proven.
 
 ## Type stubs
 
-- Keep the current implementation-module `.pyi` stubs under `stubs.cmd_router` (`stubs/cmd_router` on disk) rather than
-  beside the implementation files.
+- Keep the current implementation-module `.pyi` stubs untouched.
 - Do not create or update stub files for future implementation changes unless the user explicitly requests it.
 - Keep stubs in their dedicated root and avoid mirroring the implementation tree when a flat layout is valid. If a type
-  checker requires import-compatible package resolution, retain only the minimal `cmd_router/stubs/cmd_router/...`
+  checker requires import-compatible package resolution, retain only the minimal `stubs/cmd_router/...`
   hierarchy needed for that resolution; do not add extra duplicate directories or initializers.
 
 ## Public API and imports

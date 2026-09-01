@@ -140,9 +140,9 @@ def test_fixture_initialization_creates_holder_then_setup() -> None:
             events.append("setup")
             self.command_action = {"say": self.logic.say}
 
-    # pyrefly: ignore [missing-attribute]
+    # ty: ignore[unresolved-attribute]
     module.context_holder = Logic
-    # pyrefly: ignore [missing-attribute]
+    # ty: ignore[unresolved-attribute]
     module.SetupFixtures = Setup
 
     runner = Control()
@@ -247,11 +247,11 @@ def test_fixture_inner_context_flags_track_holder_and_setup_lifecycle() -> None:
     assert _FixtureInnerContext.did_fixture_setup_ever_initialize is False
 
     FixturesContextHolder()
-    assert _FixtureInnerContext.did_context_holder_ever_initialize is True  # pyrefly: ignore [unnecessary-comparison]
-    assert _FixtureInnerContext.did_fixture_setup_ever_initialize is False  # pyrefly: ignore [unnecessary-comparison]
+    assert _FixtureInnerContext.did_context_holder_ever_initialize is True
+    assert _FixtureInnerContext.did_fixture_setup_ever_initialize is False
 
     FixturesSetup(logic=object())
-    assert _FixtureInnerContext.did_fixture_setup_ever_initialize is True  # pyrefly: ignore [unnecessary-comparison]
+    assert _FixtureInnerContext.did_fixture_setup_ever_initialize is True
 
 
 def test_fixture_inner_context_validate_raises_when_holder_did_not_finish() -> None:
@@ -288,7 +288,7 @@ def test_fixture_inner_context_reset_clears_stale_flags() -> None:
     assert _FixtureInnerContext.did_context_holder_ever_initialize is True
 
     _FixtureInnerContext.reset()
-    assert _FixtureInnerContext.did_context_holder_ever_initialize is False  # pyrefly: ignore [unnecessary-comparison]
+    assert _FixtureInnerContext.did_context_holder_ever_initialize is False
     assert _FixtureInnerContext.did_fixture_setup_ever_initialize is False
 
     with pytest.raises(FixtureInitializationError, match="FixturesContextHolder did not finish initialization"):
@@ -306,13 +306,13 @@ def test_control_reports_control_fixture_error_when_holder_skips_super() -> None
     class GoodSetup(FixturesSetup):
         def __init__(self) -> None:
             super().__init__(logic=object())
+            # ty: ignore[invalid-assignment]
             self.command_action = {"say": lambda **arguments: arguments}
 
-    # pyrefly: ignore [missing-attribute]
     module = ModuleType("bad_holder_fixture")
-    # pyrefly: ignore [missing-attribute]
+    # ty: ignore[unresolved-attribute]
     module.context_holder = BadHolder
-    # pyrefly: ignore [missing-attribute]
+    # ty: ignore[unresolved-attribute]
     module.SetupFixtures = GoodSetup
 
     runner = Control()
@@ -344,11 +344,10 @@ def test_control_reports_control_fixture_error_when_setup_skips_super() -> None:
         def __init__(self) -> None:
             pass
 
-    # pyrefly: ignore [missing-attribute]
     module = ModuleType("bad_setup_fixture")
-    # pyrefly: ignore [missing-attribute]
+    # ty: ignore[unresolved-attribute]
     module.context_holder = GoodHolder
-    # pyrefly: ignore [missing-attribute]
+    # ty: ignore[unresolved-attribute]
     module.SetupFixtures = BadSetup
 
     runner = Control()

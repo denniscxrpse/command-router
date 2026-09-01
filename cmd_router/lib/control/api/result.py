@@ -43,9 +43,8 @@ class _UNSET: ...
 
 @final
 class ControlResultKinds(StrEnum):
-    @final
     @staticmethod
-    def _generate_next_value_(name, start, count, last_values) -> str:  # pyrefly: ignore [bad-override]
+    def _generate_next_value_(name, start, count, last_values) -> str:
         # By default, StrEnum returns name.lower() here.
         # We override it to return the name as-is, which is already uppercase
         # since Python enum member names are conventionally uppercase.
