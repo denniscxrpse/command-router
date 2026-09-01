@@ -1,4 +1,4 @@
-from .fixtures import FixturesSetup
+from .fittings import FixturesSetup
 from .result import ControlInitialization, ControlResult
 from _typeshed import Incomplete
 from cmd_router.lib.commands.dispatcher import CommandDispatcher
@@ -6,11 +6,11 @@ from collections.abc import Callable
 from types import ModuleType
 from typing import Any
 
-__all__ = ["DeeperLevelContext"]
+__all__ = ["ControlDeeperContext"]
 
 _Action = Callable[..., Any]
 
-class DeeperLevelContext:
+class ControlDeeperContext:
     _setup: Incomplete
     dispatcher: CommandDispatcher
     grammars: dict[str, str]

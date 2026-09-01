@@ -1,24 +1,23 @@
-from .api import *
+from .api.context import *
+from .api.control import *
+from .api.fittings import *
+from .api.result import *
 
 __all__ = [
-    "DeeperLevelContext",
-    "Control",
+    "ControlDeeperContext",
+    "ControlType",
     "FixturesContextHolder",
     "FixturesSetup",
+    "ControlResultKinds",
     "ControlResult",
     "ControlInitialization",
-    "api_symlink",
-    "control",
-    "deeper_level",
 ]
 
 # Names in __all__ with no definition:
-#   Control
+#   ControlDeeperContext
 #   ControlInitialization
 #   ControlResult
-#   DeeperLevelContext
+#   ControlResultKinds
+#   ControlType
 #   FixturesContextHolder
 #   FixturesSetup
-#   api_symlink
-#   control
-#   deeper_level

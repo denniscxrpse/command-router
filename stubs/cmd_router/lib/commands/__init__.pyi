@@ -4,9 +4,9 @@ from cmd_router.lib.commands.context import (
     ParseError as _ParseError,
     ParseResult as _ParseResult,
 )
-from cmd_router.lib.commands.dispatcher import (
+from cmd_router.lib.commands.dispatcher import CommandDispatcher as _CommandDispatcher
+from cmd_router.lib.commands.dispatcher.nodes import (
     ArgumentNode as _ArgumentNode,
-    CommandDispatcher as _CommandDispatcher,
     CommandNode as _CommandNode,
     LiteralNode as _LiteralNode,
     RootNode as _RootNode,
@@ -23,7 +23,9 @@ from typing import Final
 
 __all__ = ["CmdError", "CmdType", "CmdParse", "CmdNode"]
 
-class _CmdType:
+CmdError: Final[type[Error]]
+
+class CmdType:
     ArgumentType = _ArgumentType
     Word = _Word
     String = _String
@@ -34,20 +36,15 @@ class _CmdType:
     integer: Incomplete
     greedy_string: Incomplete
 
-class _CmdParse:
+class CmdParse:
     Context = _CommandContext
     Error = _ParseError
     Result = _ParseResult
     Tokenize: Incomplete
 
-class _CmdNode:
+class CmdNode:
     Base = _CommandNode
     Root = _RootNode
     Literal = _LiteralNode
     Argument = _ArgumentNode
     Dispatcher = _CommandDispatcher
-
-CmdError: Final[type[Error]]
-CmdType: Final[type[_CmdType]]
-CmdParse: Final[type[_CmdParse]]
-CmdNode: Final[type[_CmdNode]]

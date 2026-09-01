@@ -1,7 +1,7 @@
 from cmd_router.utils.cli import *
 from cmd_router.utils.logger import *
 from .context import *
-from .fixtures import *
+from .fittings import *
 from .result import *
 from asyncio import Lock
 from cmd_router.lib.commands import CmdParse
@@ -10,9 +10,9 @@ from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from pathlib import Path
 from types import ModuleType
-from typing import Any, Self
+from typing import Any, Final, Self
 
-__all__ = ["Control"]
+__all__ = ["ControlType", "control"]
 
 _Action = Callable[..., Any]
 
@@ -23,15 +23,15 @@ class _Invocation:
     context: CmdParse.Context
     handler: _Action
 
-class Control:
-    deeper_level: DeeperLevelContext
+class _Control:
+    deeper_context: ControlDeeperContext
     _async_lock: Lock
     _stderr_locked: bool
-    def __init__(self, *, setup: FixturesSetup | None = None, deeper: DeeperLevelContext | None = None) -> None: ...
+    def __init__(self, *, setup: FixturesSetup | None = None, deeper: ControlDeeperContext | None = None) -> None: ...
     @property
     def context(self) -> FixturesSetup: ...
     @property
-    def deeper(self) -> DeeperLevelContext: ...
+    def deeper(self) -> ControlDeeperContext: ...
     def initialize(
         self,
         grammars: _GrammarSource | None = None,
@@ -56,3 +56,6 @@ class Control:
     def _prepare(self, command: Any) -> ControlResult | _Invocation: ...
     def _controlled_arguments(self, command: str, arguments: Mapping[str, Any]) -> dict[str, Any]: ...
     def _remember(self, result: ControlResult) -> ControlResult: ...
+
+ControlType: type
+control: Final[ControlType]
