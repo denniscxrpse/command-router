@@ -25,25 +25,9 @@ setup properties while compiling grammars.  Command settings are no longer
 written to the process-wide ``uctx`` object.
 """
 
-__all__ = (
-    "Control",
-    "ControlInitialization",
-    "ControlResult",
-    "DeeperLevelContext",
-    "Fixtures",
-    "api_symlink",
-    "control",
-    "deeper_level",
-)
-
-from typing import Final, final
-
-from cmd_router.lib.control.api import *
-
-
-@final
-class Fixtures:
-    """Namespace for the fixture-backed API."""
-
-    ContextHolder: Final[type[FixturesContextHolder]] = FixturesContextHolder
-    Setup: Final[type[FixturesSetup]] = FixturesSetup
+# __all__ = ("control", "control_surface", "control_deeper")
+#
+# from cmd_router.lib.control.api import *
+#
+# control_surface = surface
+# control_deeper = deeper_level

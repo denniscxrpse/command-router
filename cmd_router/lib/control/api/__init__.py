@@ -15,7 +15,7 @@ and installs the resulting setup before compiling grammars.
 ``DeeperLevelContext`` is the inspection surface for the live dispatcher,
 fixture objects, configuration, argument overrides, and last results.  The
 
-module-level ``control`` and ``deeper_level`` values provide one shared
+Module-level ``control`` and ``deeper_level`` values provide one shared
 application surface for simple integrations.  Use ``Control`` directly when
 an application needs an isolated state or more than one independently configured
 command surface.
@@ -25,18 +25,8 @@ available only for shared constants and schema keys; command settings must be
 read from or written through a ``FixturesSetup``/``DeeperLevelContext``.
 """
 
-__all__ = (
-    "Control",
-    "ControlInitialization",
-    "ControlResultKinds",
-    "ControlResult",
-    "DeeperLevelContext",
-    "FixturesContextHolder",
-    "FixturesSetup",
-    "api_symlink",
-    "control",
-    "deeper_level",
-)
+__all__ = ("control", "surface", "deeper_level")
+
 
 import ast
 import json
@@ -50,12 +40,11 @@ from cmd_router.utils.logger import log
 
 from .context import *
 from .control import *
-from .fixtures import *
 from .result import *
 
 
 @final
-class QuickAccess:
+class _ControlSurface:
     """Convenience methods for accessing the shared control surface. Also includes tooling for testing."""
 
     @staticmethod
@@ -103,6 +92,5 @@ class QuickAccess:
         return j
 
 
-api_symlink: Final[QuickAccess] = QuickAccess()
-control: Final[Control] = Control()
-deeper_level: Final[DeeperLevelContext] = control.deeper_level
+surface: Final[_ControlSurface] = _ControlSurface()
+deeper_level: Final[ControlDeeperContext] = control.deeper_context

@@ -25,7 +25,7 @@ is also live: compiler-generated handlers look up actions through the active
 setup when invoked.
 """
 
-__all__ = ("DeeperLevelContext",)
+__all__ = ("ControlDeeperContext",)
 
 from collections.abc import Callable
 from types import ModuleType
@@ -35,14 +35,14 @@ from cmd_router.lib.commands import CmdNode
 from cmd_router.lib.commands.dispatcher import CommandDispatcher
 from cmd_router.utils.logger import log
 
-from .fixtures import FixturesSetup
+from .fittings import FixturesSetup
 from .result import ControlInitialization, ControlResult
 
 _Action = Callable[..., Any]
 
 
 @final
-class DeeperLevelContext:
+class ControlDeeperContext:
     """Expose live dispatcher, fixture, setup, and execution state.
 
     The class remains private while ``DeeperLevelContext`` below is its public

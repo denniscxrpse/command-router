@@ -38,7 +38,7 @@ methods to it, and map grammar command names to those methods in
 
 from typing import Any, final
 
-from cmd_router.api import Fixtures as _Fixtures
+from cmd_router.fittings import Fixtures as _Fixtures
 
 __all__ = ("FixturesContextHolder", "SetupFixtures", "context_holder")
 

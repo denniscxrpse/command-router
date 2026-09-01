@@ -4,7 +4,7 @@ from typing import Any
 import pytest
 
 from cmd_router.lib.commands import CmdError, CmdNode, CmdParse, CmdType
-from cmd_router.lib.control.api import ControlResultKinds
+from cmd_router.lib.control import ControlResultKinds
 
 
 def say_handler() -> None:

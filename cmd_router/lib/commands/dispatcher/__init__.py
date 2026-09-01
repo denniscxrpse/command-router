@@ -11,19 +11,42 @@ __all__ = (
     "LiteralNode",
     "RootNode",
     "CommandDispatcher",
+    "tokenize",
     "cmd_dispatcher",
 )
 
+import shlex
 from collections.abc import Callable
 from typing import Any, Final
 
 from cmd_router.lib.commands.context import *
 from cmd_router.lib.commands.dispatcher.nodes import *
-from cmd_router.lib.commands.token import *
-from cmd_router.lib.commands.typing import *
-from cmd_router.utils.logger import *
+from cmd_router.lib.commands.typing import ArgumentParseError
+from cmd_router.utils.context import error
+from cmd_router.utils.logger import log
 
 _Handler = Callable[..., Any]
+
+
+def tokenize(command: str) -> list[str] | int:
+    """Return shell-like tokens from *commands*.
+
+    Empty and whitespace-only input produce an empty list. Quoting and
+    backslash escaping follow `shlex.split`. Unsupported input types and
+    malformed commands strings return the corresponding tokenizer error code.
+    """
+
+    log.debug("received input of type %s", type(command).__name__)
+    if not isinstance(command, str):
+        log.warning("cannot tokenize non-string input (%s)", type(command).__name__)
+        return error.TokenizeUnsupportedTypeError
+    try:
+        tokens = shlex.split(command, comments=False, posix=True)
+    except ValueError as exception:
+        log.error("malformed commands input: %s", exception)
+        return error.TokenizeInvalidError
+    log.debug("produced %d token(s): %r", len(tokens), tokens)
+    return tokens
 
 
 class CommandDispatcher:

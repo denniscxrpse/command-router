@@ -3,12 +3,7 @@
 #  Copyright (c) 2026 Ian Hylton
 #  All rights reserved.
 
-__all__ = (
-    "CommandRouter",
-    "Control",
-    "ControlInitialization",
-    "ControlResult",
-)
+__all__ = ("CommandRouter",)
 
 import tomllib
 from http.server import HTTPServer
@@ -19,7 +14,8 @@ from uuid import uuid4
 import json5
 from icecream import ic
 
-from cmd_router.api import Control, ControlInitialization, ControlResult, api_symlink
+from cmd_router.lib.control import ControlResult
+from cmd_router.lib.control.api import control, surface
 from cmd_router.lib.grammar.loader import *
 from cmd_router.utils.cli import *
 from cmd_router.utils.context import *
@@ -32,7 +28,7 @@ _Dict = dict[str, Any]
 class _CmdRouter:
     grammars: _Dict = {}
     info: _Dict = {}
-    control = Control()
+    control = control
 
     def normalize(self, t: tuple[_Dict, _Dict]) -> None:
         grammars, info = t
@@ -263,7 +259,7 @@ class CommandRouter:
     @property
     def deeper_level(self) -> Any:
         """Expose the live Python control state for embedded callers."""
-        return self.control.deeper_level
+        return self.control.deeper_context
 
     def _test_suite_loop(self) -> int:
         """Run the fixture-backed commands interface until it is closed.
@@ -277,7 +273,7 @@ class CommandRouter:
         exception cannot escape from router startup.
         """
         try:
-            initialized = self.control.deeper_level.initialized
+            initialized = self.control.deeper_context.initialized
         except Exception as exception:
             log.critical("router.control: cannot inspect control state before starting the loop: %s", exception)
             return error.Abort
@@ -326,7 +322,7 @@ class CommandRouter:
                 if result.ok and result.kind != "input" and result.value is not None:
                     log.info("control result: %r", result.value)
 
-                ic(api_symlink.readable_listener())
+                ic(surface.readable_listener())
                 if result.command == "help":
                     log.info(
                         "commands: '%s'\n  prefix: '%s'\n  target: '%s'\n suggestions: '%s'",

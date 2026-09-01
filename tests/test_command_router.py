@@ -8,7 +8,7 @@ import cmd_router as command_router_module
 
 # noinspection protected-member
 from cmd_router import CommandRouter, _CmdRouter
-from cmd_router.api import Control
+from cmd_router.lib.control import ControlType as Control
 from cmd_router.utils.cli import flags
 from cmd_router.utils.context import error, paths, uctx
 
@@ -234,8 +234,8 @@ def test_suite_loop_executes_commands_until_quit(monkeypatch: pytest.MonkeyPatch
 
     try:
         assert router._test_suite_loop() == error.Succeed
-        assert router.control.deeper_level.last_result is not None
-        assert router.control.deeper_level.last_result.command == "say"
+        assert router.control.deeper_context.last_result is not None
+        assert router.control.deeper_context.last_result.command == "say"
     finally:
         router.control.close()
 

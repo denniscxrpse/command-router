@@ -12,15 +12,16 @@ control functions remain available for the default shared surface.
 """
 
 __all__ = (
-    "Control",
+    "ControlType",
     "ControlInitialization",
+    "ControlResultKinds",
     "ControlResult",
-    "DeeperLevelContext",
+    "ControlDeeperContext",
     "FixturesContextHolder",
     "FixturesSetup",
-    "api_symlink",
-    "control",
-    "deeper_level",
 )
 
-from .api import *
+from .api.context import *
+from .api.control import *
+from .api.fittings import *
+from .api.result import *

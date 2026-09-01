@@ -38,7 +38,7 @@ as ``ControlInitialization`` with ``ControlFixtureError``; grammar and action
 validation failures use the corresponding structured initialization path.
 """
 
-__all__ = ("Control",)
+__all__ = ("control", "ControlType")
 
 import asyncio
 import inspect
@@ -47,7 +47,7 @@ from collections.abc import Callable, Mapping
 from dataclasses import dataclass, replace
 from pathlib import Path
 from types import ModuleType
-from typing import Any, Self
+from typing import Any, Final, Self
 
 from cmd_router.lib.commands import CmdError, CmdParse
 from cmd_router.lib.control.compiler import _compile_grammars, _GrammarSource, _GrammarSyntaxError
@@ -57,7 +57,8 @@ from cmd_router.utils.context import error
 from cmd_router.utils.logger import *
 
 from .context import *
-from .fixtures import *
+from .fittings import *
+from .fittings import _FixtureInnerContext
 from .result import *
 
 _Action = Callable[..., Any]
@@ -73,14 +74,14 @@ class _Invocation:
     handler: _Action
 
 
-class Control:
+class _Control:
     """Initialize, execute, and inspect one control surface."""
 
     def __init__(
         self,
         *,
         setup: FixturesSetup | None = None,
-        deeper: DeeperLevelContext | None = None,
+        deeper: ControlDeeperContext | None = None,
     ) -> None:
         """Create a control surface backed by *setup* or isolated defaults.
 
@@ -88,24 +89,24 @@ class Control:
         ``deeper`` context preserves that context and its active setup, which
         is useful when a caller wants to share inspection state deliberately.
         """
-        self.deeper_level: DeeperLevelContext = deeper if deeper is not None else DeeperLevelContext(setup)
+        self.deeper_context: ControlDeeperContext = deeper if deeper is not None else ControlDeeperContext(setup)
         self._async_lock: Lock = asyncio.Lock()
         self._stderr_locked: bool = False
         log.debug(
             "created (setup=%s, deeper=%s)",
-            type(self.deeper_level.setup).__name__,
+            type(self.deeper_context.setup).__name__,
             deeper is not None,
         )
 
     @property
     def context(self) -> FixturesSetup:
         """Return the active fixture setup through the short context alias."""
-        return self.deeper_level.setup
+        return self.deeper_context.setup
 
     @property
-    def deeper(self) -> DeeperLevelContext:
+    def deeper(self) -> ControlDeeperContext:
         """Return the deeper control state."""
-        return self.deeper_level
+        return self.deeper_context
 
     def initialize(
         self,
@@ -132,17 +133,17 @@ class Control:
             fixture_result = self._initialize_fixture(fixture)
             if not fixture_result.ok:
                 log.warning("fixture setup failed; grammar compilation was skipped")
-                self.deeper_level.last_initialization = fixture_result
+                self.deeper_context.last_initialization = fixture_result
                 return fixture_result
 
         if keep_help is not None:
             if not isinstance(keep_help, bool):
                 return self._initialization_error("keep_help must be a boolean")
-            self.deeper_level.lazy_init_help = keep_help
+            self.deeper_context.lazy_init_help = keep_help
 
-        selected = self.deeper_level.grammars if grammars is None else grammars
+        selected = self.deeper_context.grammars if grammars is None else grammars
         result = self.configure(selected)
-        self.deeper_level.last_initialization = result
+        self.deeper_context.last_initialization = result
         log.debug("initialization finished (ok=%s, code=%s)", result.ok, result.code)
         return result
 
@@ -155,25 +156,25 @@ class Control:
         log.info("compiling %d grammar entr%s", len(normalized), "y" if len(normalized) == 1 else "ies")
         log.debug(
             "compiler settings (prefix=%r, keep_help=%s, actions=%s)",
-            self.deeper_level.cmd_prefix,
-            self.deeper_level.lazy_init_help,
-            tuple(self.deeper_level.command_action),
+            self.deeper_context.cmd_prefix,
+            self.deeper_context.lazy_init_help,
+            tuple(self.deeper_context.command_action),
         )
         try:
             dispatcher = _compile_grammars(
                 normalized,
-                lambda: self.deeper_level.command_action,
-                self.deeper_level.lazy_init_help,
-                self.deeper_level.cmd_prefix,
+                lambda: self.deeper_context.command_action,
+                self.deeper_context.lazy_init_help,
+                self.deeper_context.cmd_prefix,
             )
         except (AttributeError, TypeError, ValueError, _GrammarSyntaxError) as exception:
             return self._initialization_error(str(exception), exception)
 
-        self.deeper_level.grammars = normalized
-        self.deeper_level.dispatcher = dispatcher
-        self.deeper_level.initialized = True
+        self.deeper_context.grammars = normalized
+        self.deeper_context.dispatcher = dispatcher
+        self.deeper_context.initialized = True
         result = ControlInitialization(True, error.Succeed, command_count=len(normalized))
-        self.deeper_level.last_initialization = result
+        self.deeper_context.last_initialization = result
         log.info(
             "compilation completed (%d grammar entr%s)",
             len(normalized),
@@ -204,19 +205,27 @@ class Control:
         try:
             module = _load_fixture_module(fixture, id(self))
             log.debug("fixture module loaded (%s)", module.__name__)
+
             holder_factory = getattr(module, "context_holder", None)
             setup_factory = getattr(module, "SetupFixtures", None)
+
             if not isinstance(holder_factory, type) or not issubclass(holder_factory, FixturesContextHolder):
                 raise TypeError("fixture must define context_holder as a FixturesContextHolder child class")
             if not isinstance(setup_factory, type) or not issubclass(setup_factory, FixturesSetup):
                 raise TypeError("fixture must define SetupFixtures as a FixturesSetup child class")
 
+            _FixtureInnerContext.reset()
             logic = holder_factory()
             log.debug("fixture context holder created (%s)", type(logic).__name__)
+
             setup_factory.logic = logic
             setup = setup_factory()
             log.debug("fixture setup created (%s)", type(setup).__name__)
-            self.deeper_level.attach_fixture(module, logic, setup)
+
+            _FixtureInnerContext.validate()
+            log.debug("fixture initialization flags verified (holder=True, setup=True)")
+
+            self.deeper_context.attach_fixture(module, logic, setup)
         except Exception as exception:
             return self._initialization_error("fixture initialization failed", exception, error.ControlFixtureError)
 
@@ -236,7 +245,7 @@ class Control:
             message,
             exception=None if exception is None else f"{type(exception).__name__}: {exception}",
         )
-        self.deeper_level.last_initialization = result
+        self.deeper_context.last_initialization = result
         detail = f": {result.exception}" if result.exception is not None else ""
         log.error("initialization failed (%s)%s", message, detail)
         return result
@@ -396,7 +405,7 @@ class Control:
 
     def _prepare(self, command: Any) -> ControlResult | _Invocation:
         """Validate input and parse it into an invocation."""
-        if not self.deeper_level.initialized:
+        if not self.deeper_context.initialized:
             log.debug("rejected command because the control surface is not initialized")
             return ControlResult(
                 ok=False,
@@ -415,7 +424,7 @@ class Control:
                 message="command input must be a string",
             )
 
-        prefix = self.deeper_level.cmd_prefix
+        prefix = self.deeper_context.cmd_prefix
         if not isinstance(prefix, str):
             log.debug("active command prefix has invalid type (%s)", type(prefix).__name__)
             return ControlResult(
@@ -441,7 +450,7 @@ class Control:
             )
 
         log.debug("parsing command text %r", command_text)
-        parsed = self.deeper_level.dispatcher.parse(command_text)
+        parsed = self.deeper_context.dispatcher.parse(command_text)
         if not parsed.ok or parsed.context is None or parsed.handler is None:
             parse_error = parsed.error
             code = error.Abort if parse_error is None or parse_error.code is None else parse_error.code
@@ -468,7 +477,7 @@ class Control:
     def _controlled_arguments(self, command: str, arguments: Mapping[str, Any]) -> dict[str, Any]:
         """Apply configured argument overrides to parsed arguments."""
         values = dict(arguments)
-        controls = self.deeper_level.command_args_ctrl
+        controls = self.deeper_context.command_args_ctrl
         command_controls = controls.get(command)
         applied = False
         if isinstance(command_controls, Mapping):
@@ -485,7 +494,7 @@ class Control:
 
     def _remember(self, result: ControlResult) -> ControlResult:
         """Store and return the latest control result."""
-        self.deeper_level.last_result = result
+        self.deeper_context.last_result = result
 
         if result.ok:
             if result.kind == "input":
@@ -502,3 +511,8 @@ class Control:
         log.stderr(result.to_response() if not flags.json_out else result.to_json())
 
         return result
+
+
+ControlType: type = _Control
+control: Final[ControlType] = _Control()
+"""Control instance, use this to access the current control surface instead of building it again."""

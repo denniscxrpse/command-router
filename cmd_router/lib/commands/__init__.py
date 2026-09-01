@@ -17,12 +17,12 @@ from typing import Final, final
 from cmd_router.lib.commands.context import CommandContext as _CommandContext
 from cmd_router.lib.commands.context import ParseError as _ParseError
 from cmd_router.lib.commands.context import ParseResult as _ParseResult
-from cmd_router.lib.commands.dispatcher import ArgumentNode as _ArgumentNode
 from cmd_router.lib.commands.dispatcher import CommandDispatcher as _CommandDispatcher
-from cmd_router.lib.commands.dispatcher import CommandNode as _CommandNode
-from cmd_router.lib.commands.dispatcher import LiteralNode as _LiteralNode
-from cmd_router.lib.commands.dispatcher import RootNode as _RootNode
-from cmd_router.lib.commands.token import tokenize as _tokenize
+from cmd_router.lib.commands.dispatcher import tokenize
+from cmd_router.lib.commands.dispatcher.nodes import ArgumentNode as _ArgumentNode
+from cmd_router.lib.commands.dispatcher.nodes import CommandNode as _CommandNode
+from cmd_router.lib.commands.dispatcher.nodes import LiteralNode as _LiteralNode
+from cmd_router.lib.commands.dispatcher.nodes import RootNode as _RootNode
 from cmd_router.lib.commands.typing import ArgumentType as _ArgumentType
 from cmd_router.lib.commands.typing import GreedyString as _GreedyString
 from cmd_router.lib.commands.typing import Int as _Int
@@ -34,9 +34,11 @@ from cmd_router.lib.commands.typing import string as _string
 from cmd_router.lib.commands.typing import word as _word
 from cmd_router.utils.context import Error, error
 
+CmdError: Final[type[Error]] = error
+
 
 @final
-class _CmdType:
+class CmdType:
     """Namespace for argument type classes and factories."""
 
     ArgumentType = _ArgumentType
@@ -51,17 +53,17 @@ class _CmdType:
 
 
 @final
-class _CmdParse:
+class CmdParse:
     """Namespace for parse contexts, errors, results, and tokenization."""
 
     Context = _CommandContext
     Error = _ParseError
     Result = _ParseResult
-    Tokenize = staticmethod(_tokenize)
+    Tokenize = staticmethod(tokenize)
 
 
 @final
-class _CmdNode:
+class CmdNode:
     """Namespace for the hand-built commands tree and dispatcher."""
 
     Base = _CommandNode
@@ -69,9 +71,3 @@ class _CmdNode:
     Literal = _LiteralNode
     Argument = _ArgumentNode
     Dispatcher = _CommandDispatcher
-
-
-CmdError: Final[type[Error]] = error
-CmdType: Final[type[_CmdType]] = _CmdType
-CmdParse: Final[type[_CmdParse]] = _CmdParse
-CmdNode: Final[type[_CmdNode]] = _CmdNode

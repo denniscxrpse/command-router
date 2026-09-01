@@ -167,13 +167,13 @@ class ControlResult:
     """Matched command name, without the command prefix."""
     value: Any = None
     """Value returned by the action, or pass-through input value."""
-    parse_result: "CmdParse.Result | None" = None  # noqa: UP037
+    parse_result: CmdParse.Result | None = None
     """Original parser result before control overrides."""
-    context: "CmdParse.Context | None" = None  # noqa: UP037
+    context: CmdParse.Context | None = None
     """Parsed context, including final controlled arguments."""
     handler: _Action | None = None
     """Handler selected for the matched command."""
-    error: "CmdParse.Error | None" = None  # noqa: UP037
+    error: CmdParse.Error | None = None
     """Structured parser error for a failed parse."""
     message: str = ""
     """Human-readable explanation of the result."""
@@ -202,10 +202,11 @@ class ControlResult:
         return self.data
 
     @property
-    def suggestions(self) -> list[str]:
+    def suggestions(self) -> list[str] | None:
         if flags.no_suggestions:
-            # TODO: implement suggestions logic
-            ...
+            return None
+
+        # TODO: implement suggestions logic
         return []
 
     def to_response(self) -> dict[str, Any]:

@@ -86,7 +86,7 @@ def _load_fixture_module(source: ModuleType | str | Path, identifier: int) -> Mo
     """
     log.debug("resolving source %r", source)
     if isinstance(source, ModuleType):
-        log.debug("using existing module %s", source.__name__)
+        log.warning("using existing module %s", source.__name__)
         return source
 
     if isinstance(source, Path):
@@ -98,7 +98,7 @@ def _load_fixture_module(source: ModuleType | str | Path, identifier: int) -> Mo
             try:
                 module = importlib.import_module(source)
             except Exception as exception:
-                log.error("module import failed: %s", exception)
+                log.critical("module import failed: %s", exception)
                 raise
             log.debug("imported module %s", module.__name__)
             return module
@@ -109,14 +109,14 @@ def _load_fixture_module(source: ModuleType | str | Path, identifier: int) -> Mo
         log.debug("resolving package directory %s", candidate)
         candidate = candidate / "__init__.py"
     if not candidate.is_file():
-        log.error("fixture file does not exist: %s", candidate)
+        log.critical("fixture file does not exist: %s", candidate)
         raise FileNotFoundError(f"fixture module does not exist: {candidate}")
 
     module_name = f"_cmd_router_fixture_{identifier}"
     log.debug("loading %s as %s", candidate, module_name)
     spec = importlib.util.spec_from_file_location(module_name, candidate)
     if spec is None or spec.loader is None:
-        log.error("could not create an import spec for %s", candidate)
+        log.critical("could not create an import spec for %s", candidate)
         raise ImportError(f"could not load fixture module: {candidate}")
     module = importlib.util.module_from_spec(spec)
     sys.modules[module_name] = module
@@ -124,7 +124,14 @@ def _load_fixture_module(source: ModuleType | str | Path, identifier: int) -> Mo
         spec.loader.exec_module(module)
     except Exception as exception:
         sys.modules.pop(module_name, None)
-        log.error("execution of %s failed: %s", candidate, exception)
+        log.critical("execution of %s failed: %s", candidate, exception)
+        if isinstance(exception, AttributeError):
+            log.debug(
+                "AttributeError loading '%s'. if using `cmd_router.fittings`, verify "
+                "dataclass attributes are correctly assigned and not overridden. "
+                "this may indicate a logic error rather than an implementation bug.",
+                candidate.name,
+            )
         raise
     log.info("loaded fixture %s", candidate)
     return module

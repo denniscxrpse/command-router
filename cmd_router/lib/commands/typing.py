@@ -23,19 +23,32 @@ __all__ = (
     "word",
 )
 
-from typing import ClassVar, Final, Generic, TypeVar
+from enum import StrEnum, auto
+from typing import ClassVar, Final, Generic, TypeVar, final
 
 from cmd_router.utils.context import error
 
 _ValueT = TypeVar("_ValueT")
 
+
+@final
+class _NamedT(StrEnum):
+    """Base class for named values."""
+
+    UNSET = auto()
+    WORD = auto()
+    STR = auto()
+    INT = auto()
+    GREEDY_STR = auto()
+
+
 ArgumentParseError = error.ArgumentParseError
 
 
-class _ArgType(Generic[_ValueT]):  # noqa: UP046
+class ArgumentType(Generic[_ValueT]):  # noqa: UP046
     """Base class for values accepted by an ``ArgumentNode``."""
 
-    name: ClassVar[str] = "string"
+    name: ClassVar[_NamedT] = _NamedT.UNSET
     greedy: ClassVar[bool] = False
 
     def parse(self, value: str) -> _ValueT | ArgumentParseError:
@@ -43,16 +56,18 @@ class _ArgType(Generic[_ValueT]):  # noqa: UP046
         return value  # type: ignore[return-value]
 
 
-class _WordType(_ArgType[str]):
-    name = "word"
+@final
+class Word(ArgumentType[str]):
+    name = _NamedT.WORD
 
 
-class _StringType(_ArgType[str]):
-    name = "string"
+class String(ArgumentType[str]):
+    name = _NamedT.STR
 
 
-class _IntegerType(_ArgType[int]):
-    name = "int"
+@final
+class Int(ArgumentType[int]):
+    name = _NamedT.INT
 
     def parse(self, value: str) -> int | ArgumentParseError:
         digits = value[1:] if value[:1] in ("+", "-") else value
@@ -61,35 +76,29 @@ class _IntegerType(_ArgType[int]):
         return int(value)
 
 
-class _GreedyStringType(_StringType):
-    name = "greedy_string"
+class GreedyString(String):
+    name = _NamedT.GREEDY_STR
     greedy = True
-
-
-ArgumentType = _ArgType
-Word = _WordType
-String = _StringType
-Int = _IntegerType
-GreedyString = _GreedyStringType
-
-arg_type: Final[ArgumentType[str]] = ArgumentType()
 
 
 def word() -> ArgumentType[str]:
     """Return an argument type that consumes one token as text."""
-    return _WordType()
+    return Word()
 
 
 def string() -> ArgumentType[str]:
     """Return an argument type that consumes one token as text."""
-    return _StringType()
+    return String()
 
 
 def integer() -> ArgumentType[int]:
     """Return an argument type that accepts signed decimal integers."""
-    return _IntegerType()
+    return Int()
 
 
 def greedy() -> ArgumentType[str]:
     """Return an argument type that consumes the rest of the command."""
-    return _GreedyStringType()
+    return GreedyString()
+
+
+arg_type: Final[ArgumentType[str]] = ArgumentType()

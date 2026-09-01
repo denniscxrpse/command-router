@@ -74,14 +74,68 @@ fallback supply it.
 """
 
 from collections.abc import Callable
+from dataclasses import dataclass
 from typing import Any, ClassVar, Self
 
 from cmd_router.utils.logger import log
 
-__all__ = ("FixturesContextHolder", "FixturesSetup")
+__all__ = ("FixturesContextHolder", "FixturesSetup", "FixtureInitializationError")
 
 _Action = Callable[..., Any]
 _default_pfx = "/"
+
+
+class FixtureInitializationError(RuntimeError):
+    """Raised when a fixture's lifecycle flags disagree with the expected state.
+
+    The control layer turns this exception into a structured
+    ``ControlInitialization`` failure so callers receive a single, consistent
+    result type for both grammar and fixture problems.  Raising it from the
+    ``fittings`` module keeps the rule in one place: any caller, fixture, or
+    test that bypasses the expected construction order can surface a single
+    diagnostic that names the missing step.
+    """
+
+
+@dataclass(slots=True)
+class _FixtureInnerContext:
+    did_context_holder_ever_initialize: bool = False
+    did_fixture_setup_ever_initialize: bool = False
+
+    @staticmethod
+    def reset() -> None:
+        """Clear the lifecycle flags before a new fixture is constructed.
+
+        The flags are global, so a stale ``True`` from an earlier setup or
+        holder (e.g., the default ``FixturesSetup`` every control surface
+        owns) would otherwise mask a fixture that did not call
+        ``super().__init__``.  Resetting them at the start of fixture
+        construction makes the subsequent ``validate()`` answer the right
+        question: "did *this* fixture's components actually finish
+        initializing?"
+        """
+        _FixtureInnerContext.did_context_holder_ever_initialize = False
+        _FixtureInnerContext.did_fixture_setup_ever_initialize = False
+
+    @staticmethod
+    def validate() -> None:
+        """Raise if any fixture-lifecycle flag reports a missing initialization.
+
+        Each flag flips to ``True`` only after the corresponding ``__init__``
+        completes.  Callers should call ``reset()`` before constructing the
+        holder and setup, so a stale flag from a previous fixture or the
+        default control setup does not mask an unfinished fixture.
+        """
+        if not _FixtureInnerContext.did_context_holder_ever_initialize:
+            raise FixtureInitializationError(
+                "FixturesContextHolder did not finish initialization; "
+                "the context_holder factory must call super().__init__() before returning."
+            )
+        if not _FixtureInnerContext.did_fixture_setup_ever_initialize:
+            raise FixtureInitializationError(
+                "FixturesSetup did not finish initialization; "
+                "the SetupFixtures class must call super().__init__() and finish construction."
+            )
 
 
 class FixturesContextHolder:
@@ -109,6 +163,7 @@ class FixturesContextHolder:
         FixturesContextHolder._current = self
         self.calls: list[tuple[str, dict[str, Any]]] = []
         log.info("context holder initialized (%s)", type(self).__name__)
+        _FixtureInnerContext.did_context_holder_ever_initialize = True
 
     @classmethod
     def current(cls) -> Self | None:
@@ -182,6 +237,11 @@ class FixturesSetup:
         if self.logic is None:
             self.logic = FixturesContextHolder.current()
         if self.logic is None:
+            if not _FixtureInnerContext.did_fixture_setup_ever_initialize:
+                raise SyntaxError(
+                    "FixtureContextHolder wasn't initialized before FixturesSetup; "
+                    "did you forget to call super().__init__()?"
+                )
             raise RuntimeError(
                 "FixturesSetup.logic must be initialized before construction; "
                 "create a context_holder first or let Control initialize the fixture."
@@ -192,6 +252,7 @@ class FixturesSetup:
         self._command_action: dict[str, _Action] = {}
         self._command_args_ctrl: dict[str, Any] = {}
         log.debug("setup defaults initialized for logic=%s", type(self.logic).__name__)
+        _FixtureInnerContext.did_fixture_setup_ever_initialize = True
 
     @staticmethod
     def __typerror__(name: str, value: Any, expected: type[Any]) -> TypeError:

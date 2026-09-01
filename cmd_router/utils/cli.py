@@ -124,17 +124,17 @@ class EnvFlags:
     but instead of compiling everything at startup, we compile at runtime.
     """
 
-    no_suggestions: bool = True
+    no_suggestions: bool = False
 
     json_out: bool = False
     """
     Every single time the Command Router (``cmd-router``) finishes compilation, and is ready to start parsing, 
     formatting, and outputting commands (data) into the ``stderr``, we either do two things depending on this flag:
     
-    1. If ``False`` (**default**): The exposed data in the ``stderr`` is exposed as a Python dictionary like object.
+    - If ``False`` (**default**): The exposed data in the ``stderr`` is exposed as a Python dictionary like object.
        There is nothing more to it, it's simply a dictionary that can be quickly parsed in Python environments.
     
-    2. If ``True``: The exposed data will be a JSON like object, requiring parsing in your application depending on 
+    - If ``True``: The exposed data will be a JSON like object, requiring parsing in your application depending on 
        your requirements. You must set this flag to ``True`` if your application expects the ``stderr`` parsed data to 
        be JSON.
        
@@ -196,7 +196,7 @@ def init_flags(**kwargs) -> None:
     """Initialize the process-wide environment flags from CLI options."""
     for key, value in kwargs.items():
         # `None` means that Click did not receive this option.  Leaving the
-        # existing value alone is important when the commands is invoked by a
+        # existing value alone is important when the command is invoked by a
         # caller that has already configured `flags` programmatically.
         if value is not None and hasattr(flags, key):
             setattr(flags, key, value)
