@@ -28,7 +28,7 @@ from cmd_router.utils.status import *
 _Handler = Callable[..., Any]
 
 
-def tokenize(command: str) -> list[str] | StatusType:
+def tokenize(command: str) -> list[str] | Status:
     """Return shell-like tokens from *commands*.
 
     Empty and whitespace-only input produce an empty list. Quoting and
@@ -66,7 +66,7 @@ class CommandDispatcher:
         log.debug("tokenizing input %r", command)
         tokens = tokenize(command)
 
-        if isinstance(tokens, StatusType):
+        if isinstance(tokens, Status):
             log.error("tokenization failed with code %s", tokens.name)
             failure = ParseError(
                 kind=ParseErrorKinds.TOKENIZATION,

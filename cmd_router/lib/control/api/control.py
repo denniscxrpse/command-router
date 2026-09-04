@@ -54,7 +54,7 @@ from cmd_router.lib.control.compiler import _compile_grammars, _GrammarSource, _
 from cmd_router.lib.control.fixture import _load_fixture_module
 from cmd_router.utils.cli import *
 from cmd_router.utils.logger import *
-from cmd_router.utils.status import StatusType, stat
+from cmd_router.utils.status import Status, stat
 
 from .context import *
 from .fittings import *
@@ -63,7 +63,7 @@ from .result import *
 
 _Action = Callable[..., Any]
 
-_DEFAULT_INIT_ERROR: Final[StatusType] = stat.ControlGrammarError()
+_DEFAULT_INIT_ERROR: Final[Status] = stat.ControlGrammarError()
 
 
 @dataclass(frozen=True, slots=True)
@@ -238,7 +238,7 @@ class _Control:
         self,
         message: str,
         exception: Exception | None = None,
-        code: StatusType = _DEFAULT_INIT_ERROR,
+        code: Status = _DEFAULT_INIT_ERROR,
     ) -> ControlInitialization:
         """Create and remember an initialization failure."""
         result = ControlInitialization(
@@ -365,7 +365,7 @@ class _Control:
                     return self._remember(
                         ControlResult(
                             ok=False,
-                        code=stat.ControlActionError(),
+                            code=stat.ControlActionError(),
                             kind=ControlResultKinds.ACTION_ERROR,
                             input=command,
                             command=prepared.command,

@@ -4,8 +4,8 @@
 #  All rights reserved.
 
 __all__ = (
+    "IStatus",
     "Status",
-    "StatusType",
     "stat",
 )
 
@@ -14,12 +14,38 @@ from typing import Final, final
 
 
 @dataclass(frozen=True)
-class _BaseStatus:
+class _StatusContract:
     _MESSAGE: str | None = None
     _EXPECTED: str | None = None
+    _code: int | None = None
 
     def __str__(self) -> str:
         return self.name
+
+    @property
+    def name(self) -> str:
+        """Return the name of this status type."""
+        return self.__class__.__name__
+
+    @property
+    def code(self) -> int:
+        """Return the exit code for this status.
+
+        Only special statuses may have a non-negative code; by default, all
+        statuses are considered a "failure" and return a negative code (``-1``).
+
+        In general, this property is useless outside the main entrypoint;
+        since the command router uses the ``name`` to determine status, it
+        makes no sense to return a code that is not a valid status name.
+
+        By consequence, the ``code`` property is unreadable.
+        """
+        for klass in type(self).__mro__:
+            if "_code" in klass.__dict__:
+                value = klass.__dict__["_code"]
+                if isinstance(value, int):
+                    return value
+        return -1
 
     @property
     def message(self) -> str:
@@ -31,50 +57,48 @@ class _BaseStatus:
         """Return the expected state for this status."""
         return self._EXPECTED if self._EXPECTED is not None else ""
 
-    @property
-    def name(self) -> str:
-        """Return the name of this status type."""
-        return self.__class__.__name__
 
-
-StatusType = _BaseStatus
-Status: Final[type[StatusType]] = _BaseStatus
+Status = _StatusContract
+IStatus: Final[type[Status]] = _StatusContract
 
 
 # fmt: off
 @final
-class _Status:
+class _StatusNS:
     """Status namespace for the ``cmd_router`` package."""
     @final
-    class Abort(_BaseStatus): ...
+    class Success(_StatusContract):
+        _code=0;...
     @final
-    class Success(_BaseStatus): ...
+    class Abort(_StatusContract):
+        _code=1;...
     @final
-    class DefaultGrammarError(_BaseStatus): ...
+    class Interrupted(_StatusContract):
+        _code=2;...
     @final
-    class GrammarLoadError(_BaseStatus): ...
+    class DefaultGrammarError(_StatusContract): ...
     @final
-    class InvalidGrammarError(_BaseStatus): ...
+    class GrammarLoadError(_StatusContract): ...
     @final
-    class UnsupportedGrammarFormatError(_BaseStatus): ...
+    class InvalidGrammarError(_StatusContract): ...
     @final
-    class TokenizeInvalidError(_BaseStatus): ...
+    class UnsupportedGrammarFormatError(_StatusContract): ...
     @final
-    class TokenizeUnsupportedTypeError(_BaseStatus): ...
+    class TokenizeInvalidError(_StatusContract): ...
     @final
-    class ControlNotInitializedError(_BaseStatus): ...
+    class TokenizeUnsupportedTypeError(_StatusContract): ...
     @final
-    class ControlFixtureError(_BaseStatus): ...
+    class ControlNotInitializedError(_StatusContract): ...
     @final
-    class ControlGrammarError(_BaseStatus): ...
+    class ControlFixtureError(_StatusContract): ...
     @final
-    class ControlActionError(_BaseStatus): ...
+    class ControlGrammarError(_StatusContract): ...
     @final
-    class Interrupted(_BaseStatus): ...
+    class ControlActionError(_StatusContract): ...
     @final
-    class ArgumentParseError(_BaseStatus): ...
+    class ArgumentParseError(_StatusContract): ...
     @final
-    class FixtureInitializationError(_BaseStatus):
+    class FixtureInitializationError(_StatusContract):
         """Raised when a fixture's lifecycle flags disagree with the expected state.
 
         The control layer turns this exception into a structured
@@ -86,4 +110,4 @@ class _Status:
         """
 #fmt: on
 
-stat: Final[_Status] = _Status()
+stat: Final[_StatusNS] = _StatusNS()

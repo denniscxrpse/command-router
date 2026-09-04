@@ -21,7 +21,7 @@ from cmd_router.utils.cli import *
 from cmd_router.utils.context import *
 from cmd_router.utils.lazy_server import *
 from cmd_router.utils.logger import *
-from cmd_router.utils.status import StatusType, stat
+from cmd_router.utils.status import Status, stat
 
 _Dict = dict[str, Any]
 
@@ -148,7 +148,7 @@ class _CmdRouter:
             log.raw("lazy grammar server: ", end="")
             log.raw("OK" if state["success"] else "FAILURE")
 
-    def grammar_init(self, f: list[Path] | Path) -> tuple[_Dict, _Dict] | StatusType:
+    def grammar_init(self, f: list[Path] | Path) -> tuple[_Dict, _Dict] | Status:
         files = f if isinstance(f, list) else [f]
         log.info("loading %d grammar file(s)", len(files))
 
@@ -180,7 +180,7 @@ class _CmdRouter:
                     continue
             log.debug("loading grammar file %s", file)
             result = load_grammars(file)
-            if isinstance(result, StatusType):
+            if isinstance(result, Status):
                 if result.name == stat.UnsupportedGrammarFormatError().name:
                     log.debug("skipped unsupported grammar file %s", file)
                     continue
@@ -236,7 +236,7 @@ class CommandRouter:
         files = [path for path in paths.FIXTURES.iterdir() if path.is_file()]
         log.debug("discovered %d fixture file(s) in %s", len(files), paths.FIXTURES)
         result = _cmd_router.grammar_init(files)
-        if isinstance(result, StatusType):
+        if isinstance(result, Status):
             log.error("grammar initialization failed (%s); continuing with loaded data", result)
 
         # The test-suite loop doesn't need to be initialized for embedded use.

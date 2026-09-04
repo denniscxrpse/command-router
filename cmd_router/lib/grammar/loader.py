@@ -11,19 +11,19 @@ from typing import Any
 from cmd_router.lib.grammar.parsers import *
 from cmd_router.utils.context import *
 from cmd_router.utils.logger import *
-from cmd_router.utils.status import StatusType, stat
+from cmd_router.utils.status import Status, stat
 
 _Dict = dict[str, Any]
-_DictOrError = _Dict | StatusType
+_DictOrError = _Dict | Status
 
 
-def _logerr(c: StatusType, s: str) -> StatusType:
+def _logerr(c: Status, s: str) -> Status:
     log.raw("validation: FAILURE")
     log.error("%s (code=%s)", s, c)
     return c
 
 
-def load_grammars(path: Path) -> tuple[_Dict, _Dict] | StatusType:
+def load_grammars(path: Path) -> tuple[_Dict, _Dict] | Status:
     """
     Load `fixtures/*` grammars and return the parsed data as a Python dictionary.
 
@@ -41,7 +41,7 @@ def load_grammars(path: Path) -> tuple[_Dict, _Dict] | StatusType:
     log.debug("selected %s parser for %s", p.__name__, path)  # ty: ignore[unresolved-attribute]
 
     parsed = p(path)
-    if isinstance(parsed, StatusType):
+    if isinstance(parsed, Status):
         log.error("parser rejected %s with code %s", path, parsed)
         return parsed
 

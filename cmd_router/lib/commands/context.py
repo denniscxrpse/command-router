@@ -66,7 +66,7 @@ class ParseError:
     expected: tuple[str, ...] = ()
     message: str = ""
     partial_args: dict[str, Any] = field(default_factory=dict)
-    code: StatusType | None = None
+    code: Status | None = None
 
     @property
     def position(self) -> int:

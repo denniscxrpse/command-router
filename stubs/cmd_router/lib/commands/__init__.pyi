@@ -23,7 +23,7 @@ from typing import Final
 
 __all__ = ["CmdError", "CmdType", "CmdParse", "CmdNode"]
 
-CmdError: Final[type[StatusType]]
+CmdError: Final[type[Status]]
 
 class CmdType:
     ArgumentType = _ArgumentType

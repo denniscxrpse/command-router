@@ -44,7 +44,7 @@ def test_main_logs_exception_message_and_returns_abort_name(monkeypatch: pytest.
     messages: list[object] = []
     monkeypatch.setattr(entrypoint.log, "critical", lambda *message: messages.extend(message))
 
-    assert entrypoint.main() == stat.Abort().name
+    assert entrypoint.main().code == stat.Abort().code
     assert messages == ["bad value"]
 
 

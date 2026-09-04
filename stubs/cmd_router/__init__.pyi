@@ -6,7 +6,7 @@ from cmd_router.utils.logger import *
 from _typeshed import Incomplete
 from cmd_router.lib.control import ControlResult
 from cmd_router.lib.control.api import control
-from cmd_router.utils.status import StatusType
+from cmd_router.utils.status import Status
 from pathlib import Path
 from typing import Any
 
@@ -20,7 +20,7 @@ class _CmdRouter:
     control = control
     def normalize(self, t: tuple[_Dict, _Dict]) -> None: ...
     def lazy_init(self) -> None: ...
-    def grammar_init(self, f: list[Path] | Path) -> tuple[_Dict, _Dict] | StatusType: ...
+    def grammar_init(self, f: list[Path] | Path) -> tuple[_Dict, _Dict] | Status: ...
     def control_init(self) -> bool: ...
 
 class CommandRouter:

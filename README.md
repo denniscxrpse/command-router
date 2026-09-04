@@ -1,11 +1,20 @@
-### [bleeeeh](todo.md)
+# command-router
 
-ai was used for tests and documentation (im lazyyyyyyy) [agents.md](AGENTS.md); was added just in case
+Small, Brigadier-inspired command router. Hand-built command trees, fixture-backed configuration, structured results for
+both parse and execution failures.
 
-i'll update this readme some day idk; check the [justfile](justfile) to quickly run the project
+## Run it
 
-wtf is `just`? [get to reading](https://just.systems/man/en/) or
-[just install it](https://just.systems/man/en/packages.html) xd
+```sh
+just            # see available recipes
+just test       # run the test suite
+just run        # start the router
+just run -L     # start the router in lazy grammar mode
+```
 
-> [!note]
-> slow updates since i'm busy with job searching lmao
+[Install `just`](https://just.systems/man/en/packages.html) if you don't have it yet.
+
+## Mirrors
+
+- Primary: https://gitlab.com/denniscxrpse/command-router
+- Mirror: https://github.com/denniscxrpse/command-router

@@ -34,7 +34,7 @@ from cmd_router.lib.commands.typing import string as _string
 from cmd_router.lib.commands.typing import word as _word
 from cmd_router.utils.status import *
 
-CmdError: Final[type[StatusType]] = Status
+CmdError: Final[type[Status]] = IStatus
 
 
 @final

@@ -14,10 +14,10 @@ import json5
 
 from cmd_router.utils.context import *
 from cmd_router.utils.logger import *
-from cmd_router.utils.status import StatusType, stat
+from cmd_router.utils.status import Status, stat
 
 _Dict = dict[str, Any]
-_DictOrError = _Dict | StatusType
+_DictOrError = _Dict | Status
 _Tstr = tuple[str, ...]
 
 _TOML_EXTENSIONS: Final[_Tstr] = (".toml",)

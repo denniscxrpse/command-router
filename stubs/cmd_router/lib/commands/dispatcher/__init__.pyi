@@ -9,7 +9,7 @@ __all__ = ["ArgumentNode", "CommandNode", "LiteralNode", "RootNode", "tokenize",
 
 _Handler = Callable[..., Any]
 
-def tokenize(command: str) -> list[str] | StatusType: ...
+def tokenize(command: str) -> list[str] | Status: ...
 
 class CommandDispatcher:
     root: Incomplete

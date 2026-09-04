@@ -158,7 +158,7 @@ class ControlResult:
 
     ok: bool
     """Whether the control operation succeeded."""
-    code: StatusType
+    code: Status
     """Centralized status or error code for the operation."""
     kind: ControlResultKinds
     """Stage that produced the result, such as "command" or "parse_error"."""
@@ -289,7 +289,7 @@ class ControlInitialization:
     """
 
     ok: bool
-    code: StatusType
+    code: Status
     message: str = ""
     command_count: int = 0
     exception: str | None = None
