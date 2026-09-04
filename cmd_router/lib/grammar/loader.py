@@ -11,18 +11,19 @@ from typing import Any
 from cmd_router.lib.grammar.parsers import *
 from cmd_router.utils.context import *
 from cmd_router.utils.logger import *
+from cmd_router.utils.status import StatusType, stat
 
 _Dict = dict[str, Any]
-_DictOrError = _Dict | int
+_DictOrError = _Dict | StatusType
 
 
-def _logerr(c: int, s: str) -> int:
+def _logerr(c: StatusType, s: str) -> StatusType:
     log.raw("validation: FAILURE")
     log.error("%s (code=%s)", s, c)
     return c
 
 
-def load_grammars(path: Path) -> tuple[_Dict, _Dict] | int:
+def load_grammars(path: Path) -> tuple[_Dict, _Dict] | StatusType:
     """
     Load `fixtures/*` grammars and return the parsed data as a Python dictionary.
 
@@ -34,23 +35,23 @@ def load_grammars(path: Path) -> tuple[_Dict, _Dict] | int:
 
     if p is None:
         log.debug("ignoring unsupported file format %s", path)
-        return error.UnsupportedGrammarFormatError
+        return stat.UnsupportedGrammarFormatError()
 
     log.info("parsing and validating (%s)", path.name)
     log.debug("selected %s parser for %s", p.__name__, path)  # ty: ignore[unresolved-attribute]
 
     parsed = p(path)
-    if isinstance(parsed, int):
+    if isinstance(parsed, StatusType):
         log.error("parser rejected %s with code %s", path, parsed)
         return parsed
 
     container = parsed.get(uctx.cmd_router)
     if not isinstance(container, dict):
-        return _logerr(error.InvalidGrammarError, "Missing 'cmd-router' object.")
+        return _logerr(stat.InvalidGrammarError(), "Missing 'cmd-router' object.")
 
     grammar = container.get(uctx.grammar)
     if not isinstance(grammar, dict):
-        return _logerr(error.InvalidGrammarError, "Missing 'grammar' object.")
+        return _logerr(stat.InvalidGrammarError(), "Missing 'grammar' object.")
 
     info = {key: value for key, value in container.items() if key != uctx.grammar}
 
@@ -78,7 +79,7 @@ def load_grammars(path: Path) -> tuple[_Dict, _Dict] | int:
         log.debug(f"Parsed data: {parsed}, from: {path}")
         for e in errors:
             log.error("%s", e)
-        return error.Abort
+        return stat.Abort()
 
     log.raw(f"validation ({path.name}): OK")
     log.info("loaded %d command entr%s from %s", len(grammar), "y" if len(grammar) == 1 else "ies", path.name)

@@ -22,13 +22,13 @@ from typing import Any, Final
 from cmd_router.lib.commands.context import *
 from cmd_router.lib.commands.dispatcher.nodes import *
 from cmd_router.lib.commands.typing import ArgumentParseError
-from cmd_router.utils.context import error
 from cmd_router.utils.logger import log
+from cmd_router.utils.status import *
 
 _Handler = Callable[..., Any]
 
 
-def tokenize(command: str) -> list[str] | int:
+def tokenize(command: str) -> list[str] | StatusType:
     """Return shell-like tokens from *commands*.
 
     Empty and whitespace-only input produce an empty list. Quoting and
@@ -39,12 +39,12 @@ def tokenize(command: str) -> list[str] | int:
     log.debug("received input of type %s", type(command).__name__)
     if not isinstance(command, str):
         log.warning("cannot tokenize non-string input (%s)", type(command).__name__)
-        return error.TokenizeUnsupportedTypeError
+        return stat.TokenizeUnsupportedTypeError()
     try:
         tokens = shlex.split(command, comments=False, posix=True)
     except ValueError as exception:
         log.error("malformed commands input: %s", exception)
-        return error.TokenizeInvalidError
+        return stat.TokenizeInvalidError()
     log.debug("produced %d token(s): %r", len(tokens), tokens)
     return tokens
 
@@ -65,8 +65,9 @@ class CommandDispatcher:
         """Parse *command* and return its handler/context or the best error."""
         log.debug("tokenizing input %r", command)
         tokens = tokenize(command)
-        if isinstance(tokens, int):
-            log.error("tokenization failed with code %s", tokens)
+
+        if isinstance(tokens, StatusType):
+            log.error("tokenization failed with code %s", tokens.name)
             failure = ParseError(
                 kind=ParseErrorKinds.TOKENIZATION,
                 token_index=0,

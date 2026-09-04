@@ -17,7 +17,7 @@ and fixture initializations.
 __all__ = (
     "paths",
     "Error",
-    "error",
+    # "error",
     "uctx",
 )
 
@@ -48,7 +48,11 @@ class _Paths:
 
 
 @final
-@deprecated("Use `Error` object instead of `Error` enum.")
+@deprecated(
+    "Use the `Err` namespace instead of `Error` enum. This will be removed in the future, "
+    "once the `Err` namespace is fully implemented (or certain features are working without this).",
+    category=DeprecationWarning,
+)
 class Error(IntEnum):
     def __str__(self) -> str:
         return self.name
@@ -90,5 +94,5 @@ class _UniversalContext:
 
 
 paths: Final[_Paths] = _Paths()
-error: Final[type[Error]] = Error
+# error: Final[type[Error]] = Error
 uctx: Final[_UniversalContext] = _UniversalContext()

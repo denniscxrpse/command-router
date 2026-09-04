@@ -21,6 +21,7 @@ from cmd_router.utils.cli import *
 from cmd_router.utils.context import *
 from cmd_router.utils.lazy_server import *
 from cmd_router.utils.logger import *
+from cmd_router.utils.status import StatusType, stat
 
 _Dict = dict[str, Any]
 
@@ -52,6 +53,7 @@ class _CmdRouter:
         # Let the request handler update this router instance.
         router = self
 
+        # noinspection bad-argument-type
         # Define the small HTTP protocol used to receive a grammar.
         class Lazy(LazyServer):
             # noinspection pep8-naming
@@ -97,8 +99,9 @@ class _CmdRouter:
                         self._invalid("HTTP grammar has an invalid schema.")
                         return
 
-                    router.normalize(result)
+                    router.normalize(result)  # ty: ignore[invalid-argument-type]
                     log.stderr(0)
+                    # ty: ignore[not-subscriptable]
                     log.debug("reused grammar normalized (%d commands(s))", len(result[0]))
                     state["success"] = True
                     self._reply(204)
@@ -122,9 +125,10 @@ class _CmdRouter:
                     return
 
                 # Store the grammar and signal that initialization is complete.
-                router.normalize(result)
+                router.normalize(result)  # ty: ignore[invalid-argument-type]
                 log.stderr(0)
                 log.info("saved and loaded lazy grammar %s", target.name)
+                # ty: ignore[not-subscriptable]
                 log.debug("saved grammar normalized (%d commands(s))", len(result[0]))
                 state["success"] = True
                 self._reply(204)
@@ -144,7 +148,7 @@ class _CmdRouter:
             log.raw("lazy grammar server: ", end="")
             log.raw("OK" if state["success"] else "FAILURE")
 
-    def grammar_init(self, f: list[Path] | Path) -> tuple[_Dict, _Dict] | int:
+    def grammar_init(self, f: list[Path] | Path) -> tuple[_Dict, _Dict] | StatusType:
         files = f if isinstance(f, list) else [f]
         log.info("loading %d grammar file(s)", len(files))
 
@@ -176,8 +180,8 @@ class _CmdRouter:
                     continue
             log.debug("loading grammar file %s", file)
             result = load_grammars(file)
-            if isinstance(result, int):
-                if result == error.UnsupportedGrammarFormatError:
+            if isinstance(result, StatusType):
+                if result.name == stat.UnsupportedGrammarFormatError().name:
                     log.debug("skipped unsupported grammar file %s", file)
                     continue
                 log.error("grammar file %s failed with code %s", file, result)
@@ -232,7 +236,7 @@ class CommandRouter:
         files = [path for path in paths.FIXTURES.iterdir() if path.is_file()]
         log.debug("discovered %d fixture file(s) in %s", len(files), paths.FIXTURES)
         result = _cmd_router.grammar_init(files)
-        if isinstance(result, int):
+        if isinstance(result, StatusType):
             log.error("grammar initialization failed (%s); continuing with loaded data", result)
 
         # The test-suite loop doesn't need to be initialized for embedded use.
@@ -261,7 +265,7 @@ class CommandRouter:
         """Expose the live Python control state for embedded callers."""
         return self.control.deeper_context
 
-    def _test_suite_loop(self) -> int:
+    def _test_suite_loop(self) -> str:
         """Run the fixture-backed commands interface until it is closed.
 
         The router owns this loop because the control API only knows how to
@@ -269,18 +273,18 @@ class CommandRouter:
         the surrounding application wants an interactive session.  Command
         failures are yet represented by ``ControlResult`` and therefore
         do not end the session.  Failures in the loop itself are converted to
-        an integer status, so a bad input stream or an unexpected control
+        the status ``name`` so a bad input stream or an unexpected control
         exception cannot escape from router startup.
         """
         try:
             initialized = self.control.deeper_context.initialized
         except Exception as exception:
             log.critical("router.control: cannot inspect control state before starting the loop: %s", exception)
-            return error.Abort
+            return stat.Abort().name
 
         if not initialized:
             log.error("router.control: cannot start control loop; control is not initialized")
-            return error.ControlNotInitializedError
+            return stat.ControlNotInitializedError().name
 
         log.info("control loop started (type 'exit'/'e' or 'quit'/'q' to stop)")
         while True:
@@ -288,22 +292,22 @@ class CommandRouter:
                 command = input("cmd-router> ")
             except EOFError:
                 log.info("control loop reached end of input")
-                return error.Succeed
+                return stat.Success().name
             except KeyboardInterrupt:
                 log.warning("control loop interrupted")
-                return error.Interrupted
+                return stat.Interrupted().name
             except Exception as exception:
                 log.critical("control loop could not read input: %s", exception)
-                return error.Abort
+                return stat.Abort().name
 
             if not isinstance(command, str):
                 log.error("control loop received non-string input (%s)", type(command).__name__)
-                return error.TokenizeUnsupportedTypeError
+                return stat.TokenizeUnsupportedTypeError().name
 
             command_marker = command.strip().casefold()
             if command_marker in ["exit", "e", "quit", "q"]:
                 log.info("control loop requested to stop")
-                return error.Succeed
+                return stat.Success().name
             if not command_marker:
                 log.warning("control loop received empty input! is it a typo on an error?")
                 continue
@@ -313,11 +317,11 @@ class CommandRouter:
 
                 if not isinstance(result, ControlResult):
                     log.critical("control execution returned an invalid result")
-                    return error.Abort
+                    return stat.Abort().name
 
-                if result.code == error.ControlNotInitializedError:
+                if result.code.name == stat.ControlNotInitializedError().name:
                     log.critical("control became uninitialized while the loop was running")
-                    return error.ControlNotInitializedError
+                    return stat.ControlNotInitializedError().name
 
                 if result.ok and result.kind != "input" and result.value is not None:
                     log.info("control result: %r", result.value)
@@ -333,7 +337,7 @@ class CommandRouter:
                     )
             except KeyboardInterrupt:
                 log.warning("control loop interrupted during commands execution")
-                return error.Interrupted
+                return stat.Interrupted().name
             except Exception as exception:
                 log.critical("control loop failed while executing a commands: %s", exception)
-                return error.Abort
+                return stat.Abort().name

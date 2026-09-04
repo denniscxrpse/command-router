@@ -7,22 +7,23 @@ from cmd_router import CommandRouter
 from cmd_router.utils.cli import *
 from cmd_router.utils.context import *
 from cmd_router.utils.logger import *
+from cmd_router.utils.status import stat
 
 
-def main() -> int:
-    """Start the commands router and return its process exit status."""
+def main() -> str:
+    """Start the commands router and return its process exit status name."""
     log.info("starting commands router")
     try:
         CommandRouter()
     except KeyboardInterrupt:
         log.warning("interrupted; shutting down")
-        return error.Interrupted
+        return stat.Interrupted().name
     except Exception as exception:
         log.debug("an unrecoverable startup exception was raised")
         log.critical(str(exception))
-        return error.Abort
+        return stat.Abort().name
     log.info("commands router exited successfully")
-    return error.Succeed
+    return stat.Success().name
 
 
 if __name__ == "__main__":

@@ -1,10 +1,11 @@
 from cmd_router.utils.cli import *
 from cmd_router.utils.logger import *
+from cmd_router.utils.status import *
 from cmd_router.lib.commands import CmdParse
 from collections.abc import Callable
 from dataclasses import dataclass
 from enum import StrEnum
-from typing import Any, Self, final
+from typing import Any, Self
 
 __all__ = ["ControlResultKinds", "ControlResult", "ControlInitialization"]
 
@@ -13,7 +14,6 @@ _Action = Callable[..., Any]
 class _UNSET: ...
 
 class ControlResultKinds(StrEnum):
-    @final
     @staticmethod
     def _generate_next_value_(name, start, count, last_values) -> str: ...
     INPUT = ...
@@ -38,7 +38,7 @@ class ControlResult:
     def __set_attr__(self, name: str, value: Any) -> None: ...
     def __post_init__(self) -> None: ...
     ok: bool
-    code: int
+    code: StatusType
     kind: ControlResultKinds
     input: Any
     command: str | None = ...
@@ -72,7 +72,7 @@ class ControlResult:
 @dataclass(frozen=True, slots=True)
 class ControlInitialization:
     ok: bool
-    code: int
+    code: StatusType
     message: str = ...
     command_count: int = ...
     exception: str | None = ...

@@ -83,7 +83,7 @@ class _ControlSurface:
             if flags.json_out:
                 return json.loads(self.listener())
             j = ast.literal_eval(self.listener())
-        except ValueError, SyntaxError, TypeError, json.JSONDecodeError:
+        except (ValueError, SyntaxError, TypeError, json.JSONDecodeError):
             log.critical(
                 "failed to parse listener output: %s. stderr output might be impossible to parse.",
                 self.listener(),

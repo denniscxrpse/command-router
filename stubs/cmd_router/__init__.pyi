@@ -6,10 +6,11 @@ from cmd_router.utils.logger import *
 from _typeshed import Incomplete
 from cmd_router.lib.control import ControlResult
 from cmd_router.lib.control.api import control
+from cmd_router.utils.status import StatusType
 from pathlib import Path
 from typing import Any
 
-__all__ = ["CommandRouter", "Lazy@56"]
+__all__ = ["CommandRouter", "Lazy@58"]
 
 _Dict = dict[str, Any]
 
@@ -19,7 +20,7 @@ class _CmdRouter:
     control = control
     def normalize(self, t: tuple[_Dict, _Dict]) -> None: ...
     def lazy_init(self) -> None: ...
-    def grammar_init(self, f: list[Path] | Path) -> tuple[_Dict, _Dict] | int: ...
+    def grammar_init(self, f: list[Path] | Path) -> tuple[_Dict, _Dict] | StatusType: ...
     def control_init(self) -> bool: ...
 
 class CommandRouter:
@@ -31,7 +32,7 @@ class CommandRouter:
     async def execute_async(self, command: Any) -> ControlResult: ...
     @property
     def deeper_level(self) -> Any: ...
-    def _test_suite_loop(self) -> int: ...
+    def _test_suite_loop(self) -> str: ...
 
 # Names in __all__ with no definition:
-#   Lazy@56
+#   Lazy@58

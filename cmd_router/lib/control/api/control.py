@@ -49,12 +49,12 @@ from pathlib import Path
 from types import ModuleType
 from typing import Any, Final, Self
 
-from cmd_router.lib.commands import CmdError, CmdParse
+from cmd_router.lib.commands import CmdParse
 from cmd_router.lib.control.compiler import _compile_grammars, _GrammarSource, _GrammarSyntaxError
 from cmd_router.lib.control.fixture import _load_fixture_module
 from cmd_router.utils.cli import *
-from cmd_router.utils.context import error
 from cmd_router.utils.logger import *
+from cmd_router.utils.status import StatusType, stat
 
 from .context import *
 from .fittings import *
@@ -62,6 +62,8 @@ from .fittings import _FixtureInnerContext
 from .result import *
 
 _Action = Callable[..., Any]
+
+_DEFAULT_INIT_ERROR: Final[StatusType] = stat.ControlGrammarError()
 
 
 @dataclass(frozen=True, slots=True)
@@ -173,7 +175,7 @@ class _Control:
         self.deeper_context.grammars = normalized
         self.deeper_context.dispatcher = dispatcher
         self.deeper_context.initialized = True
-        result = ControlInitialization(True, error.Succeed, command_count=len(normalized))
+        result = ControlInitialization(True, stat.Success(), command_count=len(normalized))
         self.deeper_context.last_initialization = result
         log.info(
             "compilation completed (%d grammar entr%s)",
@@ -227,16 +229,16 @@ class _Control:
 
             self.deeper_context.attach_fixture(module, logic, setup)
         except Exception as exception:
-            return self._initialization_error("fixture initialization failed", exception, error.ControlFixtureError)
+            return self._initialization_error("fixture initialization failed", exception, stat.ControlFixtureError())
 
         log.info("fixture ready (%s)", module.__name__)
-        return ControlInitialization(True, error.Succeed, "fixture initialized")
+        return ControlInitialization(True, stat.Success(), "fixture initialized")
 
     def _initialization_error(
         self,
         message: str,
         exception: Exception | None = None,
-        code: int = error.ControlGrammarError,
+        code: StatusType = _DEFAULT_INIT_ERROR,
     ) -> ControlInitialization:
         """Create and remember an initialization failure."""
         result = ControlInitialization(
@@ -304,7 +306,7 @@ class _Control:
                 return self._remember(
                     ControlResult(
                         ok=False,
-                        code=error.ControlActionError,
+                        code=stat.ControlActionError(),
                         kind=ControlResultKinds.ACTION_ERROR,
                         input=command,
                         command=prepared.command,
@@ -319,7 +321,7 @@ class _Control:
             return self._remember(
                 ControlResult(
                     ok=True,
-                    code=error.Succeed,
+                    code=stat.Success(),
                     kind=ControlResultKinds.COMMAND,
                     input=command,
                     command=prepared.command,
@@ -363,7 +365,7 @@ class _Control:
                     return self._remember(
                         ControlResult(
                             ok=False,
-                            code=error.ControlActionError,
+                        code=stat.ControlActionError(),
                             kind=ControlResultKinds.ACTION_ERROR,
                             input=command,
                             command=prepared.command,
@@ -377,7 +379,7 @@ class _Control:
             return self._remember(
                 ControlResult(
                     ok=False,
-                    code=error.ControlActionError,
+                    code=stat.ControlActionError(),
                     kind=ControlResultKinds.ACTION_ERROR,
                     input=command,
                     command=prepared.command,
@@ -392,7 +394,7 @@ class _Control:
         return self._remember(
             ControlResult(
                 ok=True,
-                code=error.Succeed,
+                code=stat.Success(),
                 kind=ControlResultKinds.COMMAND,
                 input=command,
                 command=prepared.command,
@@ -409,7 +411,7 @@ class _Control:
             log.debug("rejected command because the control surface is not initialized")
             return ControlResult(
                 ok=False,
-                code=error.ControlNotInitializedError,
+                code=stat.ControlNotInitializedError(),
                 kind=ControlResultKinds.NOT_INITIALIZED,
                 input=command,
                 message="control has not been initialized",
@@ -418,7 +420,7 @@ class _Control:
             log.debug("rejected non-string command input (%s)", type(command).__name__)
             return ControlResult(
                 ok=False,
-                code=CmdError.TokenizeUnsupportedTypeError,
+                code=stat.TokenizeUnsupportedTypeError(),
                 kind=ControlResultKinds.INVALID_INPUT,
                 input=command,
                 message="command input must be a string",
@@ -429,21 +431,21 @@ class _Control:
             log.debug("active command prefix has invalid type (%s)", type(prefix).__name__)
             return ControlResult(
                 ok=False,
-                code=error.ControlGrammarError,
+                code=stat.ControlGrammarError(),
                 kind=ControlResultKinds.INVALID_CONTEXT,
                 input=command,
                 message="cmd_prefix must be a string",
             )
         if prefix and not command.startswith(prefix):
             log.debug("treating input as ordinary text; prefix %r was not present", prefix)
-            return ControlResult(True, error.Succeed, ControlResultKinds.INPUT, command, value=command)
+            return ControlResult(True, stat.Success(), ControlResultKinds.INPUT, command, value=command)
 
         command_text = command[len(prefix) :] if prefix else command
         if not command_text.strip():
             log.warning("logic or user error? command prefix was supplied without a command. this shouldn't be fatal.")
             return ControlResult(
                 ok=False,
-                code=error.Abort,
+                code=stat.Abort(),
                 kind=ControlResultKinds.INVALID_INPUT,
                 input=command,
                 message="command prefix must be followed by a command",
@@ -453,7 +455,7 @@ class _Control:
         parsed = self.deeper_context.dispatcher.parse(command_text)
         if not parsed.ok or parsed.context is None or parsed.handler is None:
             parse_error = parsed.error
-            code = error.Abort if parse_error is None or parse_error.code is None else parse_error.code
+            code = stat.Abort() if parse_error is None or parse_error.code is None else parse_error.code
             log.debug(
                 "parser returned no invocation (kind=%s, token=%s)",
                 None if parse_error is None else parse_error.kind,

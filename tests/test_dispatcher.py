@@ -3,7 +3,7 @@ from typing import Any
 
 import pytest
 
-from cmd_router.lib.commands import CmdError, CmdNode, CmdParse, CmdType
+from cmd_router.lib.commands import CmdNode, CmdParse, CmdType
 from cmd_router.lib.control import ControlResultKinds
 
 
@@ -160,7 +160,8 @@ def test_dispatcher_returns_tokenization_error_codes() -> None:
     assert not result.ok
     assert result.error is not None
     assert result.error.kind == ControlResultKinds.TOKENIZATION
-    assert result.error.code == CmdError.TokenizeInvalidError
+    assert result.error.code is not None
+    assert result.error.code.name == "TokenizeInvalidError"
 
 
 def test_parse_error_exposes_failure_context_for_debugging() -> None:
@@ -226,7 +227,6 @@ def test_empty_input_reports_root_expectations() -> None:
 
 
 def test_command_namespaces_expose_concise_aliases() -> None:
-    assert CmdError.ArgumentParseError.__name__ == "ArgumentParseError"
     assert issubclass(CmdType.Int, CmdType.ArgumentType)
     assert CmdParse.Error.__name__ == "ParseError"
     assert CmdParse.Result.__name__ == "ParseResult"

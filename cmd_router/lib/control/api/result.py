@@ -31,6 +31,7 @@ from typing import TYPE_CHECKING, Any, Self, final
 
 from cmd_router.utils.cli import *
 from cmd_router.utils.logger import *
+from cmd_router.utils.status import *
 
 _Action = Callable[..., Any]
 
@@ -66,6 +67,7 @@ class ControlResultKinds(StrEnum):
     UNEXPECTED_TOKEN = auto()
     UNEXPECTED_COMMAND = auto()
 
+    # noinspection bad-return
     @property
     def custom(self) -> Self:
         """Return the custom kind configured for this result kind."""
@@ -156,7 +158,7 @@ class ControlResult:
 
     ok: bool
     """Whether the control operation succeeded."""
-    code: int
+    code: StatusType
     """Centralized status or error code for the operation."""
     kind: ControlResultKinds
     """Stage that produced the result, such as "command" or "parse_error"."""
@@ -192,6 +194,7 @@ class ControlResult:
     def parsed_args(self) -> dict[str, Any]:
         """Return the controlled arguments."""
         if self.context is None:
+            log.warning("parsed_args requested on non-command input? no context was provided.")
             return {}
         return dict(self.context.args)
 
@@ -263,7 +266,7 @@ class ControlResult:
             }
         return {
             "ok": self.ok,
-            "code": self.code,
+            "code": self.code.name,
             "kind": self.kind,
             "input": self.input,
             "command": self.command,
@@ -286,7 +289,7 @@ class ControlInitialization:
     """
 
     ok: bool
-    code: int
+    code: StatusType
     message: str = ""
     command_count: int = 0
     exception: str | None = None
@@ -299,7 +302,7 @@ class ControlInitialization:
         """Return a transport-friendly initialization mapping."""
         data: dict[str, Any] = {
             "ok": self.ok,
-            "code": self.code,
+            "code": self.code.name,
             "message": self.message,
             "command_count": self.command_count,
         }

@@ -10,7 +10,8 @@ import cmd_router as command_router_module
 from cmd_router import CommandRouter, _CmdRouter
 from cmd_router.lib.control import ControlType as Control
 from cmd_router.utils.cli import flags
-from cmd_router.utils.context import error, paths, uctx
+from cmd_router.utils.context import paths, uctx
+from cmd_router.utils.status import stat
 
 CMD_ROUTER = uctx.cmd_router
 SCHEMA_VERSION = uctx.schema_version
@@ -144,7 +145,8 @@ def test_init_grammar_returns_validation_error(
 
     result = router.grammar_init(invalid)
 
-    assert result == error.Abort
+    assert isinstance(result, type(stat.Abort()))
+    assert result.name == stat.Abort().name
 
 
 def _post_to_lazy_router(
@@ -234,7 +236,7 @@ def test_suite_loop_executes_commands_until_quit(monkeypatch: pytest.MonkeyPatch
     monkeypatch.setattr("builtins.input", lambda _prompt: next(commands))
 
     try:
-        assert router._test_suite_loop() == error.Succeed
+        assert router._test_suite_loop() == stat.Success().name
         assert router.control.deeper_context.last_result is not None
         assert router.control.deeper_context.last_result.command == "say"
     finally:
@@ -247,17 +249,17 @@ def test_suite_loop_keeps_running_after_a_command_error(monkeypatch: pytest.Monk
     monkeypatch.setattr("builtins.input", lambda _prompt: next(commands))
 
     try:
-        assert router._test_suite_loop() == error.Succeed
+        assert router._test_suite_loop() == stat.Success().name
     finally:
         router.control.close()
 
 
 @pytest.mark.parametrize(
     ("input_exception", "expected"),
-    [(EOFError(), error.Succeed), (KeyboardInterrupt(), error.Interrupted)],
+    [(EOFError(), stat.Success().name), (KeyboardInterrupt(), stat.Interrupted().name)],
 )
 def test_suite_loop_converts_input_termination_to_status(
-    input_exception: BaseException, expected: int, monkeypatch: pytest.MonkeyPatch
+    input_exception: BaseException, expected: str, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     router = _initialized_control_router()
 
@@ -283,6 +285,6 @@ def test_suite_loop_converts_execution_exception_to_abort(monkeypatch: pytest.Mo
     monkeypatch.setattr(router.control, "execute", fail)
 
     try:
-        assert router._test_suite_loop() == error.Abort
+        assert router._test_suite_loop() == stat.Abort().name
     finally:
         router.control.close()

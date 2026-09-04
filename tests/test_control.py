@@ -11,8 +11,8 @@ from cmd_router.lib.control.api.fittings import (
     FixtureInitializationError,
     _FixtureInnerContext,
 )
-from cmd_router.utils.context import error
 from cmd_router.utils.logger import log
+from cmd_router.utils.status import stat
 
 
 def test_control_returns_structured_results_and_keeps_deeper_state() -> None:
@@ -77,7 +77,7 @@ def test_control_result_preserves_explicit_data_and_error_payloads() -> None:
     kind = ControlResultKinds.COMMAND
     # noinspection unresolved-references
     kind.custom = "custom"
-    result = api.ControlResult(True, 0, kind.custom, None, data={"answer": 42}, error_payload=fallback)
+    result = api.ControlResult(True, stat.Success(), kind.custom, None, data={"answer": 42}, error_payload=fallback)
 
     assert isinstance(result.kind, ControlResultKinds)
     assert result.kind.value == "custom"
@@ -320,7 +320,7 @@ def test_control_reports_control_fixture_error_when_holder_skips_super() -> None
         initialized = runner.initialize({"say": "<message...>"}, fixture=module)
 
         assert not initialized.ok
-        assert initialized.code == error.ControlFixtureError
+        assert initialized.code.name == stat.ControlFixtureError().name
         assert initialized.message == "fixture initialization failed"
         assert initialized.exception is not None
         assert "FixtureInitializationError" in initialized.exception
@@ -355,7 +355,7 @@ def test_control_reports_control_fixture_error_when_setup_skips_super() -> None:
         initialized = runner.initialize({"say": "<message...>"}, fixture=module)
 
         assert not initialized.ok
-        assert initialized.code == error.ControlFixtureError
+        assert initialized.code.name == stat.ControlFixtureError().name
         assert initialized.message == "fixture initialization failed"
         assert initialized.exception is not None
         assert "FixtureInitializationError" in initialized.exception

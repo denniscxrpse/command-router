@@ -16,6 +16,7 @@ from dataclasses import dataclass, field
 from typing import Any, Final
 
 from cmd_router.lib.control.api.result import ControlResultKinds
+from cmd_router.utils.status import *
 
 _Handler = Callable[..., Any]
 
@@ -65,7 +66,7 @@ class ParseError:
     expected: tuple[str, ...] = ()
     message: str = ""
     partial_args: dict[str, Any] = field(default_factory=dict)
-    code: int | None = None
+    code: StatusType | None = None
 
     @property
     def position(self) -> int:
@@ -95,7 +96,7 @@ class ParseError:
             "expected": self.expected,
             "message": self.message,
             "partial_args": dict(self.partial_args),
-            "code": self.code,
+            "code": self.code.name if self.code is not None else None,
         }
 
     as_dict = to_dict

@@ -248,7 +248,7 @@ class LoggerHandler:
         if len(message) > 1 and isinstance(message[0], str) and "%" in message[0]:
             try:
                 return f"{caller}: {message[0] % tuple(message[1:])}"
-            except TypeError, ValueError:
+            except (TypeError, ValueError):
                 # A malformed diagnostic should still be visible rather than
                 # raising a second exception while reporting the first one.
                 pass

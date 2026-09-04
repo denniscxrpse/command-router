@@ -1,3 +1,4 @@
+from cmd_router.utils.status import *
 from _typeshed import Incomplete
 from cmd_router.lib.commands.context import (
     CommandContext as _CommandContext,
@@ -18,12 +19,11 @@ from cmd_router.lib.commands.typing import (
     String as _String,
     Word as _Word,
 )
-from cmd_router.utils.context import Error
 from typing import Final
 
 __all__ = ["CmdError", "CmdType", "CmdParse", "CmdNode"]
 
-CmdError: Final[type[Error]]
+CmdError: Final[type[StatusType]]
 
 class CmdType:
     ArgumentType = _ArgumentType

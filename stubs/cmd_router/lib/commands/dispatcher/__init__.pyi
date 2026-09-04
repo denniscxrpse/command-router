@@ -1,5 +1,6 @@
 from cmd_router.lib.commands.context import *
 from cmd_router.lib.commands.dispatcher.nodes import *
+from cmd_router.utils.status import *
 from _typeshed import Incomplete
 from collections.abc import Callable
 from typing import Any, Final
@@ -8,7 +9,7 @@ __all__ = ["ArgumentNode", "CommandNode", "LiteralNode", "RootNode", "tokenize",
 
 _Handler = Callable[..., Any]
 
-def tokenize(command: str) -> list[str] | int: ...
+def tokenize(command: str) -> list[str] | StatusType: ...
 
 class CommandDispatcher:
     root: Incomplete

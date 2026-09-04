@@ -2,7 +2,8 @@ from typing import cast
 
 import pytest
 
-from cmd_router.lib.commands import CmdError, CmdParse
+from cmd_router.lib.commands import CmdParse
+from cmd_router.utils.status import stat
 
 
 @pytest.mark.parametrize(
@@ -25,8 +26,12 @@ def test_tokenize_quoted_strings(command: str, expected: list[str]) -> None:
 
 
 def test_tokenize_unterminated_quote_returns_invalid_error() -> None:
-    assert CmdParse.Tokenize('say "hello') == CmdError.TokenizeInvalidError
+    result = CmdParse.Tokenize('say "hello')
+    assert isinstance(result, type(stat.TokenizeInvalidError()))
+    assert result.name == stat.TokenizeInvalidError().name
 
 
 def test_tokenize_unsupported_type_returns_friendly_error() -> None:
-    assert CmdParse.Tokenize(cast(str, 42)) == CmdError.TokenizeUnsupportedTypeError
+    result = CmdParse.Tokenize(cast(str, 42))
+    assert isinstance(result, type(stat.TokenizeUnsupportedTypeError()))
+    assert result.name == stat.TokenizeUnsupportedTypeError().name

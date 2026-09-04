@@ -32,9 +32,9 @@ from cmd_router.lib.commands.typing import greedy as _greedy_string
 from cmd_router.lib.commands.typing import integer as _integer
 from cmd_router.lib.commands.typing import string as _string
 from cmd_router.lib.commands.typing import word as _word
-from cmd_router.utils.context import Error, error
+from cmd_router.utils.status import *
 
-CmdError: Final[type[Error]] = error
+CmdError: Final[type[StatusType]] = Status
 
 
 @final

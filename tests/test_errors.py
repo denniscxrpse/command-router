@@ -11,27 +11,30 @@ from cmd_router.lib.commands.typing import ArgumentParseError
 
 # noinspection protected-member
 from cmd_router.lib.control.compiler import _compile_grammars
-from cmd_router.utils.context import error
 from cmd_router.utils.logger import log
+from cmd_router.utils.status import stat
 
 
 def _emit_callsite_log() -> None:
     log.info("logger callsite")
 
 
-def test_error_codes_do_not_classify_exceptions() -> None:
-    assert not hasattr(error, "exit_code")
-    assert not hasattr(error, "FatalError")
-    assert not hasattr(error, "FatalOSError")
+def test_status_namespace_exposes_expected_members() -> None:
+    assert hasattr(stat, "Abort")
+    assert hasattr(stat, "Success")
+    assert hasattr(stat, "Interrupted")
+    assert not hasattr(stat, "exit_code")
+    assert not hasattr(stat, "FatalError")
+    assert not hasattr(stat, "FatalOSError")
 
 
-def test_cmd_error_exposes_codes_and_argument_errors() -> None:
-    assert CmdError is error
-    assert CmdError.ArgumentParseError is ArgumentParseError
-    assert CmdError.ArgumentParseError.__name__ == "ArgumentParseError"
+def test_cmd_error_aliases_status_with_argument_error() -> None:
+    assert issubclass(type(stat.Abort()), CmdError)
+    assert stat.ArgumentParseError is ArgumentParseError
+    assert stat.ArgumentParseError.__name__ == "ArgumentParseError"
 
 
-def test_main_logs_exception_message_and_returns_abort(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_main_logs_exception_message_and_returns_abort_name(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(entrypoint, "init_flags", lambda **_kwargs: None)
 
     def fail() -> None:
@@ -41,7 +44,7 @@ def test_main_logs_exception_message_and_returns_abort(monkeypatch: pytest.Monke
     messages: list[object] = []
     monkeypatch.setattr(entrypoint.log, "critical", lambda *message: messages.extend(message))
 
-    assert entrypoint.main() == error.Abort
+    assert entrypoint.main() == stat.Abort().name
     assert messages == ["bad value"]
 
 

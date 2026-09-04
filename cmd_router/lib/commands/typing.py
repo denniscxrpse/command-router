@@ -26,7 +26,7 @@ __all__ = (
 from enum import StrEnum, auto
 from typing import ClassVar, Final, Generic, TypeVar, final
 
-from cmd_router.utils.context import error
+from cmd_router.utils.status import stat
 
 _ValueT = TypeVar("_ValueT")
 
@@ -42,7 +42,7 @@ class _NamedT(StrEnum):
     GREEDY_STR = auto()
 
 
-ArgumentParseError = error.ArgumentParseError
+ArgumentParseError = stat.ArgumentParseError
 
 
 class ArgumentType(Generic[_ValueT]):  # noqa: UP046
@@ -51,9 +51,19 @@ class ArgumentType(Generic[_ValueT]):  # noqa: UP046
     name: ClassVar[_NamedT] = _NamedT.UNSET
     greedy: ClassVar[bool] = False
 
-    def parse(self, value: str) -> _ValueT | ArgumentParseError:
+    def parse(self, value: str) -> _ValueT | object:
         """Convert *value* into the argument's Python representation."""
-        return value  # ty: ignore[invalid-return-type]
+        return value
+
+    @property
+    def is_greedy(self) -> bool:
+        """Whether this argument consumes the rest of the command."""
+        return self.greedy
+
+    @property
+    def get_name(self) -> str:
+        """Return the name of this argument type."""
+        return self.name.value
 
 
 @final
@@ -70,9 +80,18 @@ class Int(ArgumentType[int]):
     name = _NamedT.INT
 
     def parse(self, value: str) -> int | ArgumentParseError:
-        digits = value[1:] if value[:1] in ("+", "-") else value
-        if not digits or any(character not in "0123456789" for character in digits):
+        """Convert *value* into an integer.
+
+        Returns an ``ArgumentParseError`` if the value is not a valid integer.
+        """
+        # value.startswith is optimized in C and more readable
+        digits = value[1:] if value.startswith(("+", "-")) else value
+
+        # isascii() ensures strictly 0-9, rejecting unicode numbers
+        # isdecimal() ensures they are valid base-10 numbers
+        if not digits or not digits.isascii() or not digits.isdecimal():
             return ArgumentParseError("expected an integer", self.name)
+
         return int(value)
 
 
