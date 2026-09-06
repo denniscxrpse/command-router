@@ -146,8 +146,6 @@ class ControlResult:
 
     def __post_init__(self) -> None:
         """Fill the response aliases without changing existing constructors."""
-        if self.data is _UNSET:
-            self.__set_attr__("data", self.value)
         if self.error_payload is _UNSET:
             response_error: Any = self.error
             if response_error is None:
@@ -166,7 +164,7 @@ class ControlResult:
     """Exact value supplied by the caller, before parsing or prefix handling."""
     command: str | None = None
     """Matched command name, without the command prefix."""
-    value: Any = None
+    value: Any = _UNSET
     """Value returned by the action, or pass-through input value."""
     parse_result: CmdParse.Result | None = None
     """Original parser result before control overrides."""
@@ -180,10 +178,13 @@ class ControlResult:
     """Human-readable explanation of the result."""
     exception: str | None = None
     """Formatted exception details from a failed action."""
-    data: Any = _UNSET
-    """Primary response data, defaulting to the legacy ``value`` field."""
     error_payload: Any = _UNSET
     """Response error payload; arbitrary caller-provided values are preserved. Do not confuse with ``error``."""
+
+    @property
+    def data(self) -> Any:
+        """Return the primary response data."""
+        return self.value if self.value is not _UNSET else self.error_payload
 
     @property
     def is_success(self) -> bool:
@@ -201,7 +202,7 @@ class ControlResult:
     @property
     def result(self) -> Any:
         """Return the action result value."""
-        return self.data
+        return self.value
 
     @property
     def suggestions(self) -> list[str] | None:
@@ -212,35 +213,40 @@ class ControlResult:
         return []
 
     def to_response(self) -> dict[str, Any]:
-        """Return the compact ``data``/``err`` response written to stderr."""
+        """Return the compact contract mapping written to stderr.
+
+        Always contains exactly ``ok``, ``input``, ``value``,
+        ``suggestions``, ``error``, and ``message``.  Missing values are
+        ``None`` rather than omitted so consumers can rely on a fixed shape
+        for both plain dictionaries and JSON.
+        """
         return self._all_data(response_only=True)
 
     def to_dict(self) -> dict[str, Any]:
-        """Return a transport-friendly result mapping."""
-        data = self._all_data()
-        if self.context is not None:
-            data["parsed_args"] = dict(self.context.args)
-        if self.error is not None:
-            data["error"] = self.error.to_dict()
-        if self.message:
-            data["message"] = self.message
-        if self.exception is not None:
-            data["exception"] = self.exception
-        return data
+        """Return the full contract mapping.
+
+        Always contains exactly ``ok``, ``code``, ``kind``, ``input``,
+        ``command``, ``value``, ``suggestions``, ``parsed_args``, ``error``,
+        ``message``, and ``exception``.  Missing values are ``None`` rather
+        than omitted so consumers can rely on a fixed shape for both plain
+        dictionaries and JSON.
+        """
+        return self._all_data()
 
     def to_json(self, is_response: bool = False):
         """Serialize the result to JSON.
 
         Args:
-            is_response: If True, returns a compact JSON response containing only
-                ``data``, ``err``, and ``suggestions`` fields suitable for client
-                consumption. If False (default), returns the full result dictionary
-                with all diagnostic fields including ``ok``, ``code``, ``kind``,
-                ``parsed_args``, ``error``, ``message``, and ``exception``.
+            is_response: If True, returns the compact contract JSON containing
+                ``ok``, ``input``, ``value``, ``suggestions``, ``error``, and
+                ``message``. If False (default), returns the full contract JSON
+                with all diagnostic fields including ``code``, ``kind``,
+                ``command``, ``parsed_args``, and ``exception``.
 
         Returns:
             A JSON string representing either the compact response format or the
-            complete result structure.
+            complete result structure. Both shapes keep every contract key and
+            use ``null`` for absent values.
         """
         return json.dumps(self.to_response() if is_response else self.to_dict())
 
@@ -258,22 +264,29 @@ class ControlResult:
         return value
 
     def _all_data(self, response_only: bool = False) -> dict[str, Any]:
+        value: Any = None if self.value is _UNSET else self.value
+        message: str | None = self.message or None
         if response_only:
             return {
-                "data": self.data,
-                "err": self._transport_value(self.error_payload),
+                "ok": self.ok,
+                "input": self.input,
+                "value": value,
                 "suggestions": self.suggestions,
+                "error": self._transport_value(self.error_payload),
+                "message": message,
             }
         return {
             "ok": self.ok,
             "code": self.code.name,
-            "kind": self.kind,
+            "kind": str(self.kind),
             "input": self.input,
             "command": self.command,
-            "value": self.value,
-            "data": self.data,
-            "err": self._transport_value(self.error_payload),
+            "value": value,
             "suggestions": self.suggestions,
+            "parsed_args": dict(self.context.args) if self.context is not None else None,
+            "error": self.error.to_dict() if self.error is not None else None,
+            "message": message,
+            "exception": self.exception,
         }
 
 

@@ -8,3 +8,4 @@
 !stubs/cmd_router
 !stubs/**/*.pyi
 fixtures/http
+fixtures/test

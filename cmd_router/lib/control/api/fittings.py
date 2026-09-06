@@ -78,6 +78,7 @@ from dataclasses import dataclass
 from typing import Any, ClassVar, Self
 
 from cmd_router.utils.logger import log
+from cmd_router.utils.status import *
 
 __all__ = ("FixturesContextHolder", "FixturesSetup", "FixtureInitializationError")
 
@@ -85,16 +86,16 @@ _Action = Callable[..., Any]
 _default_pfx = "/"
 
 
-class FixtureInitializationError(RuntimeError):
-    """Raised when a fixture's lifecycle flags disagree with the expected state.
+FixtureInitializationError = stat.FixtureInitializationError
+"""Raised when a fixture's lifecycle flags disagree with the expected state.
 
-    The control layer turns this exception into a structured
-    ``ControlInitialization`` failure so callers receive a single, consistent
-    result type for both grammar and fixture problems.  Raising it from the
-    ``fittings`` module keeps the rule in one place: any caller, fixture, or
-    test that bypasses the expected construction order can surface a single
-    diagnostic that names the missing step.
-    """
+The control layer turns this exception into a structured
+``ControlInitialization`` failure so callers receive a single, consistent
+result type for both grammar and fixture problems.  Raising it from the
+``fittings`` module keeps the rule in one place: any caller, fixture, or
+test that bypasses the expected construction order can surface a single
+diagnostic that names the missing step.
+"""
 
 
 @dataclass(slots=True)
@@ -118,7 +119,7 @@ class _FixtureInnerContext:
         _FixtureInnerContext.did_fixture_setup_ever_initialize = False  # ty: ignore[invalid-assignment]
 
     @staticmethod
-    def validate() -> None:
+    def validate() -> None | Status:
         """Raise if any fixture-lifecycle flag reports a missing initialization.
 
         Each flag flips to ``True`` only after the corresponding ``__init__``
@@ -126,16 +127,20 @@ class _FixtureInnerContext:
         holder and setup, so a stale flag from a previous fixture or the
         default control setup does not mask an unfinished fixture.
         """
-        if not _FixtureInnerContext.did_context_holder_ever_initialize:
-            raise FixtureInitializationError(
+        fic = _FixtureInnerContext
+        if not (fic.did_context_holder_ever_initialize, fic.did_fixture_setup_ever_initialize):
+            log.critical("very rare error! is the fixture lifecycle order correct? are we somehow racing?")
+        if not fic.did_context_holder_ever_initialize:
+            return FixtureInitializationError(
                 "FixturesContextHolder did not finish initialization; "
                 "the context_holder factory must call super().__init__() before returning."
             )
-        if not _FixtureInnerContext.did_fixture_setup_ever_initialize:
-            raise FixtureInitializationError(
+        if not fic.did_fixture_setup_ever_initialize:
+            return FixtureInitializationError(
                 "FixturesSetup did not finish initialization; "
                 "the SetupFixtures class must call super().__init__() and finish construction."
             )
+        return None
 
 
 class FixturesContextHolder:

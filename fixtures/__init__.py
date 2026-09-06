@@ -36,11 +36,11 @@ methods to it, and map grammar command names to those methods in
 ``fixtures/``; this Python module supplies behavior and setup only.
 """
 
+__all__ = ("FixturesContextHolder", "SetupFixtures", "context_holder")
+
 from typing import Any, final
 
 from cmd_router.fittings import Fixtures as _Fixtures
-
-__all__ = ("FixturesContextHolder", "SetupFixtures", "context_holder")
 
 
 @final

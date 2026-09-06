@@ -16,16 +16,15 @@ and fixture initializations.
 
 __all__ = (
     "paths",
-    "Error",
-    # "error",
     "uctx",
 )
 
-from dataclasses import dataclass
-from enum import IntEnum
+from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Final, final
-from warnings import deprecated
+from typing import Any, Final
+
+from cmd_router.lib.control.api.result import ControlResultKinds
+from cmd_router.utils.status import Status
 
 
 @dataclass
@@ -47,41 +46,96 @@ class _Paths:
     LOGS_DIR: Path = ROOT / "logs"
 
 
-@final
-@deprecated(
-    "Use the `Err` namespace instead of `Error` enum. This will be removed in the future, "
-    "once the `Err` namespace is fully implemented (or certain features are working without this).",
-    category=DeprecationWarning,
-)
-class Error(IntEnum):
-    def __str__(self) -> str:
-        return self.name
-
-    Abort = -1
-    Succeed = 0
-    DefaultGrammarError = 1
-    GrammarLoadError = 2
-    InvalidGrammarError = 3
-    UnsupportedGrammarFormatError = 4
-    TokenizeInvalidError = 5
-    TokenizeUnsupportedTypeError = 6
-    ControlNotInitializedError = 7
-    ControlFixtureError = 8
-    ControlGrammarError = 9
-    ControlActionError = 10
-    Interrupted = 18
-
-    @dataclass(frozen=True, slots=True)
-    class ArgumentParseError:
-        """Describe why an argument value could not be parsed."""
-
-        message: str
-        expected: str
-
-
 @dataclass(frozen=True, slots=True)
 class _UniversalContext:
     """Namespace containing shared constants and read-only observations."""
+
+    INTERNAL_JSON_CONTRACT: Final[dict[str, Any]] = field(
+        default_factory=lambda: {
+            "ok": bool,  # [bool]
+            "code": Status,  # code.name [_StatusContract]
+            "kind": ControlResultKinds,  # [ControlResultKinds]
+            "input": ...,  # [stdin?/Any]
+            "command": str,  # [str]
+            "value": ...,  # [Any]
+            "suggestions": [str, ...],  # [list[str]]
+            "parsed_args": None,  # context.args [CommandContext|null]
+            "error": {...},  # error.to_dict [ParseError]
+            "message": None,  # [str|null]
+            "exception": None,  # [str|null]
+        }
+    )
+    """Full response contract returned by ``ControlResult.to_dict``.
+
+    Every mapping contains exactly these keys, in both plain dictionaries
+    and JSON. Absent values are ``None`` (``null`` in JSON) instead of being
+    omitted, so consumers can rely on a fixed shape:
+
+    - ``ok`` (bool): whether the attempt succeeded.
+    - ``code`` (str): ``code.name`` status string, e.g. ``"Success"``.
+    - ``kind`` (str): result stage, e.g. ``"COMMAND"``, ``"INPUT"``,
+      ``"UNEXPECTED_TOKEN"``. Stored as ``str`` so enums stay
+      JSON-serializable.
+    - ``input`` (Any): exact caller input, passed through unvalidated.
+    - ``command`` (str|null): matched command without prefix, or ``None``
+      for non-command ``INPUT`` results.
+    - ``value`` (Any): action return value, or pass-through input for
+      ``INPUT``. ``None`` when no action produced a value. Passed through
+      as-is; the API never parses, validates, or converts it.
+    - ``suggestions`` (list[str]|null): completion hints, or ``None`` when
+      suggestions are disabled.
+    - ``parsed_args`` (dict|null): ``context.args`` when a parse produced
+      arguments, else ``None``.
+    - ``error`` (dict|null): ``error.to_dict()`` for parse failures, else
+      ``None``. The nested dict is itself fixed-shape and JSON-serializable.
+    - ``message`` (str|null): human-readable detail, or ``None`` when there
+      is nothing to report. A valid request such as ``/help advancement``
+      therefore returns ``"message": None`` instead of dropping the key.
+    - ``exception`` (str|null): formatted ``"Type: detail"`` for action
+      failures, else ``None``.
+
+    Valid requests (``ok=True``) carry the result in ``value`` with
+    ``error``/``exception`` as ``None``; ``message`` is usually ``None``.
+    Invalid requests (``ok=False``) keep ``value`` as ``None`` (unless a
+    partial value exists), describe the failure in ``message``, and expose
+    structured detail in ``error`` and/or ``exception``. In both cases all
+    eleven keys are present.
+    """
+
+    INTERNAL_JSON_CONTRACT_COMPACT: Final[dict[str, Any]] = field(
+        default_factory=lambda: {
+            "ok": bool,  # [bool]
+            "input": ...,  # [stdin?/Any]
+            "value": ...,  # [Any]
+            "suggestions": [str, ...],  # [list[str]]
+            "error": Any,  # _transport_value(...) [Any]
+            "message": None,  # [str|null]
+        }
+    )
+    """Compact response contract returned by ``ControlResult.to_response``.
+
+    Every mapping contains exactly these keys, in both plain dictionaries
+    and JSON. Absent values are ``None`` (``null`` in JSON) instead of being
+    omitted. It carries the outcome without the full diagnostic metadata,
+    which saves bytes and CPU cycles on the hot stderr path:
+
+    - ``ok`` (bool): whether the attempt succeeded.
+    - ``input`` (Any): exact caller input, passed through unvalidated.
+    - ``value`` (Any): action return value (or pass-through input),
+      ``None`` when absent. Passed through as-is.
+    - ``suggestions`` (list[str]|null): completion hints, or ``None`` when
+      disabled.
+    - ``error`` (Any): transported ``error_payload`` — a ``ParseError``
+      dict, an exception string, or another caller payload; ``None`` when
+      there is no error.
+    - ``message`` (str|null): human-readable detail, or ``None`` when there
+      is nothing to report.
+
+    Valid requests (``ok=True``) return the outcome in ``value`` with
+    ``error`` as ``None`` and ``message`` usually ``None``. Invalid requests
+    (``ok=False``) return the failure in ``error``/``message`` with ``value``
+    as ``None``. In both cases all six keys are present.
+    """
 
     # Constant values used while validating grammar files.
     VALID_SCHEMAS: Final[frozenset[int]] = frozenset({1})
@@ -94,5 +148,4 @@ class _UniversalContext:
 
 
 paths: Final[_Paths] = _Paths()
-# error: Final[type[Error]] = Error
 uctx: Final[_UniversalContext] = _UniversalContext()

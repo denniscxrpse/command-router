@@ -41,10 +41,10 @@ A minimal fixture looks like this:
 ```python
 from typing import Any
 
-from cmd_router.api import FixturesContextHolder, FixturesSetup
+from cmd_router.fittings import Fixtures
 
 
-class Context(FixturesContextHolder):
+class Context(Fixtures.ContextHolder):
     def say(self, **arguments: Any) -> dict[str, Any]:
         return self._record("say", arguments)
 
@@ -52,7 +52,7 @@ class Context(FixturesContextHolder):
 context_holder = Context
 
 
-class SetupFixtures(FixturesSetup):
+class SetupFixtures(Fixtures.Setup):
     def __init__(self) -> None:
         super().__init__()
         self.cmd_prefix = "/"

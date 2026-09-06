@@ -11,18 +11,19 @@ from cmd_router.utils.status import *
 
 def main() -> Status:
     """Start the command router and return its process exit status name."""
-    log.info("starting commands router")
+    log.info("starting command router")
+    ultima: Status
     try:
-        CommandRouter()
+        ultima = CommandRouter().main
     except KeyboardInterrupt:
         log.warning("interrupted; shutting down")
         return stat.Interrupted()
     except Exception as exception:
-        log.debug("an unrecoverable startup exception was raised")
+        log.debug("unrecoverable startup exception was raised")
         log.critical(str(exception))
         return stat.Abort()
-    log.info("commands router exited successfully")
-    return stat.Success()
+    log.info("command router exited with code %s (%s)", ultima.code, ultima.name)
+    return ultima
 
 
 if __name__ == "__main__":

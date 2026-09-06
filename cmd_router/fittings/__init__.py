@@ -19,7 +19,7 @@ __all__ = ("Fixtures",)
 from dataclasses import dataclass
 from typing import Final, final
 
-from cmd_router.lib.control import FixturesContextHolder, FixturesSetup
+from cmd_router.lib.control import *
 
 
 @final
@@ -27,5 +27,11 @@ from cmd_router.lib.control import FixturesContextHolder, FixturesSetup
 class Fixtures:
     # Do not instantiate these final values; they are built at runtime
     # as parents of whatever there is in ``fixtures/__init__.py``.
+
     ContextHolder: Final[type[FixturesContextHolder]] = FixturesContextHolder
     Setup: Final[type[FixturesSetup]] = FixturesSetup
+
+    @final
+    @dataclass(frozen=True)
+    class Err:
+        InitError: Final[type[FixtureInitializationError]] = FixtureInitializationError

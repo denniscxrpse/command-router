@@ -89,12 +89,18 @@ class ParseError:
         return dict(self.partial_args)
 
     def to_dict(self) -> dict[str, Any]:
-        """Return the failure details in a transport-friendly mapping."""
+        """Return the failure details in a transport-friendly mapping.
+
+        Always contains every key and uses plain JSON-serializable values:
+        ``kind`` and ``code`` are strings (or ``None``), ``expected`` is a
+        list, and an empty ``message`` is returned as ``None`` so consumers
+        see a fixed ``str|null`` shape in both dictionaries and JSON.
+        """
         return {
-            "kind": self.kind,
+            "kind": str(self.kind),
             "token_index": self.token_index,
-            "expected": self.expected,
-            "message": self.message,
+            "expected": list(self.expected),
+            "message": self.message or None,
             "partial_args": dict(self.partial_args),
             "code": self.code.name if self.code is not None else None,
         }

@@ -100,6 +100,14 @@ class _Control:
             deeper is not None,
         )
 
+    def __enter__(self) -> Self:
+        """Return this control surface to a context manager."""
+        return self
+
+    def __exit__(self, *_arguments: Any) -> None:
+        """Close resources when leaving a context manager."""
+        self.close()
+
     @property
     def context(self) -> FixturesSetup:
         """Return the active fixture setup through the short context alias."""
@@ -184,74 +192,6 @@ class _Control:
         )
         return result
 
-    def _initialize_fixture(self, fixture: ModuleType | str | Path) -> ControlInitialization:
-        """Load and initialize a ``context_holder``/``SetupFixtures`` fixture.
-
-        The holder is created first.  Its instance is then injected into the
-        setup class's ``logic`` class attribute before the setup constructor is
-        called, which lets a setup subclass build action mappings from bound
-        holder methods in its own ``__init__``.  The active control state is
-        changed only after both objects have been created successfully.
-
-        The old ``setup``/``FixtureGrammarLogic`` hook pair is intentionally no
-        longer used: those hooks depended on mutable ``uctx`` settings that
-        were removed from the API.  The returned initialization error names the
-        new contract when a legacy or incomplete module is supplied.
-        """
-        log.info("loading fixture")
-        log.debug("fixture source=%r", fixture)
-        if not self._stderr_locked:
-            log_handler.lock_stderr()
-            self._stderr_locked = True
-
-        try:
-            module = _load_fixture_module(fixture, id(self))
-            log.debug("fixture module loaded (%s)", module.__name__)
-
-            holder_factory = getattr(module, "context_holder", None)
-            setup_factory = getattr(module, "SetupFixtures", None)
-
-            if not isinstance(holder_factory, type) or not issubclass(holder_factory, FixturesContextHolder):
-                raise TypeError("fixture must define context_holder as a FixturesContextHolder child class")
-            if not isinstance(setup_factory, type) or not issubclass(setup_factory, FixturesSetup):
-                raise TypeError("fixture must define SetupFixtures as a FixturesSetup child class")
-
-            _FixtureInnerContext.reset()
-            logic = holder_factory()
-            log.debug("fixture context holder created (%s)", type(logic).__name__)
-
-            setup_factory.logic = logic
-            setup = setup_factory()
-            log.debug("fixture setup created (%s)", type(setup).__name__)
-
-            _FixtureInnerContext.validate()
-            log.debug("fixture initialization flags verified (holder=True, setup=True)")
-
-            self.deeper_context.attach_fixture(module, logic, setup)
-        except Exception as exception:
-            return self._initialization_error("fixture initialization failed", exception, stat.ControlFixtureError())
-
-        log.info("fixture ready (%s)", module.__name__)
-        return ControlInitialization(True, stat.Success(), "fixture initialized")
-
-    def _initialization_error(
-        self,
-        message: str,
-        exception: Exception | None = None,
-        code: Status = _DEFAULT_INIT_ERROR,
-    ) -> ControlInitialization:
-        """Create and remember an initialization failure."""
-        result = ControlInitialization(
-            False,
-            code,
-            message,
-            exception=None if exception is None else f"{type(exception).__name__}: {exception}",
-        )
-        self.deeper_context.last_initialization = result
-        detail = f": {result.exception}" if result.exception is not None else ""
-        log.error("initialization failed (%s)%s", message, detail)
-        return result
-
     def close(self) -> None:
         """Release the fixture stderr wrapper."""
         if self._stderr_locked:
@@ -259,26 +199,16 @@ class _Control:
             self._stderr_locked = False
             log.debug("released fixture stderr wrapper")
 
-    def __enter__(self) -> Self:
-        """Return this control surface to a context manager."""
-        return self
-
-    def __exit__(self, *_arguments: Any) -> None:
-        """Close resources when leaving a context manager."""
-        self.close()
-
     def execute(self, command: Any) -> ControlResult:
         """Execute one command synchronously."""
         log.debug("execute requested (input_type=%s)", type(command).__name__)
         try:
             asyncio.get_running_loop()
         except RuntimeError:
-            log.debug("no running event loop; bridging through execute_async")
+            log.warning("no running event loop; bridging through execute_async")
             return asyncio.run(self.execute_async(command))
         log.debug("running inside an event loop; using synchronous action path")
         return self._execute_sync(command)
-
-    dispatch = execute
 
     async def execute_async(self, command: Any) -> ControlResult:
         """Execute one command while serializing async actions."""
@@ -332,8 +262,79 @@ class _Control:
                 )
             )
 
-    async_dispatch = execute_async
+    dispatch = execute
+    dispatch_async = execute_async
     aexecute = execute_async
+
+    def _initialize_fixture(self, fixture: ModuleType | str | Path) -> ControlInitialization:
+        """Load and initialize a ``context_holder``/``SetupFixtures`` fixture.
+
+        The holder is created first.  Its instance is then injected into the
+        setup class's ``logic`` class attribute before the setup constructor is
+        called, which lets a setup subclass build action mappings from bound
+        holder methods in its own ``__init__``.  The active control state is
+        changed only after both objects have been created successfully.
+
+        The old ``setup``/``FixtureGrammarLogic`` hook pair is intentionally no
+        longer used: those hooks depended on mutable ``uctx`` settings that
+        were removed from the API.  The returned initialization error names the
+        new contract when a legacy or incomplete module is supplied.
+        """
+        log.info("loading fixture")
+        log.debug("fixture source=%r", fixture)
+        if not self._stderr_locked:
+            log_handler.lock_stderr()
+            self._stderr_locked = True
+
+        try:
+            module = _load_fixture_module(fixture, id(self))
+            log.debug("fixture module loaded (%s)", module.__name__)
+
+            holder_factory = getattr(module, "context_holder", None)
+            setup_factory = getattr(module, "SetupFixtures", None)
+
+            if not isinstance(holder_factory, type) or not issubclass(holder_factory, FixturesContextHolder):
+                raise TypeError("fixture must define context_holder as a FixturesContextHolder child class")
+            if not isinstance(setup_factory, type) or not issubclass(setup_factory, FixturesSetup):
+                raise TypeError("fixture must define SetupFixtures as a FixturesSetup child class")
+
+            _FixtureInnerContext.reset()
+            logic = holder_factory()
+            log.debug("fixture context holder created (%s)", type(logic).__name__)
+
+            setup_factory.logic = logic
+            setup = setup_factory()
+            log.debug("fixture setup created (%s)", type(setup).__name__)
+
+            valid = _FixtureInnerContext.validate()
+            if isinstance(valid, Status):
+                return self._initialization_error("fixture initialization failed", None, valid)
+            log.debug("fixture initialization flags verified (holder=True, setup=True)")
+
+            self.deeper_context.attach_fixture(module, logic, setup)
+        except Exception as exception:
+            return self._initialization_error("fixture initialization failed", exception, stat.ControlFixtureError())
+
+        log.info("fixture ready (%s)", module.__name__)
+        return ControlInitialization(True, stat.Success(), "fixture initialized")
+
+    def _initialization_error(
+        self,
+        message: str,
+        exception: Exception | None = None,
+        code: Status = _DEFAULT_INIT_ERROR,
+    ) -> ControlInitialization:
+        """Create and remember an initialization failure."""
+        result = ControlInitialization(
+            False,
+            code,
+            message,
+            exception=None if exception is None else f"{type(exception).__name__}: {exception}",
+        )
+        self.deeper_context.last_initialization = result
+        detail = f": {result.exception}" if result.exception is not None else ""
+        log.critical("initialization failed (%s)%s", message, detail)
+        return result
 
     def _execute_sync(self, command: Any) -> ControlResult:
         """Execute a prepared command in a synchronous context."""

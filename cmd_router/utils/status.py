@@ -4,8 +4,8 @@
 #  All rights reserved.
 
 __all__ = (
-    "IStatus",
     "Status",
+    "IStatus",
     "stat",
 )
 
@@ -17,7 +17,7 @@ from typing import Final, final
 class _StatusContract:
     _MESSAGE: str | None = None
     _EXPECTED: str | None = None
-    _code: int | None = None
+    _code: int = 255  # -1
 
     def __str__(self) -> str:
         return self.name
@@ -40,11 +40,9 @@ class _StatusContract:
 
         By consequence, the ``code`` property is unreadable.
         """
-        for klass in type(self).__mro__:
-            if "_code" in klass.__dict__:
-                value = klass.__dict__["_code"]
-                if isinstance(value, int):
-                    return value
+        for mro in type(self).__mro__:
+            if "_code" in mro.__dict__:
+                return mro.__dict__["_code"]
         return -1
 
     @property
@@ -67,38 +65,41 @@ IStatus: Final[type[Status]] = _StatusContract
 class _StatusNS:
     """Status namespace for the ``cmd_router`` package."""
     @final
-    class Success(_StatusContract):
+    class Success(IStatus):
         _code=0;...
     @final
-    class Abort(_StatusContract):
-        _code=1;...
+    class Abort(IStatus):
+        _code=6;...
     @final
-    class Interrupted(_StatusContract):
+    class Interrupted(IStatus):
         _code=2;...
     @final
-    class DefaultGrammarError(_StatusContract): ...
+    class ImpossibleControlState(IStatus):
+        """Raised when the unreachable control layer is somehow reached."""
     @final
-    class GrammarLoadError(_StatusContract): ...
+    class DefaultGrammarError(IStatus): ...
     @final
-    class InvalidGrammarError(_StatusContract): ...
+    class GrammarLoadError(IStatus): ...
     @final
-    class UnsupportedGrammarFormatError(_StatusContract): ...
+    class InvalidGrammarError(IStatus): ...
     @final
-    class TokenizeInvalidError(_StatusContract): ...
+    class UnsupportedGrammarFormatError(IStatus): ...
     @final
-    class TokenizeUnsupportedTypeError(_StatusContract): ...
+    class TokenizeInvalidError(IStatus): ...
     @final
-    class ControlNotInitializedError(_StatusContract): ...
+    class TokenizeUnsupportedTypeError(IStatus): ...
     @final
-    class ControlFixtureError(_StatusContract): ...
+    class ControlNotInitializedError(IStatus): ...
     @final
-    class ControlGrammarError(_StatusContract): ...
+    class ControlFixtureError(IStatus): ...
     @final
-    class ControlActionError(_StatusContract): ...
+    class ControlGrammarError(IStatus): ...
     @final
-    class ArgumentParseError(_StatusContract): ...
+    class ControlActionError(IStatus): ...
     @final
-    class FixtureInitializationError(_StatusContract):
+    class ArgumentParseError(IStatus): ...
+    @final
+    class FixtureInitializationError(IStatus):
         """Raised when a fixture's lifecycle flags disagree with the expected state.
 
         The control layer turns this exception into a structured

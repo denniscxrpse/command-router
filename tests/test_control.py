@@ -11,6 +11,7 @@ from cmd_router.lib.control.api.fittings import (
     FixtureInitializationError,
     _FixtureInnerContext,
 )
+from cmd_router.lib.control.api.result import _UNSET
 from cmd_router.utils.logger import log
 from cmd_router.utils.status import stat
 
@@ -46,6 +47,11 @@ def test_control_returns_structured_results_and_keeps_deeper_state() -> None:
 
 
 def test_control_emits_compact_data_and_error_responses_to_stderr(capsys: pytest.CaptureFixture[str]) -> None:
+    import ast
+    import json
+
+    from cmd_router.utils.context import uctx
+
     runner = Control()
     try:
         runner.deeper_context.command_action = {"tell": lambda **arguments: arguments}
@@ -53,21 +59,56 @@ def test_control_emits_compact_data_and_error_responses_to_stderr(capsys: pytest
 
         failed = runner.execute("/tell Alex")
         failure_output = capsys.readouterr().err
-        assert failed.data is None
+        assert failed.value is _UNSET
         assert failed.error_payload is failed.error
         assert failed.error is not None
         assert failed.error.partial_args == {"target": "Alex"}
-        assert "'data': None" in failure_output
-        # noinspection string-conversion-without-dunder-method
-        assert f"'err': {{'kind': {ControlResultKinds.UNEXPECTED_COMMAND!r}" in failure_output
+        assert "'data'" not in failure_output
+        assert "'kind': 'UNEXPECTED_COMMAND'" in failure_output
         assert "'partial_args': {'target': 'Alex'}" in failure_output
 
+        failure_response = ast.literal_eval(failure_output.strip())
+        assert set(failure_response) == set(uctx.INTERNAL_JSON_CONTRACT_COMPACT)
+        assert failure_response["ok"] is False
+        assert failure_response["input"] == "/tell Alex"
+        assert failure_response["value"] is None
+        assert failure_response["message"] == "expected one of: <message...>"
+
+        failure_dict = failed.to_dict()
+        assert set(failure_dict) == set(uctx.INTERNAL_JSON_CONTRACT)
+        assert failure_dict["ok"] is False
+        assert failure_dict["command"] == "tell"
+        assert failure_dict["value"] is None
+        assert failure_dict["parsed_args"] is None
+        assert failure_dict["error"] is not None
+        assert failure_dict["message"] == "expected one of: <message...>"
+        assert failure_dict["exception"] is None
+        json.dumps(failure_dict)
+        json.dumps(failure_response)
+
         succeeded = runner.execute("/tell Alex hello")
-        assert succeeded.data == {"target": "Alex", "message": "hello"}
+        assert succeeded.value == {"target": "Alex", "message": "hello"}
         assert succeeded.error_payload is None
-        assert capsys.readouterr().err == (
-            "{'data': {'target': 'Alex', 'message': 'hello'}, 'err': None, 'suggestions': []}\n"
-        )
+        success_output = capsys.readouterr().err
+        success_response = ast.literal_eval(success_output.strip())
+        assert set(success_response) == set(uctx.INTERNAL_JSON_CONTRACT_COMPACT)
+        assert success_response == {
+            "ok": True,
+            "input": "/tell Alex hello",
+            "value": {"target": "Alex", "message": "hello"},
+            "suggestions": [],
+            "error": None,
+            "message": None,
+        }
+
+        success_dict = succeeded.to_dict()
+        assert set(success_dict) == set(uctx.INTERNAL_JSON_CONTRACT)
+        assert success_dict["message"] is None
+        assert success_dict["exception"] is None
+        assert success_dict["error"] is None
+        assert success_dict["parsed_args"] == {"target": "Alex", "message": "hello"}
+        json.dumps(success_dict)
+        json.dumps(success_response)
     finally:
         runner.close()
 
@@ -77,13 +118,20 @@ def test_control_result_preserves_explicit_data_and_error_payloads() -> None:
     kind = ControlResultKinds.COMMAND
     # noinspection unresolved-references
     kind.custom = "custom"
-    result = api.ControlResult(True, stat.Success(), kind.custom, None, data={"answer": 42}, error_payload=fallback)
+    result = api.ControlResult(True, stat.Success(), kind.custom, None, value={"answer": 42}, error_payload=fallback)
 
     assert isinstance(result.kind, ControlResultKinds)
     assert result.kind.value == "custom"
-    assert result.data == {"answer": 42}
+    assert result.value == {"answer": 42}
     assert result.error_payload is fallback
-    assert result.to_response() == {"data": result.data, "err": fallback, "suggestions": []}
+    assert result.to_response() == {
+        "ok": True,
+        "input": None,
+        "value": {"answer": 42},
+        "suggestions": [],
+        "error": fallback,
+        "message": None,
+    }
 
 
 def test_builtin_help_lists_commands_and_searches_a_specific_command() -> None:
@@ -259,8 +307,9 @@ def test_fixture_inner_context_validate_raises_when_holder_did_not_finish() -> N
     _FixtureInnerContext.reset()
     FixturesSetup(logic=object())
 
-    with pytest.raises(FixtureInitializationError, match="FixturesContextHolder did not finish initialization"):
-        _FixtureInnerContext.validate()
+    result = _FixtureInnerContext.validate()
+    assert isinstance(result, FixtureInitializationError)
+    assert "FixturesContextHolder did not finish initialization" in result.message
 
 
 def test_fixture_inner_context_validate_raises_when_setup_did_not_finish() -> None:
@@ -268,8 +317,9 @@ def test_fixture_inner_context_validate_raises_when_setup_did_not_finish() -> No
     _FixtureInnerContext.reset()
     FixturesContextHolder()
 
-    with pytest.raises(FixtureInitializationError, match="FixturesSetup did not finish initialization"):
-        _FixtureInnerContext.validate()
+    result = _FixtureInnerContext.validate()
+    assert isinstance(result, FixtureInitializationError)
+    assert "FixturesSetup did not finish initialization" in result.message
 
 
 def test_fixture_inner_context_validate_passes_when_both_flags_are_set() -> None:
@@ -291,8 +341,9 @@ def test_fixture_inner_context_reset_clears_stale_flags() -> None:
     assert _FixtureInnerContext.did_context_holder_ever_initialize is False
     assert _FixtureInnerContext.did_fixture_setup_ever_initialize is False
 
-    with pytest.raises(FixtureInitializationError, match="FixturesContextHolder did not finish initialization"):
-        _FixtureInnerContext.validate()
+    result = _FixtureInnerContext.validate()
+    assert isinstance(result, FixtureInitializationError)
+    assert "FixturesContextHolder did not finish initialization" in result.message
 
 
 def test_control_reports_control_fixture_error_when_holder_skips_super() -> None:
@@ -320,11 +371,10 @@ def test_control_reports_control_fixture_error_when_holder_skips_super() -> None
         initialized = runner.initialize({"say": "<message...>"}, fixture=module)
 
         assert not initialized.ok
-        assert initialized.code.name == stat.ControlFixtureError().name
+        assert initialized.code.name == stat.FixtureInitializationError().name
         assert initialized.message == "fixture initialization failed"
-        assert initialized.exception is not None
-        assert "FixtureInitializationError" in initialized.exception
-        assert "FixturesContextHolder did not finish initialization" in initialized.exception
+        assert initialized.exception is None
+        assert "FixturesContextHolder did not finish initialization" in initialized.code.message
         assert runner.deeper_context.fixture_module is None
     finally:
         runner.close()
@@ -355,11 +405,10 @@ def test_control_reports_control_fixture_error_when_setup_skips_super() -> None:
         initialized = runner.initialize({"say": "<message...>"}, fixture=module)
 
         assert not initialized.ok
-        assert initialized.code.name == stat.ControlFixtureError().name
+        assert initialized.code.name == stat.FixtureInitializationError().name
         assert initialized.message == "fixture initialization failed"
-        assert initialized.exception is not None
-        assert "FixtureInitializationError" in initialized.exception
-        assert "FixturesSetup did not finish initialization" in initialized.exception
+        assert initialized.exception is None
+        assert "FixturesSetup did not finish initialization" in initialized.code.message
         assert runner.deeper_context.fixture_module is None
     finally:
         runner.close()

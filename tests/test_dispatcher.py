@@ -175,9 +175,9 @@ def test_parse_error_exposes_failure_context_for_debugging() -> None:
     assert result.error.expectations == ("<message...>",)
     assert result.error.parsed_args == {"target": "Alex"}
     assert result.error.to_dict() == {
-        "kind": ControlResultKinds.UNEXPECTED_COMMAND,
+        "kind": "UNEXPECTED_COMMAND",
         "token_index": 2,
-        "expected": ("<message...>",),
+        "expected": ["<message...>"],
         "message": "expected one of: <message...>",
         "partial_args": {"target": "Alex"},
         "code": None,

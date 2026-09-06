@@ -19,6 +19,7 @@ __all__ = (
     "ControlDeeperContext",
     "FixturesContextHolder",
     "FixturesSetup",
+    "FixtureInitializationError",
 )
 
 from .api.context import *
