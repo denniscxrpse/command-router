@@ -109,9 +109,8 @@ Structural invariant:
     - “expected next” (literal candidates and/or argument types)
     - maybe: partial parsed args (for debugging)
 
-**Exit condition:** failing fixtures produce predictable, testable errors. The
-control API also emits a compact ``{"data": ..., "err": ...}`` response to
-stderr for every execution result.
+**Exit condition:** failing fixtures produce predictable, testable errors. The control API also emits a compact
+``{"data": ..., "err": ...}`` response to stderr for every execution result.
 
 ---
 
@@ -119,9 +118,9 @@ stderr for every execution result.
 
 **Goal:** “Minecraft-y” feel: partial input yields helpful completions.
 
-- [ ] `get_suggestions(input, cursor)` returning a list of suggestion strings (later you can add ranges/weights).
-- [ ] literal suggestions (based on current node)
-- [ ] argument suggestions via `ArgumentType.suggest` when available
+- [x] `get_suggestions(input, cursor)` returning a list of suggestion strings (later you can add ranges/weights).
+- [x] literal suggestions (based on current node)
+- [x] argument suggestions via `ArgumentType.suggest` when available
 
 **Exit condition:** e.g. `ga<TAB>` → `gamemode`, `gamemode <TAB>` → mode names.
 

@@ -178,6 +178,8 @@ def test_parse_error_exposes_failure_context_for_debugging() -> None:
         "kind": "UNEXPECTED_COMMAND",
         "token_index": 2,
         "expected": ["<message...>"],
+        "token": None,
+        "suggestions": ["<message...>"],
         "message": "expected one of: <message...>",
         "partial_args": {"target": "Alex"},
         "code": None,

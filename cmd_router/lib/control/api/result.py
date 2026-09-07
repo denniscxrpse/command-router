@@ -120,8 +120,8 @@ class ControlResult:
     - data: Primary response data for transport layers. Defaults to ``value`` if not explicitly
       provided.
     - error_payload: Response error payload for transport layers. Defaults to ``error``, then
-      ``exception``, then ``message`` (if not ok), otherwise ``None``. Arbitrary caller-provided
-      values are preserved.
+      ``exception``, then ``message`` (if not ok), otherwise ``None``. Stored as-is, but
+      ``to_response`` always transports it as ``dict|null`` via ``_transport_value``.
     """
 
     def __bool__(self) -> bool:
@@ -179,7 +179,7 @@ class ControlResult:
     exception: str | None = None
     """Formatted exception details from a failed action."""
     error_payload: Any = _UNSET
-    """Response error payload; arbitrary caller-provided values are preserved. Do not confuse with ``error``."""
+    """Response error payload; stored as-is but transported as ``dict|null``. Do not confuse with ``error``."""
 
     @property
     def data(self) -> Any:
@@ -206,19 +206,28 @@ class ControlResult:
 
     @property
     def suggestions(self) -> list[str] | None:
+        """Return top-level completion hints mirroring the parse error.
+
+        ``None`` when ``flags.no_suggestions`` disables hints. When a
+        ``ParseError`` is present, this delegates to its ``_get_suggestions``
+        (prefix-narrowed then Levenshtein-ranked ``expected`` with limit ``N``
+        from ``FixturesSetup.suggestions_set_current_size``); otherwise ``[]``.
+        """
         if flags.no_suggestions:
             return None
-
-        # TODO: implement suggestions logic
+        if self.error is not None:
+            return self.error._get_suggestions()
         return []
 
     def to_response(self) -> dict[str, Any]:
         """Return the compact contract mapping written to stderr.
 
         Always contains exactly ``ok``, ``input``, ``value``,
-        ``suggestions``, ``error``, and ``message``.  Missing values are
-        ``None`` rather than omitted so consumers can rely on a fixed shape
-        for both plain dictionaries and JSON.
+        ``suggestions``, ``error``, and ``message``. ``suggestions`` mirrors
+        ``error["suggestions"]`` when a parse error exists (``None`` when
+        disabled, else ``[]``). ``error`` is always ``dict|null`` via
+        ``_transport_value``. Missing values are ``None`` rather than omitted,
+        so consumers can rely on a fixed shape for both dicts and JSON.
         """
         return self._all_data(response_only=True)
 
@@ -226,8 +235,9 @@ class ControlResult:
         """Return the full contract mapping.
 
         Always contains exactly ``ok``, ``code``, ``kind``, ``input``,
-        ``command``, ``value``, ``suggestions``, ``parsed_args``, ``error``,
-        ``message``, and ``exception``.  Missing values are ``None`` rather
+        ``command``, ``value``, ``parsed_args``, ``error``, ``message``, and
+        ``exception``. ``error`` is ``dict|null`` (``ParseError.to_dict()``
+        with its ``suggestions`` list). Missing values are ``None`` rather
         than omitted so consumers can rely on a fixed shape for both plain
         dictionaries and JSON.
         """
@@ -255,13 +265,32 @@ class ControlResult:
     as_json = to_json
 
     @staticmethod
-    def _transport_value(value: Any) -> Any:
-        """Convert known structured errors while preserving arbitrary payloads."""
+    def _transport_value(value: Any) -> dict[str, Any] | None:
+        """Transport ``error_payload`` as ``dict|null`` for the compact contract.
+
+        - ``None``/``_UNSET`` becomes ``None``.
+        - ``ParseError`` becomes its ``to_dict()`` (which carries ``suggestions``).
+        - ``dict`` is returned as-is (already ``dict|null`` shaped).
+        - ``str`` (exception/message) becomes ``{"message": ..., "suggestions": ...}``
+          with ``suggestions`` as ``None`` when disabled else ``[]``.
+        - Any other caller payload becomes ``{"message": str(value), "suggestions": ...}``
+          so the ``error`` field factory is always a dictionary or ``None``.
+        """
         from cmd_router.lib.commands import CmdParse
 
+        if value is None or value is _UNSET:
+            return None
         if isinstance(value, CmdParse.Error):
             return value.to_dict()
-        return value
+        if isinstance(value, dict):
+            return value
+        if flags.no_suggestions:
+            wrapped_suggestions: list[str] | None = None
+        else:
+            wrapped_suggestions = []
+        if isinstance(value, str):
+            return {"message": value, "suggestions": wrapped_suggestions}
+        return {"message": str(value), "suggestions": wrapped_suggestions}
 
     def _all_data(self, response_only: bool = False) -> dict[str, Any]:
         value: Any = None if self.value is _UNSET else self.value
@@ -282,7 +311,6 @@ class ControlResult:
             "input": self.input,
             "command": self.command,
             "value": value,
-            "suggestions": self.suggestions,
             "parsed_args": dict(self.context.args) if self.context is not None else None,
             "error": self.error.to_dict() if self.error is not None else None,
             "message": message,

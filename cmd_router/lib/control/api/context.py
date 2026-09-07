@@ -5,7 +5,7 @@
 
 """Live state and configuration exposed by the control API.
 
-``DeeperLevelContext`` is the inspection and runtime-override surface behind
+``ControlDeeperContext`` is the inspection and runtime-override surface behind
 ``Control``.  It owns one ``FixturesSetup`` instance, the compiled dispatcher,
 the grammar mapping used to build that dispatcher, and the most recent results.
 The setup object is deliberately per-control: settings no longer live on the
@@ -45,16 +45,14 @@ _Action = Callable[..., Any]
 class ControlDeeperContext:
     """Expose live dispatcher, fixture, setup, and execution state.
 
-    The class remains private while ``DeeperLevelContext`` below is its public
-    alias.  A caller may construct it with a ``FixturesSetup`` for isolated
-    configuration, or omit the setup to receive a fresh default setup backed
-    by a harmless placeholder logic object.
+    A caller may construct with a ``FixturesSetup`` for isolated configuration,
+    or omit the setup to receive a fresh default setup backed by a harmless
+    placeholder logic object.
 
     ``fixture_module`` and ``fixture_logic`` are populated only after a
     successful fixture initialization.  ``fixture_setup`` is the corresponding
     configuration object.  The ``context`` property is retained as a concise
-    compatibility alias for that setup; it is no longer the old mutable
-    ``uctx`` object.
+    compatibility alias for that setup.
     """
 
     def __init__(self, setup: FixturesSetup | None = None) -> None:

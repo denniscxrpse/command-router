@@ -17,8 +17,8 @@ A fixture module supplies two child classes and one factory alias:
   A class derived from ``FixturesContextHolder``.  The control layer creates
   exactly one instance for an initialization attempt and keeps it in
   ``deeper_level.fixture_logic``.  The base class registers the instance as
-  the current fixture holder and provides the small ``calls``/``_record``
   conveniences used by the example fixture.  Subclasses may add any state
+  the current fixture holder and provides the small ``calls``/``_record``
   and action methods they need; importing a fixture must not execute those
   actions.
 - ``SetupFixtures``:
@@ -40,7 +40,7 @@ The lifecycle is therefore:
    state.  Grammar compilation reads configuration from the setup object.
 5. Execute commands through the dispatcher.  Action lookup remains late-bound
    through the setup's action mapping, while runtime argument overrides remain
-   available through ``DeeperLevelContext``.
+   available through ``ControlDeeperContext``.
 
 ``FixturesSetup`` is intentionally a small mutable configuration object rather
 than a global singleton.  Each ``Control`` gets an independent default setup,
@@ -77,6 +77,8 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any, ClassVar, Self
 
+from cmd_router.utils.cli import *
+from cmd_router.utils.context import uctx
 from cmd_router.utils.logger import log
 from cmd_router.utils.status import *
 
@@ -224,6 +226,14 @@ class FixturesSetup:
     """
 
     logic: Any = None
+    _active_suggestions_size: ClassVar[int | None] = None
+    """Last configured suggestions size across setups; read by parse errors.
+
+    ``ParseError._get_suggestions`` has no control reference, so it resolves
+    its limit through :meth:`_resolve_suggestions_limit`, which prefers this
+    shared value. The most recently constructed or mutated setup wins, mirroring
+    how ``FixturesContextHolder._current`` tracks the latest holder.
+    """
 
     def __init__(self, logic: Any = None) -> None:
         """Bind fixture logic and initialize independent default settings.
@@ -252,23 +262,43 @@ class FixturesSetup:
                 "create a context_holder first or let Control initialize the fixture."
             )
 
+        # Sane defaults
         self._cmd_prefix = _default_pfx
         self._lazy_init_help = True
         self._command_action: dict[str, _Action] = {}
         self._command_args_ctrl: dict[str, Any] = {}
+        self._suggestions_size: int = 5 if not flags.max_sized_suggestions else uctx.SUGGESTIONS_MAX
+        FixturesSetup._active_suggestions_size = self._suggestions_size
         log.debug("setup defaults initialized for logic=%s", type(self.logic).__name__)
         _FixtureInnerContext.did_fixture_setup_ever_initialize = True  # ty: ignore[invalid-assignment]
+
+    @classmethod
+    def _resolve_suggestions_limit(cls) -> int:
+        """Return the suggestions limit active parse errors should enforce.
+
+        When ``flags.max_sized_suggestions`` is enabled the limit is always
+        ``uctx.SUGGESTIONS_MAX``; the per-setup value is ignored. Otherwise the
+        most recently configured ``_suggestions_size`` wins, falling back to the
+        default ``5`` when no setup has been constructed yet. Negative values
+        are clamped to ``0`` so slicing never wraps around.
+        """
+        if flags.max_sized_suggestions:
+            return uctx.SUGGESTIONS_MAX
+        active = cls._active_suggestions_size
+        if isinstance(active, int):
+            return max(0, active)
+        return 5
 
     @staticmethod
     def __typerror__(name: str, value: Any, expected: type[Any]) -> TypeError:
         """Build the type error for an invalid assignment to a setup property.
 
-        *name* is deliberately an explicit property name rather than a value
+        ``name`` is deliberately an explicit property name rather than a value
         read from that property.  Values do not retain the attribute name that
-        produced them, and inferring a name from a value would be both
-        ambiguous and wrong for repeated defaults. The setter supplies *expected*
-        so the diagnostic remains correct even when *value* is a string, a class-like
-        object, or another value without ``__name__``.
+        produced them, and inferring a name from a value would be both ambiguous and
+        wrong for repeated defaults. The setter supplies ``expected`` so the diagnostic
+        remains correct even when ``value`` is a string, a class-like object, or another
+        value without ``__name__``.
         """
         actual = type(value).__name__
         log.error("invalid %s value; expected %s, got %s", name, expected.__name__, actual)
@@ -281,8 +311,8 @@ class FixturesSetup:
 
     @cmd_prefix.setter
     def cmd_prefix(self, v: str) -> None:
-        """
-        Set the command prefix, rejecting non-string configuration.
+        """Set the command prefix, rejecting non-string configuration.
+
         Any input that does not start with this prefix is treated as greedy
         (non-command) input.
         """
@@ -301,11 +331,11 @@ class FixturesSetup:
 
     @lazy_init_help.setter
     def lazy_init_help(self, v: bool) -> None:
-        """
-        Controls whether the built-in help command remains available. When set to ``True``,
-        the help command will always be available, even if no help text is defined for
-        commands. When set to ``False``, the help command can be overridden
-        or hidden.
+        """Controls whether the built-in help command remains available.
+
+        When set to ``True``, the help command will always be available, even
+        if no help text is defined for commands. When set to ``False``, the
+        help command can be overridden or hidden.
         """
         if not isinstance(v, bool):
             raise self.__typerror__("lazy_init_help", v, bool)
@@ -319,11 +349,11 @@ class FixturesSetup:
 
     @command_action.setter
     def command_action(self, v: dict[str, _Action]) -> None:
-        """
-        Maps command names to their executable action functions. This dictionary
-        defines the behavior of each command. Each key is a command name (as defined
-        in your grammar files), and each value is a callable that will be executed
-        when that command is invoked.
+        """Maps command names to their executable action functions.
+
+        This dictionary defines the behavior of each command. Each key is
+        a command name (as defined in your grammar files), and each value
+        is a callable that will be executed when that command is invoked.
         """
         if not isinstance(v, dict):
             raise self.__typerror__("command_action", v, dict)
@@ -338,12 +368,66 @@ class FixturesSetup:
     @command_args_ctrl.setter
     def command_args_ctrl(self, v: dict[str, Any]) -> None:
         """Replace argument overrides after validating their container type.
+
         The preferred shape is ``{"command": {"argument": value}}``.  Keeping
         this on the shared context preserves the small existing configuration
-        surface; ``DeeperLevelContext`` exposes the same mapping for callers
+        surface; ``ControlDeeperContext`` exposes the same mapping for callers
         that need runtime control.
         """
         if not isinstance(v, dict):
             raise self.__typerror__("command_args_ctrl", v, dict)
         self._command_args_ctrl = v
         log.debug("argument overrides set (%d command(s))", len(v))
+
+    @property
+    def suggestions_max_list_size(self) -> int:
+        """Return the maximum number of suggestions the library will emit.
+
+        This is always ``uctx.SUGGESTIONS_MAX`` (currently 255). It bounds
+        ``suggestions_set_current_size`` and the worst-case work of
+        ``ParseError._get_suggestions``, which is ``O(n)`` with
+        ``n == SUGGESTIONS_MAX`` when ``flags.max_sized_suggestions`` forces
+        the limit to the maximum.
+        """
+        return uctx.SUGGESTIONS_MAX
+
+    @property
+    def suggestions_get_size(self) -> int:
+        """Return how many suggestions a parse error should expose.
+
+        Children configure this through ``suggestions_set_current_size``. For
+        example, setting it to ``2`` makes ``error.suggestions`` look like
+        ``["word1", "word2"]`` (the first two ``expected`` candidates).
+        When ``flags.max_sized_suggestions`` is enabled the effective limit is
+        always ``SUGGESTIONS_MAX`` regardless of this stored value.
+        """
+        return self._suggestions_size
+
+    @property
+    def suggestions_set_current_size(self) -> int:
+        """(Alias) Return how many suggestions a parse error should expose."""
+        return self.suggestions_get_size
+
+    @suggestions_set_current_size.setter
+    def suggestions_set_current_size(self, v: int) -> None:
+        """Set how many suggestions a parse error should expose.
+
+        The value truncates ``ParseError.expected`` to its first ``v`` entries;
+        ``ParseError._get_suggestions`` yields until it either reaches ``v`` or
+        exhausts the candidates (it "gives up" early when fewer candidates
+        exist). Ignored while ``flags.max_sized_suggestions`` is enabled.
+
+        :raises TypeError: If *v* is not an ``int``.
+        :raises ValueError: If *v* is negative or larger than ``SUGGESTIONS_MAX``.
+        """
+        if flags.max_sized_suggestions:
+            log.warning("max_sized_suggestions is enabled; suggestions_set_current_size is ignored.")
+            return
+        if not isinstance(v, int):
+            raise self.__typerror__("suggestions_max_list_size", v, int)
+        if v < 0:
+            raise ValueError("suggestions_max_list_size must be >= 0")
+        if v > uctx.SUGGESTIONS_MAX:
+            raise ValueError(f"suggestions_max_list_size must be <= {uctx.SUGGESTIONS_MAX}")
+        self._suggestions_size = v
+        FixturesSetup._active_suggestions_size = v

@@ -84,12 +84,14 @@ Preserve the existing Clear BSD license header in new Python files.
 - Keep docstrings informative, direct, and short enough to scan. Explain the contract and important edge cases; avoid
   documenting obvious syntax.
 - `__init__` methods are for necessary object initialization, not a mandatory pattern for every module or class.
-- Black may be run for formatting, but do not spend effort on cosmetic churn. Ruff and Pyrefly are the practical quality
+- Black may be run for formatting, but do not spend effort on cosmetic churn. Ruff and Ty are the practical quality
   checks.
 - Do not add `from __future__ import annotations`. The project targets Python 3.14+, so annotations are evaluated
   normally; import referenced types before they are used and use `typing.Self` for recursive type references.
 - Follow the existing private-class plus public-alias pattern, `Final` values, centralized context objects, and
   module-level singleton conventions where they fit the design.
+- Do not try to implement how the `todo.md` file directly represents the project roadmap. Instead, implement the given
+  functionality in the order it is either described by the user, or it is instead expected to be the best.
 
 ## Tests and verification
 
@@ -102,7 +104,7 @@ Useful checks:
 ```text
 uv run pytest -q
 uv run ruff check .
-uv run pyrefly check .
+uv run ty check .
 uv run python main.py --lazy # You may use `curl` via HTTP to test this. 
 ```
 

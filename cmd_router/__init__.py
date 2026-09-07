@@ -15,7 +15,7 @@ import json5
 from icecream import ic
 
 from cmd_router.lib.control import ControlResult
-from cmd_router.lib.control.api import control, surface
+from cmd_router.lib.control.api import *
 from cmd_router.lib.grammar.loader import *
 from cmd_router.utils.cli import *
 from cmd_router.utils.context import *
@@ -29,7 +29,7 @@ _Dict = dict[str, Any]
 class _CmdRouter:
     grammars: _Dict = {}
     info: _Dict = {}
-    control = control
+    control = Api.Control
 
     def normalize(self, *t: _Dict) -> None:
         grammars, info = t
@@ -58,7 +58,7 @@ class _CmdRouter:
         class Lazy(LazyServer):
             # noinspection pep8-naming
             def do_POST(self) -> None:
-                self.post()
+                self.post(self.__class__.__name__)
 
                 # Detect whether the body is a JSON5 or TOML object.
                 suffix: str | None = None
@@ -358,7 +358,7 @@ class CommandRouter:
                 if result.ok and result.kind != "input" and result.value is not None:
                     log.info("control result: %r", result.value)
 
-                ic(surface.readable_listener())
+                ic(Api.Surface.readable_stderr())
                 if result.command == "help":
                     log.info(
                         "commands: '%s'\n  prefix: '%s'\n  target: '%s'\n suggestions: '%s'",

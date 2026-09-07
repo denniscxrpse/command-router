@@ -58,9 +58,8 @@ class _UniversalContext:
             "input": ...,  # [stdin?/Any]
             "command": str,  # [str]
             "value": ...,  # [Any]
-            "suggestions": [str, ...],  # [list[str]]
             "parsed_args": None,  # context.args [CommandContext|null]
-            "error": {...},  # error.to_dict [ParseError]
+            "error": {...},  # error.to_dict [ParseError|null]
             "message": None,  # [str|null]
             "exception": None,  # [str|null]
         }
@@ -82,8 +81,6 @@ class _UniversalContext:
     - ``value`` (Any): action return value, or pass-through input for
       ``INPUT``. ``None`` when no action produced a value. Passed through
       as-is; the API never parses, validates, or converts it.
-    - ``suggestions`` (list[str]|null): completion hints, or ``None`` when
-      suggestions are disabled.
     - ``parsed_args`` (dict|null): ``context.args`` when a parse produced
       arguments, else ``None``.
     - ``error`` (dict|null): ``error.to_dict()`` for parse failures, else
@@ -107,8 +104,8 @@ class _UniversalContext:
             "ok": bool,  # [bool]
             "input": ...,  # [stdin?/Any]
             "value": ...,  # [Any]
-            "suggestions": [str, ...],  # [list[str]]
-            "error": Any,  # _transport_value(...) [Any]
+            "suggestions": [str, ...],  # [list[str]|null]
+            "error": {...},  # _transport_value(...) [dict|null]
             "message": None,  # [str|null]
         }
     )
@@ -123,11 +120,14 @@ class _UniversalContext:
     - ``input`` (Any): exact caller input, passed through unvalidated.
     - ``value`` (Any): action return value (or pass-through input),
       ``None`` when absent. Passed through as-is.
-    - ``suggestions`` (list[str]|null): completion hints, or ``None`` when
-      disabled.
-    - ``error`` (Any): transported ``error_payload`` — a ``ParseError``
-      dict, an exception string, or another caller payload; ``None`` when
-      there is no error.
+    - ``suggestions`` (list[str]|null): first ``N`` of ``ParseError.expected``
+      (``N`` from ``FixturesSetup.suggestions_set_current_size``), ``[]`` when
+      no parse error exists, or ``None`` when ``flags.no_suggestions`` disables
+      hints.
+    - ``error`` (dict|null): transported ``error_payload`` via
+      ``_transport_value`` — always a dictionary or ``None``. A ``ParseError``
+      becomes its ``to_dict()`` (which carries ``suggestions``); a string or
+      arbitrary payload becomes ``{"message": ..., "suggestions": ...}``.
     - ``message`` (str|null): human-readable detail, or ``None`` when there
       is nothing to report.
 
@@ -139,12 +139,15 @@ class _UniversalContext:
 
     # Constant values used while validating grammar files.
     VALID_SCHEMAS: Final[frozenset[int]] = frozenset({1})
-    "The valid schemas for the grammars."
+    """The valid schemas for the grammars."""
 
     # Serialized key names used by grammar containers.
     cmd_router: Final[str] = "cmd-router"
     grammar: Final[str] = "grammar"
     schema_version: Final[str] = "schema-version"
+
+    # Suggestion variables used by the commands' context
+    SUGGESTIONS_MAX: Final[int] = 255
 
 
 paths: Final[_Paths] = _Paths()

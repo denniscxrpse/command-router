@@ -12,7 +12,7 @@ owns the mutable settings required by that surface, while
 methods.  A fixture module exposes ``context_holder`` and ``SetupFixtures``;
 the control layer creates the holder, injects it as ``SetupFixtures.logic``,
 and installs the resulting setup before compiling grammars.
-``DeeperLevelContext`` is the inspection surface for the live dispatcher,
+``ControlDeeperContext`` is the inspection surface for the live dispatcher,
 fixture objects, configuration, argument overrides, and last results.  The
 
 Module-level ``control`` and ``deeper_level`` values provide one shared
@@ -22,15 +22,16 @@ command surface.
 
 The old mutable ``uctx`` settings are not part of this API.  ``uctx`` remains
 available only for shared constants and schema keys; command settings must be
-read from or written through a ``FixturesSetup``/``DeeperLevelContext``.
+read from or written through a ``FixturesSetup``/``ControlDeeperContext``.
 """
 
-__all__ = ("control", "surface", "deeper_level")
+__all__ = ["Api"]
 
 
 import ast
 import json
 from collections.abc import Mapping
+from dataclasses import dataclass
 from pathlib import Path
 from types import ModuleType
 from typing import Any, Final, final
@@ -72,22 +73,31 @@ class _ControlSurface:
         return await control.execute_async(command)
 
     @staticmethod
-    def listener() -> str:
+    def get_latest_stderr() -> str:
         """Return the latest message emitted through the ``stderr`` writer."""
         return log.stderr.latest_call
 
-    def readable_listener(self) -> dict[str, Any] | None:
-        """Return the latest message emitted through the ``stderr`` writer as a dictionary like object."""
+    def readable_stderr(self) -> dict[str, Any] | None:
+        """Return the latest message emitted through the ``stderr`` writer as a dictionary like object.
+
+        It is assumed that the message is a valid JSON string, invalid initialization of the API will result in a
+        ``None`` return value and a lot of ``ERROR`` level messages.
+        """
         j: dict[str, Any] | None
         try:
             if flags.json_out:
-                return json.loads(self.listener())
-            j = ast.literal_eval(self.listener())
+                return json.loads(self.get_latest_stderr())
+            j = ast.literal_eval(self.get_latest_stderr())
         except ValueError, SyntaxError, TypeError, json.JSONDecodeError:
             log.error("failed to parse listener output. stderr output might be impossible to parse.")
             j = None
         return j
 
 
-surface: Final[_ControlSurface] = _ControlSurface()
-deeper_level: Final[ControlDeeperContext] = control.deeper_context
+@dataclass(frozen=True)
+class Api:
+    """Convenience namespace for accessing the shared control surface."""
+
+    Control: Final[Control] = control
+    Surface: Final[_ControlSurface] = _ControlSurface()
+    Context: Final[ControlDeeperContext] = control.deeper_context

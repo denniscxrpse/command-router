@@ -16,6 +16,7 @@ from dataclasses import dataclass, field
 from typing import Any, Final
 
 from cmd_router.lib.control.api.result import ControlResultKinds
+from cmd_router.utils.cli import *
 from cmd_router.utils.status import *
 
 _Handler = Callable[..., Any]
@@ -67,6 +68,7 @@ class ParseError:
     message: str = ""
     partial_args: dict[str, Any] = field(default_factory=dict)
     code: Status | None = None
+    token: str | None = None
 
     @property
     def position(self) -> int:
@@ -93,19 +95,89 @@ class ParseError:
 
         Always contains every key and uses plain JSON-serializable values:
         ``kind`` and ``code`` are strings (or ``None``), ``expected`` is a
-        list, and an empty ``message`` is returned as ``None`` so consumers
-        see a fixed ``str|null`` shape in both dictionaries and JSON.
+        list, ``token`` is the unmatched fragment (or ``None`` for incomplete
+        input), ``suggestions`` is the ranked hint list (or ``None`` when
+        ``flags.no_suggestions`` disables hints), and an empty ``message``
+        is returned as ``None`` so consumers see a fixed shape in both
+        dictionaries and JSON.
         """
         return {
             "kind": str(self.kind),
             "token_index": self.token_index,
             "expected": list(self.expected),
+            "token": self.token,
+            "suggestions": self._get_suggestions(),
             "message": self.message or None,
             "partial_args": dict(self.partial_args),
             "code": self.code.name if self.code is not None else None,
         }
 
     as_dict = to_dict
+
+    def _get_suggestions(self) -> list[str] | None:
+        """Return up to the configured number of ranked completion hints.
+
+        Brigadier parity first: literal candidates are narrowed by prefix match
+        against the failing token (``candidate.startswith(token)``), exactly how
+        ``SuggestionsBuilder`` filters as you type. Only when no prefix matches
+        do we fall back to forgiving typo correction (Levenshtein ``<= 2``,
+        the same cap git/npm use for "did you mean").
+
+        The pool is ``self.expected``; the limit comes from ``FixturesSetup``
+        children via ``suggestions_set_current_size`` (internally
+        ``_suggestions_size``), or always ``SUGGESTIONS_MAX`` when
+        ``flags.max_sized_suggestions`` is enabled.
+
+        For example, with the size set to ``2`` and no failing token, consumers
+        see ``{"suggestions": ["word1", "word2"]}`` inside the ``error`` dict.
+        With a token, ``/gamemod`` suggests ``["gamemode"]`` (prefix) and
+        ``/advanc`` suggests ``["advancement"]`` instead of the whole pool.
+
+        ``None`` is returned only when ``flags.no_suggestions`` disables hints.
+        The worst case is ``O(n)`` with ``n == SUGGESTIONS_MAX``.
+        """
+        if flags.no_suggestions:
+            return None
+        try:
+            from cmd_router.lib.control.api.fittings import FixturesSetup
+
+            limit = FixturesSetup._resolve_suggestions_limit()
+        except Exception:
+            from cmd_router.utils.cli import flags as _flags
+            from cmd_router.utils.context import uctx as _uctx
+
+            limit = _uctx.SUGGESTIONS_MAX if _flags.max_sized_suggestions else 5
+        if limit <= 0:
+            return []
+        pool: list[str] = list(self.expected)
+        if not pool:
+            return []
+        token = self.token
+        if token is None or token == "":
+            # Incomplete input or tokenization failure: no fragment to rank
+            # against, so return the pool in order (gives up early when short).
+            return pool[:limit]
+        literals: list[str] = [c for c in pool if not c.startswith("<")]
+        placeholders: list[str] = [c for c in pool if c.startswith("<")]
+        # 1. Brigadier-style prefix narrowing (cheap, exact).
+        prefixed: list[str] = [c for c in literals if c.startswith(token)]
+        if prefixed:
+            return prefixed[:limit]
+        # 2. Forgiving typo fallback, capped so suggestions cannot drift far.
+        try:
+            from rapidfuzz.distance import Levenshtein
+
+            scored: list[tuple[str, int]] = [(c, Levenshtein.distance(token, c)) for c in literals]
+            scored = [(c, d) for c, d in scored if d <= 2]
+            scored.sort(key=lambda item: (item[1], item[0]))
+            if scored:
+                return [c for c, _ in scored[:limit]]
+        except Exception:
+            pass
+        # 3. No literal close: preserve type hints rather than misleading names.
+        if placeholders:
+            return placeholders[:limit]
+        return []
 
 
 @dataclass(frozen=True, slots=True)

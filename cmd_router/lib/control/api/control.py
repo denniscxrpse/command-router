@@ -32,7 +32,7 @@ Fixture modules should therefore expose the following contract:
             super().__init__()
             self.command_action = {"say": self.logic.say}
 
-The loader stores the module, holder, and setup in ``DeeperLevelContext``
+The loader stores the module, holder, and setup in ``ControlDeeperContext``
 before grammar compilation.  A missing or invalid fixture contract is returned
 as ``ControlInitialization`` with ``ControlFixtureError``; grammar and action
 validation failures use the corresponding structured initialization path.

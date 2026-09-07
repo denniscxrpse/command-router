@@ -67,7 +67,7 @@ context_holder = FixturesContextHolder
 
 @final
 class SetupFixtures(_Fixtures.Setup):  # ty: ignore[unsupported-base]
-    """Configure the example prefix, help policy, and grammar actions."""
+    """Configure the example prefix, help policy, grammar actions, and hints."""
 
     def __init__(self) -> None:
         """Build setup values using the holder injected by ``Control``."""
@@ -86,5 +86,12 @@ class SetupFixtures(_Fixtures.Setup):  # ty: ignore[unsupported-base]
             "advancement": self.logic.bar,
             "say": self.logic.bar,
         }
+
+        # How many completion hints a parse error exposes via
+        # ``error["suggestions"]`` (first N of ``expected``). The bundled
+        # default is 5; setting it to 2 would make consumers see
+        # ``{"suggestions": ["word1", "word2"]}`` for a matching failure.
+        # Ignored while ``flags.max_sized_suggestions`` forces SUGGESTIONS_MAX.
+        self.suggestions_set_current_size = 5
 
         ...

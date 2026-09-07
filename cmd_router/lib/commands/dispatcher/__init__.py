@@ -74,6 +74,7 @@ class CommandDispatcher:
                 expected=self._expected(self.root),
                 message=f"could not tokenize command ({tokens})",
                 code=tokens,
+                token=None,
             )
             return ParseResult(error=failure)
 
@@ -150,6 +151,7 @@ class CommandDispatcher:
                         expected=(child.label,),
                         message=parsed.message,
                         partial_args=dict(args),
+                        token=value,
                     )
                 )
                 continue
@@ -165,7 +167,7 @@ class CommandDispatcher:
 
         if failures:
             log.debug("selecting the best of %d branch failure(s)", len(failures))
-            return self._best_error(failures)
+            return self._best_error(failures, tokens)
         log.debug("no child matched token %r at index %d", tokens[index], index)
         return ParseError(
             kind=ParseErrorKinds.UNEXPECTED_TOKEN,
@@ -173,6 +175,7 @@ class CommandDispatcher:
             expected=self._expected(node),
             message=f"unexpected token: {tokens[index]!r}",
             partial_args=dict(args),
+            token=tokens[index],
         )
 
     def _incomplete(self, node: CommandNode, index: int, args: dict[str, Any]) -> ParseError:
@@ -185,6 +188,7 @@ class CommandDispatcher:
             expected=expected,
             message=message,
             partial_args=dict(args),
+            token=None,
         )
 
     @staticmethod
@@ -192,7 +196,7 @@ class CommandDispatcher:
         return tuple(child.label for child in node.children)
 
     @staticmethod
-    def _best_error(errors: list[ParseError]) -> ParseError:
+    def _best_error(errors: list[ParseError], tokens: tuple[str, ...] | None = None) -> ParseError:
         furthest = max(error.token_index for error in errors)
         candidates = [error for error in errors if error.token_index == furthest]
         if len(candidates) == 1:
@@ -202,6 +206,9 @@ class CommandDispatcher:
         first = candidates[0]
         expected = tuple(dict.fromkeys(item for candidate in candidates for item in candidate.expected))
         partial_args = max(candidates, key=lambda candidate: len(candidate.partial_args)).partial_args
+        token = first.token
+        if token is None and tokens is not None and 0 <= furthest < len(tokens):
+            token = tokens[furthest]
         log.debug("merged %d furthest failures at token %d", len(candidates), furthest)
         return ParseError(
             kind=first.kind,
@@ -210,6 +217,7 @@ class CommandDispatcher:
             message=first.message,
             partial_args=dict(partial_args),
             code=first.code,
+            token=token,
         )
 
 

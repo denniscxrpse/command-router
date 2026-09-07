@@ -128,6 +128,51 @@ class EnvFlags:
     """
 
     no_suggestions: bool = False
+    """
+    Disables suggestions for unknown commands. This has a global effect on how the Command Router (``cmd-router``)
+    exposes information to the consumer:
+
+    - If ``False`` (**default**): The ``cmd-router`` exposes suggestions when the command is unknown.
+      Suggestions are the first ``N`` of ``ParseError.expected``, with ``N`` from the fixture child via
+      ``FixturesSetup.suggestions_set_current_size`` (internally ``_suggestions_size``).
+
+      For example: with ``suggestions_set_current_size`` set to ``2``, consumers should expect a compact
+      JSON response shaped like (stripped to the important parts)::
+
+          {
+            "ok": false,
+            "error": {
+              "suggestions": ["word1", "word2"]
+            }
+          }
+
+      The ``error`` field factory is always a dictionary or ``None`` (``null``); see
+      ``ControlResult._transport_value``. The top-level ``suggestions`` mirrors
+      ``error["suggestions"]`` (``[]`` when no parse error exists). Hints appear only when an
+      actual error is raised, which is why they live under ``error``.
+
+    - If ``True``: No suggestion list is built. Both the top-level ``suggestions`` and
+      ``error["suggestions"]`` are ``None``. Consumers might disable this to handle their own
+      suggestions in their application.
+    """
+
+    max_sized_suggestions: bool = False
+    """
+    Enforces the reference of ``FixturesSetup._suggestions_size`` (``suggestions_size``) to initialize with
+    ``_UniversalContext.SUGGESTIONS_MAX`` (``SUGGESTIONS_MAX``) by default. Using this flag will enforce the
+    ``ParseError._get_suggestions`` (``get_suggestions``) to spit out suggestions until it burns out.
+
+    In summary: it will allow JSON responses to include as many suggestions as possible (very bad). Consumers should
+    keep in mind the following points:
+
+    - This flag will not allow consumers to change the value of ``suggestions_size`` if used.
+
+    - The absolute worst scenario of this flag being enabled, is enforcing the library to yield until a number of
+      ``SUGGESTIONS_MAX`` entries are given (``O(n)`` with ``n == SUGGESTIONS_MAX``); the best scenario is
+      ``get_suggestions`` giving up early when fewer ``expected`` candidates exist to save you.
+
+    - The real best scenario is keeping this flag disabled because it is meant for testing.
+    """
 
     json_out: bool = False
     """
@@ -187,6 +232,14 @@ flags: Final[EnvFlags] = EnvFlags()
     flag_value=False,
     default=flags.no_suggestions,
     help="Disable suggestions for unknown commands.",
+)
+@click.option(
+    "-M",
+    "--max-sized-suggestions",
+    is_flag=True,
+    flag_value=True,
+    default=flags.max_sized_suggestions,
+    help="Enforce the suggestions list to initialize with `SUGGESTIONS_MAX`.",
 )
 @click.option(
     "-json",

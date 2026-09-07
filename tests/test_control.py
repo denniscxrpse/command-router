@@ -114,7 +114,7 @@ def test_control_emits_compact_data_and_error_responses_to_stderr(capsys: pytest
 
 
 def test_control_result_preserves_explicit_data_and_error_payloads() -> None:
-    fallback = object()
+    fallback = {"message": "custom failure", "suggestions": []}
     kind = ControlResultKinds.COMMAND
     # noinspection unresolved-references
     kind.custom = "custom"
@@ -124,6 +124,7 @@ def test_control_result_preserves_explicit_data_and_error_payloads() -> None:
     assert result.kind.value == "custom"
     assert result.value == {"answer": 42}
     assert result.error_payload is fallback
+    # Dict payloads are already dict|null shaped, so transport preserves them.
     assert result.to_response() == {
         "ok": True,
         "input": None,
@@ -132,6 +133,17 @@ def test_control_result_preserves_explicit_data_and_error_payloads() -> None:
         "error": fallback,
         "message": None,
     }
+
+
+def test_control_result_wraps_arbitrary_error_payload_as_dict() -> None:
+    fallback = object()
+    kind = ControlResultKinds.COMMAND
+    result = api.ControlResult(True, stat.Success(), kind, None, value={"answer": 42}, error_payload=fallback)
+
+    assert result.error_payload is fallback
+    transported = result.to_response()["error"]
+    assert isinstance(transported, dict)
+    assert transported == {"message": str(fallback), "suggestions": []}
 
 
 def test_builtin_help_lists_commands_and_searches_a_specific_command() -> None:
@@ -284,7 +296,7 @@ def test_stderr_writer_can_be_awaited(capsys: pytest.CaptureFixture[str]) -> Non
 
     assert capsys.readouterr().err == "controlled stderr\n"
     assert log.stderr.latest_call == "controlled stderr\n"
-    assert api.surface.listener() == "controlled stderr\n"
+    assert api.Api.Surface.get_latest_stderr() == "controlled stderr\n"
 
 
 def test_fixture_inner_context_flags_track_holder_and_setup_lifecycle() -> None:
