@@ -141,7 +141,21 @@ class CommandDispatcher:
 
         for child in argument_children:
             value = " ".join(tokens[index:]) if child.greedy else tokens[index]
-            parsed = child.argument_type.parse(value)  # ty: ignore[unresolved-attribute]
+            try:
+                parsed = child.argument_type.parse(value)  # ty: ignore[unresolved-attribute]
+            except Exception as exception:
+                log.error("argument %r failed to parse value %r: %s", child.label, value, exception)
+                failures.append(
+                    ParseError(
+                        kind=ParseErrorKinds.INVALID_ARGUMENT,
+                        token_index=index,
+                        expected=(child.label,),
+                        message=f"could not parse argument: {exception}",
+                        partial_args=dict(args),
+                        token=value,
+                    )
+                )
+                continue
             if isinstance(parsed, ArgumentParseError):
                 log.debug("argument %r rejected value %r: %s", child.label, value, parsed.message)
                 failures.append(

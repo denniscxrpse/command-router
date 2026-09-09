@@ -18,7 +18,7 @@ A fixture module supplies two child classes and one factory alias:
   exactly one instance for an initialization attempt and keeps it in
   ``deeper_level.fixture_logic``.  The base class registers the instance as
   conveniences used by the example fixture.  Subclasses may add any state
-  the current fixture holder and provides the small ``calls``/``_record``
+   to the current fixture holder and provide the small ``calls``/``_record``
   and action methods they need; importing a fixture must not execute those
   actions.
 - ``SetupFixtures``:
@@ -77,6 +77,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any, ClassVar, Self
 
+from cmd_router.suggestion_server.context import *
 from cmd_router.utils.cli import *
 from cmd_router.utils.context import uctx
 from cmd_router.utils.logger import log
@@ -219,10 +220,10 @@ class FixturesSetup:
             self.lazy_init_help = True
             self.command_action = {"say": self.logic.say}
 
-        Or they may override a property when a setting should be calculated from
-         the fixture state.  In that case the subclass still needs to call the base
-        initializer so ``logic`` is validated and the remaining settings have
-        their normal defaults.
+    Or they may override a property when a setting should be calculated from
+    the fixture state.  In that case the subclass still needs to call the base
+    initializer so ``logic`` is validated and the remaining settings have
+    their normal defaults.
     """
 
     logic: Any = None
@@ -431,3 +432,23 @@ class FixturesSetup:
             raise ValueError(f"suggestions_max_list_size must be <= {uctx.SUGGESTIONS_MAX}")
         self._suggestions_size = v
         FixturesSetup._active_suggestions_size = v
+
+    @property
+    def suggestions_server_address(self) -> str:
+        """Return the address of the suggestions' server."""
+        return lazy_suggest_srv_ctx.address
+
+    @suggestions_server_address.setter
+    def suggestions_server_address(self, v: str) -> None:
+        """Set the address of the suggestions' server."""
+        lazy_suggest_srv_ctx.address = v
+
+    @property
+    def suggestions_server_port(self) -> int:
+        """Return the port of the suggestions' server."""
+        return lazy_suggest_srv_ctx.port
+
+    @suggestions_server_port.setter
+    def suggestions_server_port(self, v: int) -> None:
+        """Set the port of the suggestions' server."""
+        lazy_suggest_srv_ctx.port = v

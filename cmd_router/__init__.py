@@ -5,6 +5,7 @@
 
 __all__ = ("CommandRouter",)
 
+import threading
 import tomllib
 from http.server import HTTPServer
 from pathlib import Path
@@ -17,6 +18,7 @@ from icecream import ic
 from cmd_router.lib.control import ControlResult
 from cmd_router.lib.control.api import *
 from cmd_router.lib.grammar.loader import *
+from cmd_router.suggestion_server import *
 from cmd_router.utils.cli import *
 from cmd_router.utils.context import *
 from cmd_router.utils.lazy_server import *
@@ -135,8 +137,9 @@ class _CmdRouter:
 
         # noinspection bad-argument-type
         # Bind an ephemeral localhost port and announce it to the client.
-        server = HTTPServer(("127.0.0.1", 0), Lazy)
-        log.info("lazy grammar server listening on localhost")
+        addr = uctx.CMD_ROUTER_DEFAULT_ADDRESS
+        server = HTTPServer((addr, uctx.CMD_ROUTER_DEFAULT_PORT), Lazy)
+        log.info("lazy grammar server listening on %s", addr)
         log.stderr(server.server_port)
         try:
             # Process requests until a valid grammar is accepted.
@@ -256,11 +259,44 @@ class CommandRouter:
 
         log.debug("normalized grammars=%r; info=%r", self._grammars, self._info)
 
+        suggestions_server: HTTPServer | None = None
+        if flags.no_suggestions_server:
+            log.info("suggestions server completely disabled; not binding")
+        else:
+            # Bind even when `suggestions_server` is off, so disabled use stays
+            # visible instead of a dropped connection: the handler logs at
+            # error level, ignores POST bodies (204), and answers GET with an
+            # empty JSON list (200), while returning SuggestionServerDisabled.
+            try:
+                sgs_addr = lazy_suggest_srv_ctx.address
+                sgs_port = lazy_suggest_srv_ctx.port
+                suggestions_server = HTTPServer((sgs_addr, sgs_port), LazySuggestionsServer)
+                log.info(
+                    "lazy suggestions server listening on %s:%d",
+                    sgs_addr,
+                    suggestions_server.server_port,
+                )
+                _sgs_thread = threading.Thread(
+                    target=suggestions_server.serve_forever,
+                    kwargs={"poll_interval": 0.2},
+                    name="lazy-suggestions-server",
+                    daemon=True,
+                )
+                _sgs_thread.start()
+            except OSError as exception:
+                log.error("could not start lazy suggestions server: %s", exception)
+                suggestions_server = None
+
         # Technically, a lazy initialization is possible, but it's not worth the complexity.
         if ctrl_init and flags.test_suite:
-            c = self._test_suite_loop()
-            log.info("test-suite loop exited with status %s", c)
-            return c
+            try:
+                c = self._test_suite_loop()
+                log.info("test-suite loop exited with status %s", c)
+                return c
+            finally:
+                if suggestions_server is not None:
+                    suggestions_server.shutdown()
+                    suggestions_server.server_close()
 
         log.info("ready (%d commands grammar(s))", len(self._grammars))
 
@@ -277,6 +313,11 @@ class CommandRouter:
         except KeyboardInterrupt:
             log.critical("router interrupted")
             ultima = stat.Interrupted()
+        finally:
+            # Embedded use keeps the daemon server alive beyond `initialize`
+            # so clients can POST/GET after ready (it dies with the process).
+            # Only the test-suite path above shuts its server down eagerly.
+            pass
         return ultima
 
     @property

@@ -162,7 +162,10 @@ class _Control:
         if not isinstance(grammars, Mapping):
             return self._initialization_error("grammars must be a mapping of command names to syntax")
 
-        normalized = dict(grammars)
+        try:
+            normalized = dict(grammars)
+        except Exception as exception:
+            return self._initialization_error(f"grammars could not be read as a mapping: {exception}", exception)
         log.info("compiling %d grammar entr%s", len(normalized), "y" if len(normalized) == 1 else "ies")
         log.debug(
             "compiler settings (prefix=%r, keep_help=%s, actions=%s)",
@@ -177,7 +180,7 @@ class _Control:
                 self.deeper_context.lazy_init_help,
                 self.deeper_context.cmd_prefix,
             )
-        except (AttributeError, TypeError, ValueError, _GrammarSyntaxError) as exception:
+        except (AttributeError, TypeError, ValueError, RecursionError, _GrammarSyntaxError) as exception:
             return self._initialization_error(str(exception), exception)
 
         self.deeper_context.grammars = normalized
@@ -511,7 +514,10 @@ class _Control:
             log.error("command failed (%s): %s%s", result.kind, result.message, detail)
 
         log.debug("result=%s code=%s", result.kind, result.code)
-        log.stderr(result.to_response() if not flags.json_out else result.to_json())
+        try:
+            log.stderr(result.to_response() if not flags.json_out else result.to_json())
+        except Exception as exception:
+            log.error("could not emit result to stderr: %s", exception)
 
         return result
 

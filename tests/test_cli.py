@@ -20,4 +20,4 @@ def test_cli_options_update_renamed_environment_flags(monkeypatch: pytest.Monkey
     assert result.exit_code == 0
     assert flags.test_suite is True
     assert flags.no_help is True
-    assert flags.no_suggestions is False
+    assert flags.no_suggestions is True

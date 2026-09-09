@@ -50,6 +50,9 @@ class _Paths:
 class _UniversalContext:
     """Namespace containing shared constants and read-only observations."""
 
+    CMD_ROUTER_DEFAULT_ADDRESS: Final[str] = "127.0.0.1"
+    CMD_ROUTER_DEFAULT_PORT: Final[int] = 0
+
     INTERNAL_JSON_CONTRACT: Final[dict[str, Any]] = field(
         default_factory=lambda: {
             "ok": bool,  # [bool]
@@ -137,17 +140,18 @@ class _UniversalContext:
     as ``None``. In both cases all six keys are present.
     """
 
+    # Serialized key names used by grammar containers.
+    CMD_ROUTER_SERIAL: Final[str] = "cmd-router"
+    GRAMMAR_SERIAL: Final[str] = "grammar"
+    SCHEMA_VERSION_SERIAL: Final[str] = "schema-version"
     # Constant values used while validating grammar files.
     VALID_SCHEMAS: Final[frozenset[int]] = frozenset({1})
     """The valid schemas for the grammars."""
 
-    # Serialized key names used by grammar containers.
-    cmd_router: Final[str] = "cmd-router"
-    grammar: Final[str] = "grammar"
-    schema_version: Final[str] = "schema-version"
-
     # Suggestion variables used by the commands' context
-    SUGGESTIONS_MAX: Final[int] = 255
+    SUGGESTIONS_MAX: Final[int] = 255  # UINT8_MAX (2^8-1)
+    SUGGESTION_SERVER_DEFAULT_ADDRESS: Final[str] = CMD_ROUTER_DEFAULT_ADDRESS
+    SUGGESTION_SERVER_DEFAULT_PORT: Final[int] = 9077
 
 
 paths: Final[_Paths] = _Paths()

@@ -17,7 +17,7 @@ from typing import Final, final
 class _StatusContract:
     _MESSAGE: str | None = None
     _EXPECTED: str | None = None
-    _code: int = 255  # -1
+    _code: int = 255
 
     def __str__(self) -> str:
         return self.name
@@ -31,8 +31,8 @@ class _StatusContract:
     def code(self) -> int:
         """Return the exit code for this status.
 
-        Only special statuses may have a non-negative code; by default, all
-        statuses are considered a "failure" and return a negative code (``-1``).
+        Only special statuses may have a meaningful code; by default, all
+        statuses are considered a "failure" and return ``255``.
 
         In general, this property is useless outside the main entrypoint;
         since the command router uses the ``name`` to determine status, it
@@ -109,6 +109,8 @@ class _StatusNS:
         test that bypasses the expected construction order can surface a single
         diagnostic that names the missing step.
         """
+    @final
+    class SuggestionServerDisabled(IStatus): ...
 #fmt: on
 
 stat: Final[_StatusNS] = _StatusNS()

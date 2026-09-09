@@ -16,6 +16,7 @@ from dataclasses import dataclass, field
 from typing import Any, Final
 
 from cmd_router.lib.control.api.result import ControlResultKinds
+from cmd_router.suggestion_server.fuzzy_str_match import fuzzy_str_match
 from cmd_router.utils.cli import *
 from cmd_router.utils.status import *
 
@@ -115,26 +116,10 @@ class ParseError:
     as_dict = to_dict
 
     def _get_suggestions(self) -> list[str] | None:
-        """Return up to the configured number of ranked completion hints.
+        """Return ranked hints from ``self.expected`` via ``fuzzy_str_match``.
 
-        Brigadier parity first: literal candidates are narrowed by prefix match
-        against the failing token (``candidate.startswith(token)``), exactly how
-        ``SuggestionsBuilder`` filters as you type. Only when no prefix matches
-        do we fall back to forgiving typo correction (Levenshtein ``<= 2``,
-        the same cap git/npm use for "did you mean").
-
-        The pool is ``self.expected``; the limit comes from ``FixturesSetup``
-        children via ``suggestions_set_current_size`` (internally
-        ``_suggestions_size``), or always ``SUGGESTIONS_MAX`` when
-        ``flags.max_sized_suggestions`` is enabled.
-
-        For example, with the size set to ``2`` and no failing token, consumers
-        see ``{"suggestions": ["word1", "word2"]}`` inside the ``error`` dict.
-        With a token, ``/gamemod`` suggests ``["gamemode"]`` (prefix) and
-        ``/advanc`` suggests ``["advancement"]`` instead of the whole pool.
-
-        ``None`` is returned only when ``flags.no_suggestions`` disables hints.
-        The worst case is ``O(n)`` with ``n == SUGGESTIONS_MAX``.
+        Limit is ``suggestions_set_current_size`` (``SUGGESTIONS_MAX`` when
+        ``flags.max_sized_suggestions``); ``None`` when ``flags.no_suggestions``.
         """
         if flags.no_suggestions:
             return None
@@ -153,31 +138,7 @@ class ParseError:
         if not pool:
             return []
         token = self.token
-        if token is None or token == "":
-            # Incomplete input or tokenization failure: no fragment to rank
-            # against, so return the pool in order (gives up early when short).
-            return pool[:limit]
-        literals: list[str] = [c for c in pool if not c.startswith("<")]
-        placeholders: list[str] = [c for c in pool if c.startswith("<")]
-        # 1. Brigadier-style prefix narrowing (cheap, exact).
-        prefixed: list[str] = [c for c in literals if c.startswith(token)]
-        if prefixed:
-            return prefixed[:limit]
-        # 2. Forgiving typo fallback, capped so suggestions cannot drift far.
-        try:
-            from rapidfuzz.distance import Levenshtein
-
-            scored: list[tuple[str, int]] = [(c, Levenshtein.distance(token, c)) for c in literals]
-            scored = [(c, d) for c, d in scored if d <= 2]
-            scored.sort(key=lambda item: (item[1], item[0]))
-            if scored:
-                return [c for c, _ in scored[:limit]]
-        except Exception:
-            pass
-        # 3. No literal close: preserve type hints rather than misleading names.
-        if placeholders:
-            return placeholders[:limit]
-        return []
+        return fuzzy_str_match(token, pool, limit)
 
 
 @dataclass(frozen=True, slots=True)

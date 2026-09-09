@@ -28,8 +28,8 @@ class _LazyHandler(BaseHTTPRequestHandler):
         log.stderr(1)
         self._reply(400, b"1\n")
 
-    def post(self, whoami: str) -> None:
-        log.info("lazy server for %s received POST request for %s", whoami, self.path)
+    def post(self, klass: str) -> None:
+        log.info("lazy server for %s received POST request for %s", klass, self.path)
         # Read and validate the request body length.
         try:
             content_length = int(self.headers.get(_CONTENT_LENGTH, "-1"))
@@ -52,8 +52,8 @@ class _LazyHandler(BaseHTTPRequestHandler):
 
 
 class LazyServer(_LazyHandler):
-    def post(self, whoami: str) -> None:
-        super().post(whoami)
+    def post(self, klass: str) -> None:
+        super().post(klass)
 
     # noinspection shadowing-builtins
     def log_message(self, format, *args) -> None:

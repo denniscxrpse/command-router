@@ -1,5 +1,6 @@
 from cmd_router.lib.control.api import *
 from cmd_router.lib.grammar.loader import *
+from cmd_router.suggestion_server import *
 from cmd_router.utils.cli import *
 from cmd_router.utils.context import *
 from cmd_router.utils.lazy_server import *
@@ -10,7 +11,7 @@ from cmd_router.utils.status import Status
 from pathlib import Path
 from typing import Any
 
-__all__ = ["CommandRouter", "Lazy@58"]
+__all__ = ["CommandRouter", "Lazy@60"]
 
 _Dict = dict[str, Any]
 
@@ -40,4 +41,4 @@ class CommandRouter:
     def _test_suite_loop(self) -> Status: ...
 
 # Names in __all__ with no definition:
-#   Lazy@58
+#   Lazy@60

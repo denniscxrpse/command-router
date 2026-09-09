@@ -45,18 +45,18 @@ def load_grammars(path: Path) -> tuple[_Dict, _Dict] | Status:
         log.error("parser rejected %s with code %s", path, parsed)
         return parsed
 
-    container = parsed.get(uctx.cmd_router)
+    container = parsed.get(uctx.CMD_ROUTER_SERIAL)
     if not isinstance(container, dict):
         return _logerr(stat.InvalidGrammarError(), "Missing 'cmd-router' object.")
 
-    grammar = container.get(uctx.grammar)
+    grammar = container.get(uctx.GRAMMAR_SERIAL)
     if not isinstance(grammar, dict):
         return _logerr(stat.InvalidGrammarError(), "Missing 'grammar' object.")
 
-    info = {key: value for key, value in container.items() if key != uctx.grammar}
+    info = {key: value for key, value in container.items() if key != uctx.GRAMMAR_SERIAL}
 
     errors: list[str] = []
-    allowed_keys = {uctx.schema_version, uctx.grammar}
+    allowed_keys = {uctx.SCHEMA_VERSION_SERIAL, uctx.GRAMMAR_SERIAL}
     unknown_keys = sorted(set(container) - allowed_keys)
 
     if unknown_keys:
@@ -67,7 +67,7 @@ def load_grammars(path: Path) -> tuple[_Dict, _Dict] | Status:
     elif any(not isinstance(key, str) or not isinstance(value, str) for key, value in grammar.items()):
         errors.append("Grammar is not a valid map of string commands.")
 
-    schema_version = info.get(uctx.schema_version)
+    schema_version = info.get(uctx.SCHEMA_VERSION_SERIAL)
     if not info or schema_version is None:
         errors.append("Info is invalid. Cannot tokenize without understanding the context.")
     elif type(schema_version) is not int or schema_version not in uctx.VALID_SCHEMAS:

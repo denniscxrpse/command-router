@@ -1,0 +1,3 @@
+__all__ = ["fuzzy_str_match"]
+
+def fuzzy_str_match(token: str | None, pool: list[str], limit: int) -> list[str]: ...

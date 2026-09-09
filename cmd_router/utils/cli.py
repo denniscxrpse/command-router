@@ -54,7 +54,7 @@ class EnvFlags:
     This flag determines how the Command Router (``cmd-router``) should behave at startup:
 
     - ``False`` (**default**): The ``./fixtures`` path contains every single grammar path. By default, we provide two 
-      files: ``grammars`.toml` and ``grammars.json5``. Both of these files are loaded and parsed, and you may use them 
+      files: ``grammars.toml`` and ``grammars.json5``. Both of these files are loaded and parsed, and you may use them 
       as examples. The file ``err.json5`` is ignored by default; unless the flag ``ignore`` is modified, it won't be 
       loaded.
       You can create as many TOML or JSON files as you want (JSON5 is supported), the ``fixtures`` path is the entry
@@ -137,12 +137,16 @@ class EnvFlags:
       ``FixturesSetup.suggestions_set_current_size`` (internally ``_suggestions_size``).
 
       For example: with ``suggestions_set_current_size`` set to ``2``, consumers should expect a compact
-      JSON response shaped like (stripped to the important parts)::
+      JSON response shaped like (stripped to the important parts):
+      
+      .. code-block:: json
 
           {
             "ok": false,
+            // ...
             "error": {
               "suggestions": ["word1", "word2"]
+              // ...
             }
           }
 
@@ -153,7 +157,7 @@ class EnvFlags:
 
     - If ``True``: No suggestion list is built. Both the top-level ``suggestions`` and
       ``error["suggestions"]`` are ``None``. Consumers might disable this to handle their own
-      suggestions in their application.
+      suggestions in their application, or to only rely on the suggestions server.
     """
 
     max_sized_suggestions: bool = False
@@ -172,6 +176,59 @@ class EnvFlags:
       ``get_suggestions`` giving up early when fewer ``expected`` candidates exist to save you.
 
     - The real best scenario is keeping this flag disabled because it is meant for testing.
+    """
+
+    suggestions_server: bool = False
+    """
+    Enables the suggestions server, allowing consumers to retrieve suggestions independently
+    of the command router's ``error["suggestions"]`` and top-level ``suggestions`` fields.
+    
+    The suggestions server provides suggestions as soon as they are available, rather than
+    waiting for the library to collect the number of candidates configured by
+    ``FixturesSetup.suggestions_set_current_size``. For example, given:
+    
+    .. code-block:: python
+    
+        @final
+        class SetupFixtures(FixturesSetup):
+    
+            def __init__(self) -> None:
+                # "gamemode": "(survival|creative) [<target>]"
+                self.command_action = {
+                    "gamemode": self.logic.foo,
+                }
+    
+            ...
+    
+    A user can send a ``POST`` request for the ``gamemode`` command, then immediately send
+    a ``GET`` request to receive the available suggestions.
+    
+    The server is a lazy TCP server. Its endpoint (``localhost`` by default) and port can be
+    configured in ``./fixtures/__init__.py``. When enabled, the ``lazy`` flag is ignored
+    because the server initializes just before the command router is ready.
+    
+    ``POST`` requests require no body or specific format. ``GET`` requests must return a JSON
+    list. The implementation of requests is left to the user; only the endpoint and response
+    format are provided.
+    
+    This does not disable suggestions exposed by the command router. Consumers can still
+    retrieve them from ``error["suggestions"]`` or the top-level ``suggestions`` field,
+    including when ``no_suggestions`` or ``max_sized_suggestions`` is enabled.
+    """
+
+    no_suggestions_server: bool = False
+    """
+    The suggestions server is completely disabled if this flag is set to ``True``.
+    
+    By default (``False``), we do not disable the suggestions server as a way to flood the ``stdout`` with error level 
+    logs. This is a way to tell the user that the suggestions server is disabled without completely breaking their
+    application while we simply ignore all their ``POST`` requests while their ``GET`` requests return an empty
+    JSON list.
+    
+    If this flag is set to ``True``, the suggestions server will be completely disabled, regardless of the given 
+    value of the ``suggestions_server`` flag.
+    
+    This does not affect the default behavior of the Command Router while ``no_suggestions`` is ``False``.
     """
 
     json_out: bool = False
@@ -229,7 +286,7 @@ flags: Final[EnvFlags] = EnvFlags()
     "-S",
     "--no-suggestions",
     is_flag=True,
-    flag_value=False,
+    flag_value=True,
     default=flags.no_suggestions,
     help="Disable suggestions for unknown commands.",
 )
@@ -239,7 +296,21 @@ flags: Final[EnvFlags] = EnvFlags()
     is_flag=True,
     flag_value=True,
     default=flags.max_sized_suggestions,
-    help="Enforce the suggestions list to initialize with `SUGGESTIONS_MAX`.",
+    help="Enforce the suggestions list to initialize to `SUGGESTIONS_MAX`.",
+)
+@click.option(
+    "-s",
+    "--suggestions-server",
+    is_flag=True,
+    default=flags.suggestions_server,
+    help="Enable the suggestions server.",
+)
+@click.option(
+    "--no-suggestions-server",
+    is_flag=True,
+    flag_value=True,
+    default=flags.no_suggestions_server,
+    help="The suggestions server is completely disabled if this flag is set to ``True``.",
 )
 @click.option(
     "-json",

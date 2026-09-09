@@ -13,9 +13,9 @@ from cmd_router.utils.cli import flags
 from cmd_router.utils.context import paths, uctx
 from cmd_router.utils.status import Status, stat
 
-CMD_ROUTER = uctx.cmd_router
-SCHEMA_VERSION = uctx.schema_version
-GRAMMAR = uctx.grammar
+CMD_ROUTER = uctx.CMD_ROUTER_SERIAL
+SCHEMA_VERSION = uctx.SCHEMA_VERSION_SERIAL
+GRAMMAR = uctx.GRAMMAR_SERIAL
 
 
 def _json_grammar(command: str = "say") -> str:
