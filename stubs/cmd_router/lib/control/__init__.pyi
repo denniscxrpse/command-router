@@ -6,6 +6,7 @@ from .api.result import *
 __all__ = [
     "ControlDeeperContext",
     "ControlType",
+    "FixtureInitializationError",
     "FixturesContextHolder",
     "FixturesSetup",
     "ControlResultKinds",
@@ -19,5 +20,6 @@ __all__ = [
 #   ControlResult
 #   ControlResultKinds
 #   ControlType
+#   FixtureInitializationError
 #   FixturesContextHolder
 #   FixturesSetup

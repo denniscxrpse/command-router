@@ -1,3 +1,5 @@
+from cmd_router.utils.cli import *
+from cmd_router.utils.status import *
 from _typeshed import Incomplete
 from collections.abc import Callable
 from dataclasses import dataclass
@@ -6,8 +8,7 @@ from typing import Any, ClassVar, Self
 __all__ = ["FixtureInitializationError", "FixturesContextHolder", "FixturesSetup"]
 
 _Action = Callable[..., Any]
-
-class FixtureInitializationError(RuntimeError): ...
+FixtureInitializationError: Incomplete
 
 @dataclass(slots=True)
 class _FixtureInnerContext:
@@ -16,7 +17,7 @@ class _FixtureInnerContext:
     @staticmethod
     def reset() -> None: ...
     @staticmethod
-    def validate() -> None: ...
+    def validate() -> None | Status: ...
 
 class FixturesContextHolder:
     _current: ClassVar[Self | None]
@@ -28,11 +29,15 @@ class FixturesContextHolder:
 
 class FixturesSetup:
     logic: Any
+    _active_suggestions_size: ClassVar[int | None]
     _cmd_prefix: Incomplete
     _lazy_init_help: bool
     _command_action: dict[str, _Action]
     _command_args_ctrl: dict[str, Any]
+    _suggestions_size: int
     def __init__(self, logic: Any = None) -> None: ...
+    @classmethod
+    def _resolve_suggestions_limit(cls) -> int: ...
     @staticmethod
     def __typerror__(name: str, value: Any, expected: type[Any]) -> TypeError: ...
     @property
@@ -51,3 +56,11 @@ class FixturesSetup:
     def command_args_ctrl(self) -> dict[str, Any]: ...
     @command_args_ctrl.setter
     def command_args_ctrl(self, v: dict[str, Any]) -> None: ...
+    @property
+    def suggestions_max_list_size(self) -> int: ...
+    @property
+    def suggestions_get_size(self) -> int: ...
+    @property
+    def suggestions_set_current_size(self) -> int: ...
+    @suggestions_set_current_size.setter
+    def suggestions_set_current_size(self, v: int) -> None: ...

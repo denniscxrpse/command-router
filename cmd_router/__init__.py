@@ -224,6 +224,7 @@ class CommandRouter:
 
     @property
     def initialize(self) -> Status:
+        """The main entry point for the router."""
         if not self._was_i_initialized:
             return stat.ImpossibleControlState()
         log.debug(
@@ -280,6 +281,7 @@ class CommandRouter:
 
     @property
     def main(self) -> Status:
+        """(Alias) The main entry point for the router."""
         return self.initialize
 
     def execute(self, command: Any) -> ControlResult:

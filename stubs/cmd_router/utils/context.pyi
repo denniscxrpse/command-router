@@ -1,9 +1,9 @@
-from dataclasses import dataclass
-from enum import IntEnum
+from _typeshed import Incomplete
+from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Final
+from typing import Any, Final
 
-__all__ = ["Error", "paths", "uctx"]
+__all__ = ["paths", "uctx"]
 
 @dataclass
 class _Paths:
@@ -14,32 +14,15 @@ class _Paths:
     FIXTURES_HTTP: Path = ...
     LOGS_DIR: Path = ...
 
-class Error(IntEnum):
-    def __str__(self) -> str: ...
-    Abort = -1
-    Succeed = 0
-    DefaultGrammarError = 1
-    GrammarLoadError = 2
-    InvalidGrammarError = 3
-    UnsupportedGrammarFormatError = 4
-    TokenizeInvalidError = 5
-    TokenizeUnsupportedTypeError = 6
-    ControlNotInitializedError = 7
-    ControlFixtureError = 8
-    ControlGrammarError = 9
-    ControlActionError = 10
-    Interrupted = 18
-    @dataclass(frozen=True, slots=True)
-    class ArgumentParseError:
-        message: str
-        expected: str
-
 @dataclass(frozen=True, slots=True)
 class _UniversalContext:
+    INTERNAL_JSON_CONTRACT: Final[dict[str, Any]] = field(default_factory=Incomplete)
+    INTERNAL_JSON_CONTRACT_COMPACT: Final[dict[str, Any]] = field(default_factory=Incomplete)
     VALID_SCHEMAS: Final[frozenset[int]] = ...
     cmd_router: Final[str] = ...
     grammar: Final[str] = ...
     schema_version: Final[str] = ...
+    SUGGESTIONS_MAX: Final[int] = ...
 
 paths: Final[_Paths]
 uctx: Final[_UniversalContext]

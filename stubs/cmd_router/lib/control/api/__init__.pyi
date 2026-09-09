@@ -2,11 +2,12 @@ from .context import *
 from .control import *
 from .result import *
 from collections.abc import Mapping
+from dataclasses import dataclass
 from pathlib import Path
 from types import ModuleType
 from typing import Any, Final
 
-__all__ = ["control", "surface", "deeper_level"]
+__all__ = ["Api"]
 
 class _ControlSurface:
     @staticmethod
@@ -21,11 +22,11 @@ class _ControlSurface:
     @staticmethod
     async def execute_async(command: Any) -> ControlResult: ...
     @staticmethod
-    def listener() -> str: ...
-    def readable_listener(self) -> dict[str, Any] | None: ...
+    def get_latest_stderr() -> str: ...
+    def readable_stderr(self) -> dict[str, Any] | None: ...
 
-surface: Final[_ControlSurface]
-deeper_level: Final[ControlDeeperContext]
-
-# Names in __all__ with no definition:
-#   control
+@dataclass(frozen=True)
+class Api:
+    Control: Final[Control] = ...
+    Surface: Final[_ControlSurface] = ...
+    Context: Final[ControlDeeperContext] = ...
