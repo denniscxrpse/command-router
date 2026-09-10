@@ -77,7 +77,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any, ClassVar, Self
 
-from cmd_router.suggestion_server.context import *
+from cmd_router.suggestions.context import *
 from cmd_router.utils.cli import *
 from cmd_router.utils.context import uctx
 from cmd_router.utils.logger import log
@@ -131,13 +131,16 @@ class _FixtureInnerContext:
         default control setup does not mask an unfinished fixture.
         """
         fic = _FixtureInnerContext
+        # ty: ignore[redundant-condition]
         if not (fic.did_context_holder_ever_initialize, fic.did_fixture_setup_ever_initialize):
             log.critical("very rare error! is the fixture lifecycle order correct? are we somehow racing?")
+        # ty: ignore[redundant-condition]
         if not fic.did_context_holder_ever_initialize:
             return FixtureInitializationError(
                 "FixturesContextHolder did not finish initialization; "
                 "the context_holder factory must call super().__init__() before returning."
             )
+        # ty: ignore[redundant-condition]
         if not fic.did_fixture_setup_ever_initialize:
             return FixtureInitializationError(
                 "FixturesSetup did not finish initialization; "
@@ -253,6 +256,7 @@ class FixturesSetup:
         if self.logic is None:
             self.logic = FixturesContextHolder.current()
         if self.logic is None:
+            # ty: ignore[redundant-condition]
             if not _FixtureInnerContext.did_fixture_setup_ever_initialize:
                 raise SyntaxError(
                     "FixtureContextHolder wasn't initialized before FixturesSetup; "

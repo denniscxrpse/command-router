@@ -16,7 +16,7 @@ from dataclasses import dataclass, field
 from typing import Any, Final
 
 from cmd_router.lib.control.api.result import ControlResultKinds
-from cmd_router.suggestion_server.fuzzy_str_match import fuzzy_str_match
+from cmd_router.suggestions.algo import fuzzy_str_match
 from cmd_router.utils.cli import *
 from cmd_router.utils.status import *
 

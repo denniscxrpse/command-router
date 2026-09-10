@@ -98,9 +98,7 @@ def test_no_suggestions_disables_both_layers(_clean_suggestion_state, monkeypatc
     assert response["error"]["suggestions"] is None
 
 
-def test_max_sized_flag_forces_max_and_ignores_setter(
-    _clean_suggestion_state, monkeypatch: pytest.MonkeyPatch
-) -> None:
+def test_max_sized_flag_forces_max_and_ignores_setter(_clean_suggestion_state, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(flags, "max_sized_suggestions", True)
     setup = FixturesSetup(logic=object())
 
@@ -111,17 +109,21 @@ def test_max_sized_flag_forces_max_and_ignores_setter(
     setup.suggestions_set_current_size = 2
     assert setup.suggestions_get_size == uctx.SUGGESTIONS_MAX
 
-    # Best case: fewer candidates than MAX gives up early.
+    # Best case: fewer candidates than MAX give up early.
     small = _make_error(("a", "b"))
     assert small._get_suggestions() == ["a", "b"]
 
-    # Worst case: O(n) with n == SUGGESTIONS_MAX truncates a larger pool.
+    # Worst case: the byte budget truncates before SUGGESTIONS_MAX. Emission
+    # stops once str(result) would exceed flags.suggestions_payload, so the
+    # result is a pool-ordered prefix that fits the budget — never MAX items
+    # of unbounded words.
     many = tuple(f"w{i}" for i in range(uctx.SUGGESTIONS_MAX + 50))
     large = _make_error(many)
     suggestions = large._get_suggestions()
     assert suggestions is not None
-    assert len(suggestions) == uctx.SUGGESTIONS_MAX
-    assert suggestions == list(many[: uctx.SUGGESTIONS_MAX])
+    assert len(suggestions) < uctx.SUGGESTIONS_MAX
+    assert suggestions == list(many[: len(suggestions)])
+    assert len(str(suggestions).encode("utf-8")) <= flags.suggestions_payload
 
 
 def test_suggestions_setter_validates(_clean_suggestion_state) -> None:
@@ -224,8 +226,7 @@ def test_advanc_suggests_advancement_only(_clean_suggestion_state) -> None:
     runner = Control()
     try:
         runner.deeper_context.command_action = {
-            name: (lambda **arguments: arguments)
-            for name in ("say", "tell", "gamemode", "advancement")
+            name: (lambda **arguments: arguments) for name in ("say", "tell", "gamemode", "advancement")
         }
         assert runner.initialize(
             {
@@ -252,8 +253,7 @@ def test_gamemod_suggests_gamemode_only(_clean_suggestion_state) -> None:
     runner = Control()
     try:
         runner.deeper_context.command_action = {
-            name: (lambda **arguments: arguments)
-            for name in ("say", "tell", "gamemode", "advancement")
+            name: (lambda **arguments: arguments) for name in ("say", "tell", "gamemode", "advancement")
         }
         assert runner.initialize(
             {

@@ -1,0 +1,8 @@
+from cmd_router.utils.cli import *
+from cmd_router.utils.context import *
+from collections.abc import Sequence
+
+__all__ = ["fit_to_budget", "fuzzy_str_match"]
+
+def fit_to_budget(ranked: Sequence[str], budget: int) -> list[str]: ...
+def fuzzy_str_match(token: str | None, pool: list[str], limit: int, budget: int = ...) -> list[str]: ...

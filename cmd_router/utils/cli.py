@@ -222,13 +222,27 @@ class EnvFlags:
     
     By default (``False``), we do not disable the suggestions server as a way to flood the ``stdout`` with error level 
     logs. This is a way to tell the user that the suggestions server is disabled without completely breaking their
-    application while we simply ignore all their ``POST`` requests while their ``GET`` requests return an empty
+    application, meanwhile we simply ignore all their ``POST`` requests while their ``GET`` requests return an empty
     JSON list.
     
     If this flag is set to ``True``, the suggestions server will be completely disabled, regardless of the given 
     value of the ``suggestions_server`` flag.
     
     This does not affect the default behavior of the Command Router while ``no_suggestions`` is ``False``.
+    """
+
+    suggestions_payload: int = 508  # (signed) INT8_MAX * 4
+    """
+    The maximum number of bytes that the suggestions list will respond from the Command Router.
+    
+    Here, ``suggestions`` is a list of exactly ``X`` strings of unbounded length, where ``X == SUGGESTIONS_MAX``. 
+    The serialized ``suggestions`` payload MUST NOT exceed the consumer’s maximum supported payload size in bytes.
+    
+    The given value will serve as a hard limit for the size of the suggestions payload, ensuring that the consumer 
+    does not receive an excessively large payload.
+    
+    Payloads who exceed this limit will be truncated to fit within the maximum supported payload size without breaking 
+    the consumer’s ability to parse the data. Warning level logs will be emitted to notify the user of the truncation.
     """
 
     json_out: bool = False
@@ -311,6 +325,13 @@ flags: Final[EnvFlags] = EnvFlags()
     flag_value=True,
     default=flags.no_suggestions_server,
     help="The suggestions server is completely disabled if this flag is set to ``True``.",
+)
+@click.option(
+    "-sz",
+    "--suggestions_payload",
+    type=int,
+    default=flags.suggestions_payload,
+    help="The maximum payload for suggestions.",
 )
 @click.option(
     "-json",

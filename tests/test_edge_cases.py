@@ -24,7 +24,7 @@ from click.testing import CliRunner
 from cmd_router.lib.commands import CmdNode
 from cmd_router.lib.commands.typing import ArgumentType
 from cmd_router.lib.control import ControlType as Control
-from cmd_router.suggestion_server import LazySuggestionsServer, lazy_suggest_srv_ctx
+from cmd_router.suggestions import LazySuggestionsServer, lazy_suggest_srv_ctx
 from cmd_router.utils.cli import flags, init_flags
 from cmd_router.utils.status import stat
 

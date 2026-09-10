@@ -6,10 +6,10 @@
 __all__ = ["LazySuggestionsServer", "lazy_suggest_srv_ctx"]
 
 import json
-from typing import Any
+from typing import TYPE_CHECKING
 from urllib.parse import unquote, urlsplit
 
-from cmd_router.suggestion_server.fuzzy_str_match import fuzzy_str_match
+from cmd_router.suggestions.algo import fuzzy_str_match
 from cmd_router.utils.cli import *
 from cmd_router.utils.context import uctx
 from cmd_router.utils.lazy_server import *
@@ -17,6 +17,9 @@ from cmd_router.utils.logger import *
 from cmd_router.utils.status import *
 
 from .context import lazy_suggest_srv_ctx
+
+if TYPE_CHECKING:
+    from cmd_router.lib.commands.context import ParseError
 
 
 class LazySuggestionsServer(LazyServer):
@@ -197,18 +200,17 @@ class LazySuggestionsServer(LazyServer):
         return ""
 
     @staticmethod
-    def _immediate_suggestions(error: Any) -> list[str]:
+    def _immediate_suggestions(error: ParseError) -> list[str]:
         """Rank *error.expected* via ``fuzzy_str_match`` capped at ``SUGGESTIONS_MAX``.
 
         Unlike ``ParseError._get_suggestions``, ignores ``suggestions_set_current_size``
         and ``no_suggestions`` so ``POST`` stores the full available pool.
         """
         limit = uctx.SUGGESTIONS_MAX
-        pool: list[str] = list(getattr(error, "expected", ()) or ())
+        pool: list[str] = list(error.expected or ())
         if not pool:
             return []
-        token = getattr(error, "token", None)
-        return fuzzy_str_match(token, pool, limit)
+        return fuzzy_str_match(error.token, pool, limit)
 
     def _compute_suggestions(self, command_text: str) -> tuple[list[str] | None, Status | None]:
         """Parse *command_text* against the live dispatcher for suggestions.
@@ -220,15 +222,16 @@ class LazySuggestionsServer(LazyServer):
         exception from the HTTP handler.
         """
         try:
+            # circular imports go brrr
             from cmd_router.lib.control.api.control import control as _shared_control
         except ImportError as exception:
             log.error("suggestions server could not access the control surface: %s", exception)
             return None, stat.ControlNotInitializedError()
         try:
             deeper = _shared_control.deeper_context
-            dispatcher = getattr(deeper, "dispatcher", None)
-            initialized = bool(getattr(deeper, "initialized", False))
-            prefix = getattr(deeper, "cmd_prefix", "/")
+            dispatcher = deeper.dispatcher
+            initialized = deeper.initialized
+            prefix = deeper.cmd_prefix
         except Exception as exception:
             log.error("suggestions server could not inspect the control surface: %s", exception)
             return None, stat.ControlNotInitializedError()

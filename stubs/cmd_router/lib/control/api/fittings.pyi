@@ -1,4 +1,4 @@
-from cmd_router.suggestion_server.context import *
+from cmd_router.suggestions.context import *
 from cmd_router.utils.cli import *
 from cmd_router.utils.status import *
 from _typeshed import Incomplete

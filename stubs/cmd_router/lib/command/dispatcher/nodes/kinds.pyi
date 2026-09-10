@@ -1,9 +1,0 @@
-from enum import StrEnum
-
-__all__ = ["NodeKind"]
-
-class NodeKind(StrEnum):
-    ROOT = "root"
-    COMMAND = "commands"
-    ARGUMENT = "argument"
-    LITERAL = "literal"

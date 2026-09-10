@@ -1,3 +1,0 @@
-__all__ = ["tokenize"]
-
-def tokenize(command: str) -> list[str] | int: ...

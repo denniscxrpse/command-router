@@ -18,7 +18,7 @@ from icecream import ic
 from cmd_router.lib.control import ControlResult
 from cmd_router.lib.control.api import *
 from cmd_router.lib.grammar.loader import *
-from cmd_router.suggestion_server import *
+from cmd_router.suggestions import *
 from cmd_router.utils.cli import *
 from cmd_router.utils.context import *
 from cmd_router.utils.lazy_server import *

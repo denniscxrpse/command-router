@@ -15,8 +15,8 @@ from http.server import HTTPServer
 import pytest
 
 from cmd_router.lib.control.api.control import control as _shared_control
-from cmd_router.suggestion_server import LazySuggestionsServer, lazy_suggest_srv_ctx
-from cmd_router.suggestion_server.fuzzy_str_match import fuzzy_str_match
+from cmd_router.suggestions import LazySuggestionsServer, lazy_suggest_srv_ctx
+from cmd_router.suggestions.algo import fuzzy_str_match
 from cmd_router.utils.cli import flags
 from cmd_router.utils.status import stat
 
@@ -100,9 +100,7 @@ def test_post_complete_command_stores_empty(_enabled_server: HTTPServer) -> None
     assert json.loads(body) == []
 
 
-def test_disabled_post_ignored_and_get_empty(
-    _enabled_server: HTTPServer, monkeypatch: pytest.MonkeyPatch
-) -> None:
+def test_disabled_post_ignored_and_get_empty(_enabled_server: HTTPServer, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(flags, "suggestions_server", False)
 
     status, _, _ = _request(_enabled_server, "POST", body=b"gamemode")
@@ -114,9 +112,7 @@ def test_disabled_post_ignored_and_get_empty(
     assert json.loads(body) == []
 
 
-def test_no_suggestions_server_flag_disables(
-    _enabled_server: HTTPServer, monkeypatch: pytest.MonkeyPatch
-) -> None:
+def test_no_suggestions_server_flag_disables(_enabled_server: HTTPServer, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(flags, "no_suggestions_server", True)
 
     status, _, _ = _request(_enabled_server, "POST", body=b"gamemode")
