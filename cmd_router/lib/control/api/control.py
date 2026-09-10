@@ -52,9 +52,7 @@ from typing import Any, Final, Self
 from cmd_router.lib.commands import CmdParse
 from cmd_router.lib.control.compiler import _compile_grammars, _GrammarSource, _GrammarSyntaxError
 from cmd_router.lib.control.fixture import _load_fixture_module
-from cmd_router.utils.cli import *
-from cmd_router.utils.logger import *
-from cmd_router.utils.status import Status, stat
+from cmd_router.utils import Status, flags, log, log_handler, stat
 
 from .context import *
 from .fittings import *

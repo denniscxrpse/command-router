@@ -29,9 +29,7 @@ from dataclasses import dataclass
 from enum import StrEnum, auto
 from typing import TYPE_CHECKING, Any, Self, final
 
-from cmd_router.utils.cli import *
-from cmd_router.utils.logger import *
-from cmd_router.utils.status import *
+from cmd_router.utils import Status, flags, log
 
 _Action = Callable[..., Any]
 

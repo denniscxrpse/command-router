@@ -36,8 +36,7 @@ from pathlib import Path
 from types import ModuleType
 from typing import Any, Final, final
 
-from cmd_router.utils.cli import flags
-from cmd_router.utils.logger import log
+from cmd_router.utils import flags, log
 
 from .context import *
 from .control import *

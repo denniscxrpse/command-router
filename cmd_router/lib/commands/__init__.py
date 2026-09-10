@@ -32,7 +32,7 @@ from cmd_router.lib.commands.typing import greedy as _greedy_string
 from cmd_router.lib.commands.typing import integer as _integer
 from cmd_router.lib.commands.typing import string as _string
 from cmd_router.lib.commands.typing import word as _word
-from cmd_router.utils.status import *
+from cmd_router.utils import IStatus, Status
 
 CmdError: Final[type[Status]] = IStatus
 

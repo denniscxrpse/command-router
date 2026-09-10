@@ -7,7 +7,7 @@ __all__ = ("LazyServer",)
 
 from http.server import BaseHTTPRequestHandler
 
-from cmd_router.utils.logger import log
+from .logger import log
 
 _CONTENT_LENGTH = "Content-Length"
 

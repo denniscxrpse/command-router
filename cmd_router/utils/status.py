@@ -114,3 +114,4 @@ class _StatusNS:
 #fmt: on
 
 stat: Final[_StatusNS] = _StatusNS()
+"""Status namespace."""

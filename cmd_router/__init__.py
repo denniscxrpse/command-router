@@ -271,11 +271,8 @@ class CommandRouter:
                 sgs_addr = lazy_suggest_srv_ctx.address
                 sgs_port = lazy_suggest_srv_ctx.port
                 suggestions_server = HTTPServer((sgs_addr, sgs_port), LazySuggestionsServer)
-                log.info(
-                    "lazy suggestions server listening on %s:%d",
-                    sgs_addr,
-                    suggestions_server.server_port,
-                )
+                __log = lambda *_, **__: None if flags.no_suggestions_server else log.info  # noqa: E731
+                __log("lazy suggestions server listening on %s:%d", sgs_addr, suggestions_server.server_port)
                 _sgs_thread = threading.Thread(
                     target=suggestions_server.serve_forever,
                     kwargs={"poll_interval": 0.2},

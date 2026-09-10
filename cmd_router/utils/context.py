@@ -21,10 +21,14 @@ __all__ = (
 
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Final
+from typing import TYPE_CHECKING, Any, Final
 
-from cmd_router.lib.control.api.result import ControlResultKinds
-from cmd_router.utils.status import Status
+if TYPE_CHECKING:
+    from cmd_router.lib.control.api.result import ControlResultKinds
+else:
+    ControlResultKinds = Any
+
+from .status import Status
 
 
 @dataclass

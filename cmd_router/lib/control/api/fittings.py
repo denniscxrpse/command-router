@@ -11,9 +11,9 @@ contains only shared constants and schema keys; it is not a settings object and
 does not expose command-prefix, help, action, or argument-override setters.
 Those values belong to a ``FixturesSetup`` instance.
 
-A fixture module supplies two child classes and one factory alias:
 
 - ``context_holder``:
+A fixture module supplies two child classes and one factory alias:
   A class derived from ``FixturesContextHolder``.  The control layer creates
   exactly one instance for an initialization attempt and keeps it in
   ``deeper_level.fixture_logic``.  The base class registers the instance as
@@ -78,10 +78,7 @@ from dataclasses import dataclass
 from typing import Any, ClassVar, Self
 
 from cmd_router.suggestions.context import *
-from cmd_router.utils.cli import *
-from cmd_router.utils.context import uctx
-from cmd_router.utils.logger import log
-from cmd_router.utils.status import *
+from cmd_router.utils import Status, flags, log, stat, uctx
 
 __all__ = ("FixturesContextHolder", "FixturesSetup", "FixtureInitializationError")
 

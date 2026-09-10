@@ -10,11 +10,7 @@ from typing import TYPE_CHECKING
 from urllib.parse import unquote, urlsplit
 
 from cmd_router.suggestions.algo import fuzzy_str_match
-from cmd_router.utils.cli import *
-from cmd_router.utils.context import uctx
-from cmd_router.utils.lazy_server import *
-from cmd_router.utils.logger import *
-from cmd_router.utils.status import *
+from cmd_router.utils import LazyServer, Status, flags, log, stat, uctx
 
 from .context import lazy_suggest_srv_ctx
 

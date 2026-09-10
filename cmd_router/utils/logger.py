@@ -96,6 +96,8 @@ class _StderrWriter:
 
 @final
 class LoggerHandler:
+    """Top logger class. Includes the entire logic for handling log messages."""
+
     def __init__(self) -> None:
         """Render application logs to stdout with a consistent level style.
 
@@ -248,7 +250,7 @@ class LoggerHandler:
         if len(message) > 1 and isinstance(message[0], str) and "%" in message[0]:
             try:
                 return f"{caller}: {message[0] % tuple(message[1:])}"
-            except (TypeError, ValueError):
+            except TypeError, ValueError:
                 # A malformed diagnostic should still be visible rather than
                 # raising a second exception while reporting the first one.
                 pass
@@ -256,10 +258,11 @@ class LoggerHandler:
 
 
 log_handler = LoggerHandler()
+log_handler.__doc__ = LoggerHandler.__doc__
 
 
 class Logger:
-    """``LoggerHandler`` wrapper with a consistent API."""
+    """``LoggerHandler`` wrapper with a consistent API across all methods."""
 
     @staticmethod
     def debug(*message: Any, sep=" ", end=_end) -> None:
@@ -295,3 +298,4 @@ class Logger:
 
 
 log = Logger()
+log.__doc__ = Logger.__doc__

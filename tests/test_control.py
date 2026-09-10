@@ -369,7 +369,6 @@ def test_control_reports_control_fixture_error_when_holder_skips_super() -> None
     class GoodSetup(FixturesSetup):
         def __init__(self) -> None:
             super().__init__(logic=object())
-            # ty: ignore[invalid-assignment]
             self.command_action = {"say": lambda **arguments: arguments}
 
     module = ModuleType("bad_holder_fixture")

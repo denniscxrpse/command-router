@@ -8,13 +8,12 @@ __all__ = ["lazy_suggest_srv_ctx"]
 import threading
 from typing import Final, final
 
-from cmd_router.utils.context import *
-from cmd_router.utils.logger import log
+from cmd_router.utils import log, uctx
 
 
 @final
 class _LazySuggestionsServerContext:
-    """Shared runtime state for the lazy suggestions server.
+    """Shared runtime state for the lazy suggestions' server.
 
     Holds the configured ``address``/``port`` (writable through
     ``FixturesSetup.suggestions_server_address``/``suggestions_server_port``)

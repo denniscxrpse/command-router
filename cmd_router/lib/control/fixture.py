@@ -54,7 +54,7 @@ import sys
 from pathlib import Path
 from types import ModuleType
 
-from cmd_router.utils.logger import log
+from cmd_router.utils import log
 
 
 def _load_fixture_module(source: ModuleType | str | Path, identifier: int) -> ModuleType:

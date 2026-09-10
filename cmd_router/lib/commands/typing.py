@@ -26,7 +26,7 @@ __all__ = (
 from enum import StrEnum, auto
 from typing import ClassVar, Final, Generic, TypeVar, final
 
-from cmd_router.utils.status import stat
+from cmd_router.utils import stat
 
 _ValueT = TypeVar("_ValueT")
 

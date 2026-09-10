@@ -75,7 +75,7 @@ from collections.abc import Callable, Mapping
 from typing import Any
 
 from cmd_router.lib.commands import CmdNode, CmdType
-from cmd_router.utils.logger import log
+from cmd_router.utils import log
 
 from .grammar import (
     _ArgumentTerm,

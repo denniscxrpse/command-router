@@ -10,7 +10,7 @@ __all__ = (
     "RootNode",
 )
 
-from cmd_router.lib.commands.dispatcher.nodes.argument import ArgumentNode
-from cmd_router.lib.commands.dispatcher.nodes.command import CommandNode
-from cmd_router.lib.commands.dispatcher.nodes.literal import LiteralNode
-from cmd_router.lib.commands.dispatcher.nodes.root import RootNode
+from .argument import ArgumentNode
+from .command import CommandNode
+from .literal import LiteralNode
+from .root import RootNode

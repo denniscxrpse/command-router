@@ -67,7 +67,7 @@ import ast
 from dataclasses import dataclass
 from typing import Any
 
-from cmd_router.utils.logger import log
+from cmd_router.utils import log
 
 
 class _GrammarSyntaxError(ValueError):

@@ -13,8 +13,7 @@ from heapq import nsmallest
 from itertools import accumulate, chain, islice
 from typing import Final
 
-from cmd_router.utils.cli import *
-from cmd_router.utils.context import *
+from cmd_router.utils import flags, uctx
 
 try:
     from rapidfuzz.distance import Levenshtein
