@@ -120,10 +120,17 @@ class _Control:
         self,
         grammars: _GrammarSource | None = None,
         *,
-        fixture: ModuleType | str | Path | None = None,
+        fixture: ModuleType | str | Path | FixturesSetup | type[FixturesSetup] | None = None,
         keep_help: bool | None = None,
     ) -> ControlInitialization:
         """Initialize an optional fixture, apply overrides, and compile grammars.
+
+        *fixture* may be a module/file/import name (legacy ``context_holder`` /
+        ``SetupFixtures`` contract) or a ready ``FixturesSetup`` instance such
+        as ``FixturesAPI``/``Fixtures`` from ``cmd_router.api``.  A setup subclass
+        (e.g. a ``FixturesAPI`` child) is instantiated with no arguments; plain
+        setup subclasses without a bound holder fail with a structured
+        fixture error, exactly as the module path does.
 
         Fixture construction happens before grammar compilation so actions can
         be derived from the newly created holder.  If *keep_help* is supplied,
@@ -267,25 +274,49 @@ class _Control:
     dispatch_async = execute_async
     aexecute = execute_async
 
-    def _initialize_fixture(self, fixture: ModuleType | str | Path) -> ControlInitialization:
-        """Load and initialize a ``context_holder``/``SetupFixtures`` fixture.
+    def _initialize_fixture(
+        self, fixture: ModuleType | str | Path | FixturesSetup | type[FixturesSetup]
+    ) -> ControlInitialization:
+        """Load and initialize a fixture from a module source or setup object.
 
-        The holder is created first.  Its instance is then injected into the
-        setup class's ``logic`` class attribute before the setup constructor is
-        called, which lets a setup subclass build action mappings from bound
-        holder methods in its own ``__init__``.  The active control state is
-        changed only after both objects have been created successfully.
+        Module sources (``ModuleType``/``str``/``Path``) follow the legacy
+        ``context_holder``/``SetupFixtures`` contract: the holder is created
+        first, injected as ``SetupFixtures.logic``, and validated through
+        ``_FixtureInnerContext`` before the active state changes.
 
-        The old ``setup``/``FixtureGrammarLogic`` hook pair is intentionally no
-        longer used: those hooks depended on mutable ``uctx`` settings that
-        were removed from the API.  The returned initialization error names the
-        new contract when a legacy or incomplete module is supplied.
+        ``FixturesSetup`` instances (including ``FixturesAPI``/``Fixtures`` from
+        ``cmd_router.api``) bypass module loading entirely.  The instance is
+        already constructed, so its ``logic`` is used as the holder and the
+        instance itself becomes the active setup.  A ``FixturesSetup``
+        subclass is instantiated with no arguments first (which lets
+        ``FixturesAPI`` children self-bind ``logic=self``).
+
+        The old ``setup``/``FixtureGrammarLogic`` hook pair is intentionally
+        no longer used: those hooks depended on mutable ``uctx`` settings
+        that were removed from the API.
         """
         log.info("loading fixture")
         log.debug("fixture source=%r", fixture)
         if not self._stderr_locked:
             log_handler.lock_stderr()
             self._stderr_locked = True
+
+        if isinstance(fixture, FixturesSetup) or (isinstance(fixture, type) and issubclass(fixture, FixturesSetup)):
+            try:
+                setup = fixture() if isinstance(fixture, type) else fixture
+                logic = setup.logic
+                if logic is None:
+                    raise RuntimeError(
+                        "fixture setup has no logic; construct it with a holder "
+                        "or let Control initialize a fixture module."
+                    )
+                self.deeper_context.attach_fixture(None, logic, setup)
+            except Exception as exception:
+                return self._initialization_error(
+                    "fixture initialization failed", exception, stat.ControlFixtureError()
+                )
+            log.info("fixture ready (%s)", type(setup).__name__)
+            return ControlInitialization(True, stat.Success(), "fixture initialized")
 
         try:
             module = _load_fixture_module(fixture, id(self))

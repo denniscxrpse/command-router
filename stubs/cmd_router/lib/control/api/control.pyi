@@ -39,7 +39,7 @@ class _Control:
         self,
         grammars: _GrammarSource | None = None,
         *,
-        fixture: ModuleType | str | Path | None = None,
+        fixture: ModuleType | str | Path | FixturesSetup | type[FixturesSetup] | None = None,
         keep_help: bool | None = None,
     ) -> ControlInitialization: ...
     def configure(self, grammars: _GrammarSource) -> ControlInitialization: ...
@@ -49,7 +49,9 @@ class _Control:
     dispatch = execute
     dispatch_async = execute_async
     aexecute = execute_async
-    def _initialize_fixture(self, fixture: ModuleType | str | Path) -> ControlInitialization: ...
+    def _initialize_fixture(
+        self, fixture: ModuleType | str | Path | FixturesSetup | type[FixturesSetup]
+    ) -> ControlInitialization: ...
     def _initialization_error(
         self, message: str, exception: Exception | None = None, code: Status = ...
     ) -> ControlInitialization: ...

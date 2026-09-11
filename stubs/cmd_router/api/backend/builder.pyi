@@ -1,0 +1,39 @@
+from collections.abc import Callable
+from typing import Any, Self
+
+from _typeshed import Incomplete
+
+from cmd_router.lib.commands.dispatcher import CommandDispatcher
+from cmd_router.lib.commands.dispatcher.nodes import CommandNode
+from cmd_router.lib.commands.typing import ArgumentType
+
+__all__ = ["NodeBuilder", "LiteralBuilder", "ArgumentBuilder", "literal", "argument", "build_dispatcher"]
+
+_Handler = Callable[..., Any]
+
+class NodeBuilder:
+    _node: Incomplete
+    def __init__(self, node: CommandNode) -> None: ...
+    @property
+    def node(self) -> CommandNode: ...
+    @property
+    def name(self) -> str: ...
+    def then(self, *children: NodeBuilder | CommandNode) -> Self: ...
+    def executes(self, handler: _Handler) -> Self: ...
+    def build(self) -> CommandNode: ...
+
+class LiteralBuilder(NodeBuilder):
+    def __init__(self, name: str, *, executes: _Handler | None = None) -> None: ...
+
+class ArgumentBuilder(NodeBuilder):
+    def __init__(
+        self, name: str, arg_type: ArgumentType[Any] | None = None, *, executes: _Handler | None = None
+    ) -> None: ...
+    @property
+    def argument_type(self) -> ArgumentType[Any]: ...
+
+def literal(name: str, executes: _Handler | None = None) -> LiteralBuilder: ...
+def argument(
+    name: str, arg_type: ArgumentType[Any] | None = None, executes: _Handler | None = None
+) -> ArgumentBuilder: ...
+def build_dispatcher(*roots: NodeBuilder | CommandNode) -> CommandDispatcher: ...

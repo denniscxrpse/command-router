@@ -66,13 +66,13 @@ class _StatusNS:
     """Status namespace for the ``cmd_router`` package."""
     @final
     class Success(IStatus):
-        _code=0;...
+        _code=0
     @final
     class Abort(IStatus):
-        _code=6;...
+        _code=6
     @final
     class Interrupted(IStatus):
-        _code=2;...
+        _code=2
     @final
     class ImpossibleControlState(IStatus):
         """Raised when the unreachable control layer is somehow reached."""

@@ -6,7 +6,7 @@
 from collections.abc import Callable
 from typing import Any
 
-from .command import CommandNode
+from .command import *
 from .kinds import *
 
 _Handler = Callable[..., Any]

@@ -96,16 +96,22 @@ class ControlDeeperContext:
         self._setup = value
         log.info("active fixture setup replaced (%s)", type(value).__name__)
 
-    def attach_fixture(self, module: ModuleType, logic: Any, setup: FixturesSetup) -> None:
-        """Store a successfully initialized fixture and make its setup active."""
-        if not isinstance(module, ModuleType):
-            raise TypeError("fixture module must be a module")
+    def attach_fixture(self, module: ModuleType | None, logic: Any, setup: FixturesSetup) -> None:
+        """Store a successfully initialized fixture and make its setup active.
+
+        *module* is the loaded fixture module for file/import sources, or
+        ``None`` for direct ``FixturesSetup``/``FixturesAPI`` instances that
+        bypass module loading.
+        """
+        if module is not None and not isinstance(module, ModuleType):
+            raise TypeError("fixture module must be a module or None")
         if not isinstance(setup, FixturesSetup):
             raise TypeError("fixture setup must be a FixturesSetup instance")
         self._setup = setup
         self.fixture_module = module
         self.fixture_logic = logic
-        log.info("attached fixture %s with setup %s", module.__name__, type(setup).__name__)
+        source = module.__name__ if module is not None else type(setup).__name__
+        log.info("attached fixture %s with setup %s", source, type(setup).__name__)
 
     @property
     def cmd_prefix(self) -> str:

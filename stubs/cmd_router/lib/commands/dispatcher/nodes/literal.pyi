@@ -3,7 +3,7 @@ from typing import Any
 
 from _typeshed import Incomplete
 
-from .command import CommandNode as CommandNode
+from .command import *
 from .kinds import *
 
 _Handler = Callable[..., Any]

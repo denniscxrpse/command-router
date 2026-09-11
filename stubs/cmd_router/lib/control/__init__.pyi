@@ -6,8 +6,8 @@ from .api.result import *
 __all__ = [
     "ControlDeeperContext",
     "ControlType",
-    "FixtureInitializationError",
     "FixturesContextHolder",
+    "FixtureInitializationError",
     "FixturesSetup",
     "ControlResultKinds",
     "ControlResult",
