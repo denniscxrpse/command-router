@@ -1,3 +1,9 @@
+from pathlib import Path
+from typing import Any
+
+from _typeshed import Incomplete
+
+from cmd_router.lib.control import ControlResult
 from cmd_router.lib.control.api import *
 from cmd_router.lib.grammar.loader import *
 from cmd_router.suggestions import *
@@ -5,11 +11,7 @@ from cmd_router.utils.cli import *
 from cmd_router.utils.context import *
 from cmd_router.utils.lazy_server import *
 from cmd_router.utils.logger import *
-from _typeshed import Incomplete
-from cmd_router.lib.control import ControlResult
 from cmd_router.utils.status import Status
-from pathlib import Path
-from typing import Any
 
 __all__ = ["CommandRouter", "Lazy@60"]
 

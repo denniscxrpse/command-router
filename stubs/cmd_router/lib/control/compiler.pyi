@@ -1,15 +1,28 @@
-from .grammar import (
-    _ArgumentTerm as _ArgumentTerm,
-    _ChoiceTerm as _ChoiceTerm,
-    _GrammarParser as _GrammarParser,
-    _GrammarSyntaxError as _GrammarSyntaxError,
-    _LiteralTerm as _LiteralTerm,
-    _OptionalTerm as _OptionalTerm,
-)
-from cmd_router.lib.commands import CmdNode as CmdNode, CmdType as CmdType
-from cmd_router.utils.logger import log as log
 from collections.abc import Callable, Mapping
 from typing import Any
+
+from cmd_router.lib.commands import CmdNode as CmdNode
+from cmd_router.lib.commands import CmdType as CmdType
+from cmd_router.utils import log as log
+
+from .grammar import (
+    _ArgumentTerm as _ArgumentTerm,
+)
+from .grammar import (
+    _ChoiceTerm as _ChoiceTerm,
+)
+from .grammar import (
+    _GrammarParser as _GrammarParser,
+)
+from .grammar import (
+    _GrammarSyntaxError as _GrammarSyntaxError,
+)
+from .grammar import (
+    _LiteralTerm as _LiteralTerm,
+)
+from .grammar import (
+    _OptionalTerm as _OptionalTerm,
+)
 
 _Action = Callable[..., Any]
 _GrammarSource = Mapping[str, str]

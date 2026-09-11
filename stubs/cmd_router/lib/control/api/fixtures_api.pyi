@@ -1,10 +1,11 @@
-from cmd_router.suggestions.context import *
-from cmd_router.utils.cli import *
-from cmd_router.utils.status import *
-from _typeshed import Incomplete
 from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any, ClassVar, Self
+
+from _typeshed import Incomplete
+
+from cmd_router.suggestions.context import *
+from cmd_router.utils import Status
 
 __all__ = ["FixtureInitializationError", "FixturesContextHolder", "FixturesSetup"]
 

@@ -1,6 +1,6 @@
-from cmd_router.utils.context import *
-from _typeshed import Incomplete
 from typing import Final
+
+from _typeshed import Incomplete
 
 __all__ = ["lazy_suggest_srv_ctx"]
 

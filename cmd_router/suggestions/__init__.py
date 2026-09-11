@@ -18,6 +18,7 @@ if TYPE_CHECKING:
     from cmd_router.lib.commands.context import ParseError
 
 
+# noinspection pep8-naming
 class LazySuggestionsServer(LazyServer):
     """Lazy TCP suggestions server decoupled from the command-router responses.
 
@@ -126,27 +127,22 @@ class LazySuggestionsServer(LazyServer):
             self.wfile.write(body)
         return stat.Abort()
 
-    # noinspection pep8-naming
     def do_PUT(self) -> Status:
         """Reject ``PUT`` with a JSON ``501``; see ``_unsupported``."""
         return self._unsupported()
 
-    # noinspection pep8-naming
     def do_DELETE(self) -> Status:
         """Reject ``DELETE`` with a JSON ``501``; see ``_unsupported``."""
         return self._unsupported()
 
-    # noinspection pep8-naming
     def do_PATCH(self) -> Status:
         """Reject ``PATCH`` with a JSON ``501``; see ``_unsupported``."""
         return self._unsupported()
 
-    # noinspection pep8-naming
     def do_HEAD(self) -> Status:
         """Reject ``HEAD`` with ``501`` headers only; see ``_unsupported``."""
         return self._unsupported()
 
-    # noinspection pep8-naming
     def do_OPTIONS(self) -> Status:
         """Reject ``OPTIONS`` with a JSON ``501``; see ``_unsupported``."""
         return self._unsupported()

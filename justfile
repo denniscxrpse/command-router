@@ -63,10 +63,12 @@ format what="./cmd_router/**":
 
 # Automatically generate stub files.
 stub:
-    #### Cleaning up...
+    #### Cleaning up first...
     rm -rf ./stubs
     #### Running stubgen...
     uv run stubgen ./cmd_router/ -o ./stubs/ --include-private
     #### Running black...
     uv run black --pyi ./stubs/**
+    #### Fixing minor warnings (it's fine if we fail here)
+    uv run ruff check ./stubs/ --fix --unsafe-fixes
     #### done

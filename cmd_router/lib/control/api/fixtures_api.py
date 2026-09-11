@@ -92,7 +92,7 @@ FixtureInitializationError = stat.FixtureInitializationError
 The control layer turns this exception into a structured
 ``ControlInitialization`` failure so callers receive a single, consistent
 result type for both grammar and fixture problems.  Raising it from the
-``fittings`` module keeps the rule in one place: any caller, fixture, or
+``fixtures`` module keeps the rule in one place: any caller, fixture, or
 test that bypasses the expected construction order can surface a single
 diagnostic that names the missing step.
 """

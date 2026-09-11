@@ -13,34 +13,45 @@ from heapq import nsmallest
 from itertools import accumulate, chain, islice
 from typing import Final
 
-from cmd_router.utils import flags, uctx
+from cmd_router.utils import flags, log, uctx
+
+_ENC = "utf-8"
 
 try:
     from rapidfuzz.distance import Levenshtein
 except ImportError:
+    log.error("Levenshtein uninstalled, suggestions might behave worse.")
     Levenshtein = None
 
 X: Final[int] = uctx.SUGGESTIONS_MAX
+"""Absolute limit on the number of suggestions."""
 Y: Final[int] = flags.suggestions_payload
-Z: Final[int] = 4  # OVERHEAD
+"""Suggestion payload; read ``flags.suggestions_payload``."""
+Z: Final[int] = 4
+"""Overhead of the ranked string in a list where we count:
+- BRACKETS = ``"["`` + ``"]"`` = 2
+- SPACES = ``","`` + ``" "`` = 2
+"""
+
+# Methods mustn't use the logger. They are supposed to be stateless (and fast).
 
 
 def _emit(ranked: Iterable[str], budget: int, salvage: bool = False) -> list[str]:
     """Materialize *ranked* (final order) into a list whose str() fits *budget*.
 
-    Model: bytes(str(list)) == sum(len(w.encode()) + 4). The running total is
+    Model: ``bytes(str(list)) == sum(len(w.encode()) + Z)``. The running total is
     the only state; the cut index is *reached* in emission order — never
     searched — and items past the cut are never measured at all.
     """
     out: list[str] = []
     total = 0
     for w in ranked:
-        cost = len(w.encode("utf-8")) + Z
+        cost = len(w.encode(_ENC)) + Z
         if total + cost > budget:
             if salvage:
                 room = budget - total - Z
                 if room > 0:
-                    out.append(w.encode("utf-8")[:room].decode("utf-8", "ignore"))
+                    out.append(w.encode(_ENC)[:room].decode(_ENC, "ignore"))
             break
         total += cost
         out.append(w)
@@ -56,12 +67,12 @@ def fit_to_budget(ranked: Sequence[str], budget: int) -> list[str]:
     words while materializing), this measures the whole list first: cumulative
     serialized costs via ``accumulate`` (``cumsum``), then the cut index via
     ``bisect_right`` (``searchsorted``) — ``O(n)`` measure plus ``O(log n)``
-    search. Same ``+4``-per-word cost model (words assumed free of
+    search. Same ``+Z``-per-word cost model (words assumed free of
     quotes/backslashes).
 
     Args:
         ranked: Suggestions in final order; the result is always a prefix.
-        budget: Maximum ``len(str(result).encode("utf-8"))``. Values ``<= 0``
+        budget: Maximum ``len(str(result).encode(_ENC))``. Values ``<= 0``
             yield ``[]``.
 
     Returns:
@@ -72,15 +83,15 @@ def fit_to_budget(ranked: Sequence[str], budget: int) -> list[str]:
     items = list(ranked)
     if not items:
         return []
-    totals = list(accumulate(len(w.encode("utf-8")) + Z for w in items))
+    totals = list(accumulate(len(w.encode(_ENC)) + Z for w in items))
     return items[: bisect_right(totals, budget)]
 
 
 def fuzzy_str_match(token: str | None, pool: list[str], limit: int, budget: int = Y) -> list[str]:
     """
     Rank *pool* against the failing *token*; up to *limit* hints, and
-    ``len(str(result).encode("utf-8")) <= budget`` *by construction*
-    (words assumed free of quotes/backslashes, per the +4 model).
+    ``len(str(result).encode(_ENC)) <= budget`` *by construction*
+    (words assumed free of quotes/backslashes, per the ``+Z`` model).
 
     Shared ranking used by both ``ParseError._get_suggestions`` (router
     ``error["suggestions"]``) and ``LazySuggestionsServer._immediate_suggestions``
@@ -119,12 +130,12 @@ def fuzzy_str_match(token: str | None, pool: list[str], limit: int, budget: int 
     Complexity:
         Output-bounded. Every stage emits in final ranked order, so the byte
         budget is enforced while materializing — the cut is reached, never
-        searched. At most ``min(limit, budget // 4)`` items are emitted, and
+        searched. At most ``min(limit, budget // Z)`` items are emitted, and
         at most ``budget`` bytes are measured, regardless of pool size; the
         discarded tail is never measured. Ranking costs are unchanged
         (cutoff-pruned Levenshtein pass, ``O(n log limit)`` top-k).
     """
-    # Pure-math cardinality cap, O(1) and lossless: every item costs >= 4
+    # Pure-math cardinality cap, O(1) and lossless: every item costs >= Z
     # serialized bytes, so nothing shippable is discarded — and it bounds
     # every stage below by the OUTPUT size, not the pool size.
     limit = min(limit, X, budget // Z)

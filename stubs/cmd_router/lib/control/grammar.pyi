@@ -1,7 +1,9 @@
-from _typeshed import Incomplete
-from cmd_router.utils.logger import log as log
 from dataclasses import dataclass
 from typing import Any
+
+from _typeshed import Incomplete
+
+from cmd_router.utils import log as log
 
 class _GrammarSyntaxError(ValueError): ...
 

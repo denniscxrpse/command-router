@@ -40,7 +40,7 @@ __all__ = ("FixturesContextHolder", "SetupFixtures", "context_holder")
 
 from typing import Any, final
 
-from cmd_router.fittings import Fixtures as _Fixtures
+from cmd_router.fixtures import Fixtures as _Fixtures
 
 
 @final

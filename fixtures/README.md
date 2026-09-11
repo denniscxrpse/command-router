@@ -41,7 +41,7 @@ A minimal fixture looks like this:
 ```python
 from typing import Any
 
-from cmd_router.fittings import Fixtures
+from cmd_router.fixtures import Fixtures
 
 
 class Context(Fixtures.ContextHolder):

@@ -1,6 +1,7 @@
-import click
 from dataclasses import dataclass
 from typing import Final
+
+import click
 
 __all__ = ["flags", "init_flags"]
 

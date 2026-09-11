@@ -1,10 +1,13 @@
-from .fittings import FixturesSetup
-from .result import ControlInitialization, ControlResult
-from _typeshed import Incomplete
-from cmd_router.lib.commands.dispatcher import CommandDispatcher
 from collections.abc import Callable
 from types import ModuleType
 from typing import Any
+
+from _typeshed import Incomplete
+
+from cmd_router.lib.commands.dispatcher import CommandDispatcher
+
+from .fixtures_api import FixturesSetup
+from .result import ControlInitialization, ControlResult
 
 __all__ = ["ControlDeeperContext"]
 

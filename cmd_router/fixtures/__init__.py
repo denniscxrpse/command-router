@@ -4,7 +4,7 @@
 #  All rights reserved.
 
 """
-Imports the ``Fixtures`` used by the command router; ``fittings`` is a misnomer made in
+Imports the ``Fixtures`` used by the command router; ``fixtures`` is a misnomer made in
 haste to avoid confusion with the ``fixtures`` package.
 
 Works as a "frontend" for the ``FixturesContextHolder`` and ``FixturesSetup`` classes;

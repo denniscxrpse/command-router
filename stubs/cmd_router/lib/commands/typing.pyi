@@ -1,6 +1,7 @@
-from _typeshed import Incomplete
 from enum import StrEnum
-from typing import ClassVar, Final, Generic, TypeVar
+from typing import ClassVar, Final, TypeVar
+
+from _typeshed import Incomplete
 
 __all__ = [
     "ArgumentParseError",
@@ -27,7 +28,7 @@ class _NamedT(StrEnum):
 
 ArgumentParseError: Incomplete
 
-class ArgumentType(Generic[_ValueT]):
+class ArgumentType[ValueT]:
     name: ClassVar[_NamedT]
     greedy: ClassVar[bool]
     def parse(self, value: str) -> _ValueT | object: ...

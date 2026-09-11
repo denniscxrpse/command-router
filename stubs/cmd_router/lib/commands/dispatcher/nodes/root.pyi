@@ -1,8 +1,10 @@
-from .kinds import *
-from .command import CommandNode as CommandNode
-from _typeshed import Incomplete
 from collections.abc import Callable
 from typing import Any
+
+from _typeshed import Incomplete
+
+from .command import CommandNode as CommandNode
+from .kinds import *
 
 _Handler = Callable[..., Any]
 

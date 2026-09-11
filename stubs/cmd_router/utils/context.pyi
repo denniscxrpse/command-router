@@ -1,7 +1,8 @@
-from _typeshed import Incomplete
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Final
+
+from _typeshed import Incomplete
 
 __all__ = ["paths", "uctx"]
 

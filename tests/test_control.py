@@ -7,7 +7,7 @@ import pytest
 
 from cmd_router.lib.control import ControlResultKinds, FixturesContextHolder, FixturesSetup, api
 from cmd_router.lib.control import ControlType as Control
-from cmd_router.lib.control.api.fittings import (
+from cmd_router.lib.control.api.fixtures_api import (
     FixtureInitializationError,
     _FixtureInnerContext,
 )

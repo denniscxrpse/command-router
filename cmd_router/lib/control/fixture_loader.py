@@ -127,7 +127,7 @@ def _load_fixture_module(source: ModuleType | str | Path, identifier: int) -> Mo
         log.critical("execution of %s failed: %s", candidate, exception)
         if isinstance(exception, AttributeError):
             log.debug(
-                "AttributeError loading '%s'. if using `cmd_router.fittings`, verify "
+                "AttributeError loading '%s'. if using `cmd_router.fixtures`, verify "
                 "dataclass attributes are correctly assigned and not overridden. "
                 "this may indicate a logic error rather than an implementation bug.",
                 candidate.name,

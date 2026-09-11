@@ -1,6 +1,7 @@
-from cmd_router.lib.control import *
 from dataclasses import dataclass
 from typing import Final
+
+from cmd_router.lib.control import *
 
 __all__ = ["Fixtures"]
 

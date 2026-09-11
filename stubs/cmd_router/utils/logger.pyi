@@ -1,8 +1,9 @@
-from _typeshed import Incomplete
 from collections.abc import Awaitable, Generator
-from prompt_toolkit import HTML
 from threading import RLock
 from typing import Any, Final, TextIO
+
+from _typeshed import Incomplete
+from prompt_toolkit import HTML
 
 __all__ = ["log_handler", "log"]
 

@@ -51,12 +51,12 @@ from typing import Any, Final, Self
 
 from cmd_router.lib.commands import CmdParse
 from cmd_router.lib.control.compiler import _compile_grammars, _GrammarSource, _GrammarSyntaxError
-from cmd_router.lib.control.fixture import _load_fixture_module
+from cmd_router.lib.control.fixture_loader import _load_fixture_module
 from cmd_router.utils import Status, flags, log, log_handler, stat
 
 from .context import *
-from .fittings import *
-from .fittings import _FixtureInnerContext
+from .fixtures_api import *
+from .fixtures_api import _FixtureInnerContext
 from .result import *
 
 _Action = Callable[..., Any]

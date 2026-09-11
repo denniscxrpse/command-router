@@ -35,7 +35,7 @@ from cmd_router.lib.commands import CmdNode
 from cmd_router.lib.commands.dispatcher import CommandDispatcher
 from cmd_router.utils import log
 
-from .fittings import FixturesSetup
+from .fixtures_api import FixturesSetup
 from .result import ControlInitialization, ControlResult
 
 _Action = Callable[..., Any]

@@ -1,6 +1,6 @@
 from .api.context import *
 from .api.control import *
-from .api.fittings import *
+from .api.fixtures_api import *
 from .api.result import *
 
 __all__ = [
