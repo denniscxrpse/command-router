@@ -5,14 +5,15 @@
 
 """Pleasant registration and fixture defaults for command surfaces.
 
-Use the builder for trees and :class:`FixturesAPI` for behavior:
+Use the builder for trees and :class:`FixturesSDK` for behavior:
 
 .. code-block:: python
 
-    from cmd_router.api import FixturesAPI, argument, build_dispatcher, literal
+    from cmd_router.sdk import FixturesSDK, argument, build_dispatcher, literal
     from cmd_router.lib.commands import CmdType
 
-    class MyFixtures(FixturesAPI):
+
+    class MyFixtures(FixturesSDK):
         def __init__(self):
             super().__init__()
             self.command_action = {"say": self.say}
@@ -20,24 +21,25 @@ Use the builder for trees and :class:`FixturesAPI` for behavior:
         def say(self, message):
             return {"message": message}
 
-    api = MyFixtures()
+
+    sdk = MyFixtures()
     dispatcher = build_dispatcher(
         literal("say").then(
-            argument("message", CmdType.greedy_string()).executes(api.say)
+            argument("message", CmdType.greedy_string()).executes(sdk.say)
         )
     )
 
-Fixtures: Default :class:`FixturesAPI` instance (prefix ``"/"``, help on,
-empty actions).  Subclass :class:`FixturesAPI` for real apps.
+Fixtures: Default :class:`FixturesSDK` instance (prefix ``"/"``, help on,
+empty actions).  Subclass :class:`FixturesSDK` for real apps.
 
 `literal` / `argument`: Start builder branches; chain with ``.then(...)``
 for nesting/choices and ``.executes(...)`` for handlers.
 Builders only call ``add_child``/``set_command``, so they parse exactly
 like hand-built trees.
 
-`cmd_router.api.backend`: Advanced peers (settings, holder, setup,
+`cmd_router.sdk.backend`: Advanced peers (settings, holder, setup,
 builder, loader) for custom control integration, mirroring how
-``control.deeper`` exposes live state.
+``control.deeper`` exposes the live state.
 """
 
 __all__ = (
@@ -53,7 +55,7 @@ __all__ = (
     "literal",
     "load_fixture_module",
     "Fixtures",
-    "FixturesAPI",
+    "FixturesSDK",
 )
 
 from .backend import (
@@ -69,4 +71,4 @@ from .backend import (
     literal,
     load_fixture_module,
 )
-from .user import Fixtures, FixturesAPI
+from .user import Fixtures, FixturesSDK

@@ -204,7 +204,8 @@ class LazySuggestionsServer(LazyServer):
             return []
         return fuzzy_str_match(error.token, pool, limit)
 
-    def _compute_suggestions(self, command_text: str) -> tuple[list[str] | None, Status | None]:
+    @staticmethod
+    def _compute_suggestions(command_text: str) -> tuple[list[str] | None, Status | None]:
         """Parse *command_text* against the live dispatcher for suggestions.
 
         Returns ``(suggestions, None)`` on success (``[]`` when the command
@@ -243,7 +244,7 @@ class LazySuggestionsServer(LazyServer):
         error = parsed.error
         if error is None:
             return [], None
-        return self._immediate_suggestions(error), None
+        return LazySuggestionsServer._immediate_suggestions(error), None
 
     # noinspection pep8-naming
     def do_POST(self) -> Status:

@@ -38,9 +38,9 @@ dotrun build="0" path="./example":
 lazy:
     just run --lazy
 
-# Run with `--test` flag.
-test:
-    just run -test
+# Run with the `--test` flag, `extra` allows for injection of more flags.
+test extra="":
+    just run "--test-suite {{ extra }}"
 
 # Run tests at `./tests`.
 pytest:

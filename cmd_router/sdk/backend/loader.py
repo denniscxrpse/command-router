@@ -5,12 +5,12 @@
 
 """Resolve fixture sources into executable Python modules.
 
-This is the ``cmd_router.api`` entry point for the source-resolution step.
+This is the ``cmd_router.sdk`` entry point for the source-resolution step.
 For module names, file paths, and already-imported modules it delegates to
 the long-standing loader in ``cmd_router.lib.control.fixture_loader`` so
 there is exactly one implementation of path-vs.-import disambiguation,
 package ``__init__.py`` handling, generated private module names, and
-``sys.modules`` registration/cleanup.  Fixture *instances* (``FixturesAPI`` /
+``sys.modules`` registration/cleanup.  Fixture *instances* (``FixturesSDK`` /
 layer attaches them directly instead of calling this module.
 
 ``FixturesSetup`` objects) intentionally bypass module loading; the control
@@ -51,5 +51,5 @@ def load_fixture_module(source: ModuleType | str | Path, identifier: int) -> Mod
     :param identifier: Seed for the generated private module name.
     :return: The existing module or the newly executed file-backed module.
     """
-    log.debug("api backend resolving fixture source %r", source)
+    log.debug("sdk backend resolving fixture source %r", source)
     return _legacy_load(source, identifier)

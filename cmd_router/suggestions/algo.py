@@ -95,7 +95,9 @@ def fuzzy_str_match(token: str | None, pool: list[str], limit: int, budget: int 
 
     Shared ranking used by both ``ParseError._get_suggestions`` (router
     ``error["suggestions"]``) and ``LazySuggestionsServer._immediate_suggestions``
-    (``POST``/``GET`` suggestions). The three stages, in order:
+    (``POST``/``GET`` suggestions).
+
+    The three stages, in order:
 
     1. No fragment (``token`` is ``None`` or ``""``): incomplete input or a
        tokenization failure leaves nothing to rank against, so return the pool
@@ -110,6 +112,14 @@ def fuzzy_str_match(token: str | None, pool: list[str], limit: int, budget: int 
        ``rapidfuzz`` is unavailable, this stage is skipped. When no literal is
        close, ``<placeholders>`` (entries starting with ``"<"``) are returned
        instead of misleading names, so type hints survive; otherwise ``[]``.
+
+    Complexity:
+        Output-bounded. Every stage emits in final ranked order, so the byte
+        budget is enforced while materializing — the cut is reached, never
+        searched. At most ``min(limit, budget // Z)`` items are emitted, and
+        at most ``budget`` bytes are measured, regardless of pool size; the
+        discarded tail is never measured. Ranking costs are unchanged
+        (cutoff-pruned Levenshtein pass, ``O(n log limit)`` top-k).
 
     Args:
         token: Unmatched input fragment from the parse error, or ``None`` when
@@ -126,14 +136,6 @@ def fuzzy_str_match(token: str | None, pool: list[str], limit: int, budget: int 
     Returns:
         At most *limit* suggestion strings; never ``None``. ``None`` (disabled
         hints) is decided by callers via ``flags.no_suggestions``, not here.
-
-    Complexity:
-        Output-bounded. Every stage emits in final ranked order, so the byte
-        budget is enforced while materializing — the cut is reached, never
-        searched. At most ``min(limit, budget // Z)`` items are emitted, and
-        at most ``budget`` bytes are measured, regardless of pool size; the
-        discarded tail is never measured. Ranking costs are unchanged
-        (cutoff-pruned Levenshtein pass, ``O(n log limit)`` top-k).
     """
     # Pure-math cardinality cap, O(1) and lossless: every item costs >= Z
     # serialized bytes, so nothing shippable is discarded — and it bounds

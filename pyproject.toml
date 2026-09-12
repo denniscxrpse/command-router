@@ -6,7 +6,7 @@ license = "BSD-3-Clause-Clear"
 authors = [
     { name = "Ian Hylton", email = "dcxrpse@krwwstudios.com" }
 ]
-description = "<TBA>"
+description = "Small, Brigadier-inspired command router."
 readme = "README.md"
 dependencies = [
     "black>=26.5.1",
@@ -21,6 +21,7 @@ dependencies = [
     "rapidfuzz>=3.14.6",
     "ruff>=0.15.22",
     "rust-just>=1.57.0",
+    "textual>=8.2.8",
     "ty>=0.0.77",
 ]
 

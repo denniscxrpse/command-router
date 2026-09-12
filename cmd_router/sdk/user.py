@@ -3,16 +3,19 @@
 #  Copyright (c) 2026 Ian Hylton
 #  All rights reserved.
 
+#  The Clear BSD License
+#
 """User-facing fixture base and its ready-made default instance.
 
-Subclass :class:`FixturesAPI` to define one fixture in one class.  Action
+Subclass :class:`FixturesSDK` to define one fixture in one class.  Action
 methods live next to the settings that bind them:
 
 .. code-block:: python
 
-    from cmd_router.api import FixturesAPI
+    from cmd_router.sdk import FixturesSDK
 
-    class MyFixtures(FixturesAPI):
+
+    class MyFixtures(FixturesSDK):
         def __init__(self):
             super().__init__()
             self.cmd_prefix = "/"
@@ -26,14 +29,14 @@ needed):
 
 .. code-block:: python
 
-    api = MyFixtures()
-    control.initialize({"say": "<message...>"}, fixture=api)
+    sdk = MyFixtures()
+    control.initialize({"say": "<message...>"}, fixture=sdk)
     control.execute("/say hello")
 
-Fixtures: A ``FixturesAPI`` with sane defaults (prefix ``"/"``,
-built-in help on, empty actions/overrides, five suggestions).  Import it
-for read-only defaults, quick experiments, or as a base to copy;
-subclass ``FixturesAPI`` for real behavior.
+    Fixtures: A ``FixturesSDK`` with sane defaults (prefix ``"/"``,
+    built-in help on, empty actions/overrides, five suggestions).  Import it
+    for read-only defaults, quick experiments, or as a base to copy;
+    subclass ``FixturesSDK`` for real behavior.
 """
 
 from typing import Any, Final, final
@@ -44,10 +47,10 @@ from .backend.holder import FixturesContextHolder
 from .backend.settings import FixtureInitializationError
 from .backend.setup import FixturesSetup
 
-__all__ = ("Fixtures", "FixturesAPI")
+__all__ = ("Fixtures", "FixturesSDK")
 
 
-class FixturesAPI(FixturesContextHolder, FixturesSetup):
+class FixturesSDK(FixturesContextHolder, FixturesSetup):
     """Single-class fixture combining holder state with fixture settings.
 
     Inherits action-state behavior (``calls``, ``_record``, ``current``)
@@ -77,7 +80,7 @@ class FixturesAPI(FixturesContextHolder, FixturesSetup):
         """Create holder state and settings for one fixture surface.
 
         When ``Control`` loads a module whose ``SetupFixtures`` is a
-        ``FixturesAPI`` subclass, it binds the fresh holder to the class
+        ``FixturesSDK`` subclass, it binds the fresh holder to the class
         before constructing the setup; that binding wins so actions close
         over the holder.  Otherwise ``logic`` defaults to the instance
         itself, so ``self`` and ``self.logic`` stay interchangeable.
@@ -88,13 +91,13 @@ class FixturesAPI(FixturesContextHolder, FixturesSetup):
             if logic is None:
                 logic = self
         FixturesSetup.__init__(self, logic=logic)
-        log.debug("user api initialized (%s)", type(self).__name__)
+        log.debug("user sdk initialized (%s)", type(self).__name__)
 
 
-Fixtures: Final[FixturesAPI] = FixturesAPI()
+Fixtures: Final[FixturesSDK] = FixturesSDK()
 """Ready-made fixture with sane defaults.
 
 Prefix ``"/"``, built-in help enabled, no actions or overrides, and five
 suggestions.  Use directly for defaults-only surfaces or subclass
-``FixturesAPI`` to add behavior.
+``FixturesSDK`` to add behavior.
 """

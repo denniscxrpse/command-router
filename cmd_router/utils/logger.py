@@ -10,6 +10,7 @@ __all__ = (
 
 import logging as _log
 import sys
+from collections import deque
 from collections.abc import Awaitable
 from datetime import datetime
 from html import escape
@@ -121,7 +122,21 @@ class LoggerHandler:
         self._stderr_proxy: _LockedStderr | None = None
         self._stderr_original: TextIO | None = None
         self._stderr_users = 0
+        self._recent_messages: deque[str] = deque(maxlen=256)
+        self._recent_entries: deque[tuple[int, str]] = deque(maxlen=256)
+        self._stdout_enabled = True
         # paths.LOGS_DIR.mkdir(parents=True, exist_ok=True)
+
+    @property
+    def stdout_enabled(self) -> bool:
+        """Return whether ordinary log messages should also be printed live."""
+        with self._stdout_lock:
+            return self._stdout_enabled
+
+    def set_stdout_enabled(self, enabled: bool) -> None:
+        """Enable or suspend live stdout rendering without dropping log history."""
+        with self._stdout_lock:
+            self._stdout_enabled = enabled
 
     def lock_stderr(self) -> None:
         """Route direct stderr writes through the same process-wide lock."""
@@ -184,6 +199,11 @@ class LoggerHandler:
         final_message = self.get_final_message(level, m + end)
 
         with self._stdout_lock:
+            rendered = final_message["fmsg"].rstrip("\n")
+            self._recent_messages.append(rendered)
+            self._recent_entries.append((level, rendered))
+            if not self._stdout_enabled:
+                return
             print_formatted_text(
                 self.html(final_message["msg"], level),
                 sep="",
@@ -191,6 +211,20 @@ class LoggerHandler:
                 file=sys.stdout,
                 flush=True,
             )
+
+    def recent_messages(self, limit: int = 15) -> tuple[str, ...]:
+        """Return the most recent ordinary log messages in display order."""
+        if limit <= 0:
+            return ()
+        with self._stdout_lock:
+            return tuple(self._recent_messages)[-limit:]
+
+    def recent_entries(self, limit: int = 15) -> tuple[tuple[int, str], ...]:
+        """Return recent ordinary log messages together with their levels."""
+        if limit <= 0:
+            return ()
+        with self._stdout_lock:
+            return tuple(self._recent_entries)[-limit:]
 
     def raw(self, *message: Any, sep: str, end: str) -> None:
         """Write an unadorned progress/status message to stdout.
@@ -206,6 +240,8 @@ class LoggerHandler:
         m: str = sep.join(str(arg) for arg in message)
         final_message = m + end
         with self._stdout_lock:
+            if not self._stdout_enabled:
+                return
             print_formatted_text(HTML(final_message), sep="", end="", file=sys.stdout, flush=True)
 
     @staticmethod
@@ -287,6 +323,16 @@ class Logger:
     @staticmethod
     def raw(*message: Any, sep=" ", end=_end) -> None:
         log_handler.raw(*message, sep=sep, end=end)
+
+    @staticmethod
+    def recent_messages(limit: int = 15) -> tuple[str, ...]:
+        """Return recent ordinary log messages for an interactive surface."""
+        return log_handler.recent_messages(limit)
+
+    @staticmethod
+    def recent_entries(limit: int = 15) -> tuple[tuple[int, str], ...]:
+        """Return recent ordinary log messages together with their levels."""
+        return log_handler.recent_entries(limit)
 
     # noinspection protected-member
     stderr: Final[_StderrWriter] = _StderrWriter(log_handler._stderr_lock)

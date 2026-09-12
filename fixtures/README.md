@@ -20,48 +20,33 @@ See the individual grammar files for complete examples of choices, nesting, opti
 
 ## Python fixture contract
 
-The control API imports `fixtures/__init__.py` and looks for two definitions:
-
-1. `context_holder`, a class derived from
-   `cmd_router.api.FixturesContextHolder`.
-2. `SetupFixtures`, a class derived from
-   `cmd_router.api.FixturesSetup`.
-
-Initialization then proceeds as follows:
-
-1. `context_holder()` creates one state holder. Its `__init__` should call `super().__init__()` before setting an
-   application-specific state.
-2. The control layer assigns that holder to `SetupFixtures.logic`.
-3. `SetupFixtures()` calls `super().__init__()` and assigns its settings, such as `self.cmd_prefix` and
-   `self.command_action`.
-4. Grammar compilation reads the setup object, and the holder's bound methods execute commands.
+The control API imports `fixtures/__init__.py` and looks for one `Fixtures` class derived from
+`cmd_router.sdk.FixturesSDK`. The class owns the state, actions, and command settings together. The control layer
+constructs it once, then uses the instance as both the holder and setup while compiling grammars.
 
 A minimal fixture looks like this:
 
 ```python
 from typing import Any
 
-from cmd_router.fixtures import Fixtures
+from cmd_router.sdk import FixturesSDK
 
 
-class Context(Fixtures.ContextHolder):
-    def say(self, **arguments: Any) -> dict[str, Any]:
-        return self._record("say", arguments)
-
-
-context_holder = Context
-
-
-class SetupFixtures(Fixtures.Setup):
+class Fixtures(FixturesSDK):
     def __init__(self) -> None:
         super().__init__()
         self.cmd_prefix = "/"
         self.command_action = {"say": self.logic.say}
+
+    def say(self, **arguments: Any) -> dict[str, Any]:
+        return self._record("say", arguments)
 ```
+
+The older two-class `context_holder` and `SetupFixtures` contract remains supported for existing fixtures.
 
 `FixturesSetup` owns the command prefix, built-in-help policy, action mapping, and argument overrides for one control
 surface.
 
-Importing the fixture should define classes and aliases only. Put setup-time state in the holder or setup constructors
-and keep command work in action methods. The initialized objects remain available through
+Importing the fixture should define classes only. Put setup-time state in the fixture constructor and keep command
+work in action methods. The initialized objects remain available through
 `control.deeper_level.fixture_logic` and `control.deeper_level.fixture_setup`.

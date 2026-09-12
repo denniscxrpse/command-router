@@ -9,9 +9,10 @@ The API is organized around a small lifecycle.  ``Control`` owns one command
 surface and compiles grammar mappings into a dispatcher.  ``FixturesSetup``
 owns the mutable settings required by that surface, while
 ``FixturesContextHolder`` is the extension point for fixture state and action
-methods.  A fixture module exposes ``context_holder`` and ``SetupFixtures``;
-the control layer creates the holder, injects it as ``SetupFixtures.logic``,
-and installs the resulting setup before compiling grammars.
+methods.  A fixture module normally exposes one ``Fixtures`` class combining
+that holder with ``FixturesSetup``; the control layer constructs it once and
+installs it before compiling grammars.  The older ``context_holder`` and
+``SetupFixtures`` pair remains supported.
 ``ControlDeeperContext`` is the inspection surface for the live dispatcher,
 fixture objects, configuration, argument overrides, and last results.  The
 

@@ -7,7 +7,7 @@ import pytest
 import cmd_router as command_router_module
 
 # noinspection protected-member
-from cmd_router import CommandRouter, _CmdRouter
+from cmd_router import REPL, CommandRouter, _CmdRouter
 from cmd_router.lib.control import ControlType as Control
 from cmd_router.utils.cli import flags
 from cmd_router.utils.context import paths, uctx
@@ -231,61 +231,178 @@ def _initialized_control_router() -> CommandRouter:
     return router
 
 
-def test_suite_loop_executes_commands_until_quit(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_handle_command_known_returns_none() -> None:
     router = _initialized_control_router()
-    commands = iter(("/say hello", "quit"))
-    monkeypatch.setattr("builtins.input", lambda _prompt: next(commands))
-
     try:
-        assert router._test_suite_loop() == stat.Success()
+        assert router._handle_command("/say hello") is None
         assert router.control.deeper_context.last_result is not None
         assert router.control.deeper_context.last_result.command == "say"
     finally:
         router.control.close()
 
 
-def test_suite_loop_keeps_running_after_a_command_error(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_handle_command_unknown_returns_suggestions() -> None:
     router = _initialized_control_router()
-    commands = iter(("/unknown", "quit"))
-    monkeypatch.setattr("builtins.input", lambda _prompt: next(commands))
+    try:
+        outcome = router._handle_command("/unknown")
+        assert isinstance(outcome, list)
+    finally:
+        router.control.close()
 
+
+@pytest.mark.parametrize("marker", ["exit", "e", "quit", "q", "!q", "!Quit", "  QUIT  "])
+def test_handle_command_quit_markers_exit(marker: str) -> None:
+    router = _initialized_control_router()
+    try:
+        assert router._handle_command(marker) == stat.Success()
+    finally:
+        router.control.close()
+
+
+@pytest.mark.parametrize("empty", ["", "   "])
+def test_handle_command_empty_keeps_listening(empty: str) -> None:
+    router = _initialized_control_router()
+    try:
+        assert router._handle_command(empty) is None
+    finally:
+        router.control.close()
+
+
+def test_handle_command_converts_execution_exception_to_abort() -> None:
+    router = _initialized_control_router()
+
+    def fail(_command: str) -> None:
+        raise RuntimeError("broken control")
+
+    # noinspection unresolved-references
+    router.control.execute = fail  # type: ignore[method-assign]
+
+    try:
+        assert router._handle_command("/say hello") == stat.Abort()
+    finally:
+        router.control.close()
+
+
+def test_handle_command_converts_invalid_result_to_abort(monkeypatch: pytest.MonkeyPatch) -> None:
+    router = _initialized_control_router()
+    monkeypatch.setattr(router.control, "execute", lambda _command: "not-a-result")  # type: ignore[method-assign]
+    try:
+        assert router._handle_command("/say hello") == stat.Abort()
+    finally:
+        router.control.close()
+
+
+def test_handle_command_non_string_returns_tokenize_error() -> None:
+    router = _initialized_control_router()
+    try:
+        assert router._handle_command(None) == stat.TokenizeUnsupportedTypeError()  # ty: ignore[invalid-argument-type]
+    finally:
+        router.control.close()
+
+
+def test_suite_loop_returns_repl_status(monkeypatch: pytest.MonkeyPatch) -> None:
+    router = _initialized_control_router()
+
+    class _FakeApp:
+        def run(self) -> Status:
+            return stat.Success()
+
+    monkeypatch.setattr(command_router_module, "REPL", lambda handle: _FakeApp())
     try:
         assert router._test_suite_loop() == stat.Success()
     finally:
         router.control.close()
 
 
-@pytest.mark.parametrize(
-    ("input_exception", "expected"),
-    [(EOFError(), stat.Success()), (KeyboardInterrupt(), stat.Interrupted())],
-)
-def test_suite_loop_converts_input_termination_to_status(
-    input_exception: BaseException, expected: Status, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    router = _initialized_control_router()
-
-    def read_input(_prompt: str) -> str:
-        raise input_exception
-
-    monkeypatch.setattr("builtins.input", read_input)
-
+def test_suite_loop_refuses_uninitialized_control() -> None:
+    router = CommandRouter.__new__(CommandRouter)
+    router.control = Control()
     try:
-        assert router._test_suite_loop() == expected
+        assert router._test_suite_loop() == stat.ControlNotInitializedError()
     finally:
         router.control.close()
 
 
-def test_suite_loop_converts_execution_exception_to_abort(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_suite_loop_converts_repl_crash_to_abort(monkeypatch: pytest.MonkeyPatch) -> None:
     router = _initialized_control_router()
-    monkeypatch.setattr("builtins.input", lambda _prompt: "/say hello")
 
-    def fail(_command: str) -> None:
-        raise RuntimeError("broken control")
+    class _CrashingApp:
+        def run(self) -> Status:
+            raise RuntimeError("repl blew up")
 
-    # noinspection unresolved-references
-    monkeypatch.setattr(router.control, "execute", fail)
-
+    monkeypatch.setattr(command_router_module, "REPL", lambda handle: _CrashingApp())
     try:
         assert router._test_suite_loop() == stat.Abort()
     finally:
         router.control.close()
+
+
+def test_suite_loop_converts_none_exit_to_impossible(monkeypatch: pytest.MonkeyPatch) -> None:
+    router = _initialized_control_router()
+
+    class _NoneApp:
+        def run(self) -> None:
+            return None
+
+    monkeypatch.setattr(command_router_module, "REPL", lambda handle: _NoneApp())
+    try:
+        assert router._test_suite_loop() == stat.ImpossibleControlState()
+    finally:
+        router.control.close()
+
+
+def test_repl_compose_yields_input_and_two_statics() -> None:
+    from textual.widgets import Input, Static
+
+    app = REPL(handle=lambda _command: None)
+    widgets = list(app.compose())
+    assert isinstance(widgets[0], Input)
+    assert isinstance(widgets[1], Static)
+    assert isinstance(widgets[2], Static)
+
+
+def test_repl_local_tab_suggestions_follow_the_current_command(monkeypatch: pytest.MonkeyPatch) -> None:
+    control = Control()
+    assert control.initialize({"gamemode": "(survival|creative|adventure|spectator)"}).ok
+    monkeypatch.setattr(flags, "suggestions_server", False)
+    monkeypatch.setattr(flags, "no_suggestions_server", False)
+    try:
+        app = REPL(handle=lambda _command: None, context=control.deeper_context)
+
+        assert app._suggestions_for_input("/ga") == ["gamemode"]
+        assert app._suggestions_for_input("/gamemode ") == ["survival"]
+        assert app._suggestions_for_input("/gamemode survival") == []
+        assert app._completion_start("/ga", "/") == 1
+        assert app._matching_suggestions(["gamemode"], "") == ["gamemode"]
+    finally:
+        control.close()
+
+
+def test_repl_uses_server_suggestions_when_enabled(monkeypatch: pytest.MonkeyPatch) -> None:
+    calls: list[str] = []
+
+    def compute(command_text: str) -> tuple[list[str], None]:
+        calls.append(command_text)
+        return ["gamemode", "give"], None
+
+    monkeypatch.setattr(flags, "suggestions_server", True)
+    monkeypatch.setattr(flags, "no_suggestions_server", False)
+    monkeypatch.setattr(command_router_module.LazySuggestionsServer, "_compute_suggestions", staticmethod(compute))
+
+    app = REPL(handle=lambda _command: None)
+
+    assert app._suggestions_for_input("/ga") == ["gamemode", "give"]
+    assert calls == ["/ga"]
+
+
+def test_repl_does_not_replace_a_completed_literal_with_child_suggestions() -> None:
+    control = Control()
+    assert control.initialize({"advancement": "(grant|revoke) <target>"}).ok
+    try:
+        app = REPL(handle=lambda _command: None, context=control.deeper_context)
+
+        assert app._suggestions_for_input("/advancement") == ["grant"]
+        assert app._matching_suggestions(["grant", "revoke"], "/advancement") == []
+        assert app._matching_suggestions(["grant", "revoke"], "/advancement ") == ["grant", "revoke"]
+    finally:
+        control.close()

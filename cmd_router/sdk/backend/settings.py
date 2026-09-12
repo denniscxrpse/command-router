@@ -15,7 +15,7 @@ The layering is:
 
 - ``FixtureSettings`` owns validated per-instance storage and sane defaults.
   Peers (holder, setup, deeper state) read through it; children (user
-  ``FixturesAPI`` subclasses and legacy ``SetupFixtures`` subclasses) configure
+  ``FixturesSDK`` subclasses and legacy ``SetupFixtures`` subclasses) configure
   through ordinary attribute assignment such as
   ``self.cmd_prefix = "/"``.
 - ``FixturesSetup`` (in ``setup.py``) adds the ``logic`` injection point on
@@ -28,7 +28,7 @@ The layering is:
 Lifecycle flags (``_FixtureInnerContext``) also live here, so both the holder
 and the setup can flip their own flag without importing each other.  The
 control layer resets both flags before constructing a module fixture and
-validates them afterward; direct ``FixturesAPI``/``FixturesSetup``
+validates them afterward; direct ``FixturesSDK``/``FixturesSetup``
 construction bypasses that check because a successful ``__init__`` already
 proves the binding.
 

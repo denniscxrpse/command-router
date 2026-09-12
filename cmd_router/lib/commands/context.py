@@ -123,7 +123,7 @@ class ParseError:
         if flags.no_suggestions:
             return None
         try:
-            from cmd_router.lib.control.api.fixtures_api import FixturesSetup
+            from cmd_router.lib.control.api.fixtures_sdk import FixturesSetup
 
             limit = FixturesSetup._resolve_suggestions_limit()
         except Exception:

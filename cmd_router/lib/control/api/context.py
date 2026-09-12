@@ -35,7 +35,7 @@ from cmd_router.lib.commands import CmdNode
 from cmd_router.lib.commands.dispatcher import CommandDispatcher
 from cmd_router.utils import log
 
-from .fixtures_api import FixturesSetup
+from .fixtures_sdk import FixturesSetup
 from .result import ControlInitialization, ControlResult
 
 _Action = Callable[..., Any]
@@ -100,7 +100,7 @@ class ControlDeeperContext:
         """Store a successfully initialized fixture and make its setup active.
 
         *module* is the loaded fixture module for file/import sources, or
-        ``None`` for direct ``FixturesSetup``/``FixturesAPI`` instances that
+        ``None`` for direct ``FixturesSetup``/``FixturesSDK`` instances that
         bypass module loading.
         """
         if module is not None and not isinstance(module, ModuleType):

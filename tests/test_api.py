@@ -3,7 +3,7 @@
 #  Copyright (c) 2026 Ian Hylton
 #  All rights reserved.
 
-"""Phase 7 public API: FixturesAPI single-class fixtures and sane Fixtures defaults."""
+"""Phase 7 public API: FixturesSDK single-class fixtures and sane Fixtures defaults."""
 
 from pathlib import Path
 from types import ModuleType
@@ -11,23 +11,23 @@ from typing import Any
 
 import pytest
 
-from cmd_router.api import (
+from cmd_router.lib.commands import CmdType
+from cmd_router.lib.control import ControlType as Control
+from cmd_router.sdk import (
     Fixtures,
-    FixturesAPI,
     FixturesContextHolder,
     FixtureSettings,
+    FixturesSDK,
     FixturesSetup,
     argument,
     build_dispatcher,
     literal,
     load_fixture_module,
 )
-from cmd_router.api.backend.settings import _FixtureInnerContext
-from cmd_router.lib.commands import CmdType
-from cmd_router.lib.control import ControlType as Control
+from cmd_router.sdk.backend.settings import _FixtureInnerContext
 
 
-class DemoAPI(FixturesAPI):
+class DemoSDK(FixturesSDK):
     def __init__(self) -> None:
         super().__init__()
         self.cmd_prefix = "/"
@@ -38,7 +38,7 @@ class DemoAPI(FixturesAPI):
 
 
 def test_fixtures_has_sane_defaults() -> None:
-    assert isinstance(Fixtures, FixturesAPI)
+    assert isinstance(Fixtures, FixturesSDK)
     assert Fixtures.cmd_prefix == "/"
     assert Fixtures.lazy_init_help is True
     assert Fixtures.command_action == {}
@@ -49,7 +49,7 @@ def test_fixtures_has_sane_defaults() -> None:
 
 
 def test_user_api_binds_logic_to_self_and_records() -> None:
-    api = DemoAPI()
+    api = DemoSDK()
 
     assert api.logic is api
     assert isinstance(api, FixturesContextHolder)
@@ -57,12 +57,12 @@ def test_user_api_binds_logic_to_self_and_records() -> None:
     assert api.command_action["say"] == api.say
     assert api.say(message="hi") == {"message": "hi"}
     assert api.calls == [("say", {"message": "hi"})]
-    assert FixturesAPI.ContextHolder is FixturesContextHolder
-    assert FixturesAPI.Setup is FixturesSetup
+    assert FixturesSDK.ContextHolder is FixturesContextHolder
+    assert FixturesSDK.Setup is FixturesSetup
 
 
 def test_control_accepts_setup_instance_directly() -> None:
-    api = DemoAPI()
+    api = DemoSDK()
     runner = Control()
     try:
         initialized = runner.initialize({"say": "<message...>", "tell": "<target> <message...>"}, fixture=api)
@@ -83,10 +83,10 @@ def test_control_accepts_setup_instance_directly() -> None:
 def test_control_accepts_setup_subclass_directly() -> None:
     runner = Control()
     try:
-        initialized = runner.initialize({"say": "<message...>"}, fixture=DemoAPI)
+        initialized = runner.initialize({"say": "<message...>"}, fixture=DemoSDK)
 
         assert initialized.ok
-        assert isinstance(runner.deeper_context.fixture_setup, DemoAPI)
+        assert isinstance(runner.deeper_context.fixture_setup, DemoSDK)
         assert runner.execute("/say hi").ok
     finally:
         runner.close()
@@ -169,7 +169,7 @@ def test_backend_loader_delegates_for_paths(tmp_path: Path) -> None:
 
 
 def test_builder_and_control_compose_without_grammar_strings() -> None:
-    api = DemoAPI()
+    api = DemoSDK()
     dispatcher = build_dispatcher(literal("say").then(argument("message", CmdType.greedy_string()).executes(api.say)))
 
     result = dispatcher.parse("say hello")

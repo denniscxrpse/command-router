@@ -7,7 +7,7 @@ import pytest
 
 from cmd_router.lib.control import ControlResultKinds, FixturesContextHolder, FixturesSetup, api
 from cmd_router.lib.control import ControlType as Control
-from cmd_router.lib.control.api.fixtures_api import (
+from cmd_router.lib.control.api.fixtures_sdk import (
     FixtureInitializationError,
     _FixtureInnerContext,
 )
@@ -246,6 +246,10 @@ def test_bundled_fixture_uses_the_new_setup_contract() -> None:
         initialized = runner.initialize({"say": "<message...>"}, fixture=fixture)
 
         assert initialized.ok
+        assert runner.deeper_context.fixture_module is not None
+        assert not hasattr(runner.deeper_context.fixture_module, "context_holder")
+        assert not hasattr(runner.deeper_context.fixture_module, "SetupFixtures")
+        assert runner.deeper_context.fixture_logic is runner.deeper_context.fixture_setup
         result = runner.execute("/say hello")
         assert result.ok
         assert result.value == {"message": "hello"}

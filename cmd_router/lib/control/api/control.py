@@ -15,13 +15,19 @@
   expected command failures.
 
 When no fixture is supplied, ``Control`` creates an isolated default
-``FixturesSetup`` so direct programmatic use remains useful.  When a fixture
-is supplied, its ``context_holder`` class is instantiated first, and its
-``SetupFixtures`` class is then constructed with that holder bound to
-``FixturesSetup.logic``.  The resulting setup replaces only this control's
-active configuration.
+``FixturesSetup`` so direct programmatic use remains useful.  A fixture module
+may expose one ``Fixtures`` class that combines the holder and setup, or the
+legacy ``context_holder`` and ``SetupFixtures`` pair.  The resulting setup
+replaces only this control's active configuration.
 
-Fixture modules should therefore expose the following contract:
+The preferred fixture-module contract is:
+
+.. code-block:: python
+
+    class Fixtures(FixturesSDK):
+        ...
+
+The legacy contract remains valid:
 
 .. code-block:: python
 
@@ -55,8 +61,8 @@ from cmd_router.lib.control.fixture_loader import _load_fixture_module
 from cmd_router.utils import Status, flags, log, log_handler, stat
 
 from .context import *
-from .fixtures_api import *
-from .fixtures_api import _FixtureInnerContext
+from .fixtures_sdk import *
+from .fixtures_sdk import _FixtureInnerContext
 from .result import *
 
 _Action = Callable[..., Any]
@@ -125,10 +131,11 @@ class _Control:
     ) -> ControlInitialization:
         """Initialize an optional fixture, apply overrides, and compile grammars.
 
-        *fixture* may be a module/file/import name (legacy ``context_holder`` /
-        ``SetupFixtures`` contract) or a ready ``FixturesSetup`` instance such
-        as ``FixturesAPI``/``Fixtures`` from ``cmd_router.api``.  A setup subclass
-        (e.g. a ``FixturesAPI`` child) is instantiated with no arguments; plain
+        *fixture* may be a module/file/import name exposing ``Fixtures`` (or the
+        legacy ``context_holder``/``SetupFixtures`` contract), or a ready
+        ``FixturesSetup`` instance such as ``FixturesSDK``/``Fixtures`` from
+        ``cmd_router.sdk``.  A setup subclass
+        (e.g. a ``FixturesSDK`` child) is instantiated with no arguments; plain
         setup subclasses without a bound holder fail with a structured
         fixture error, exactly as the module path does.
 
@@ -279,17 +286,20 @@ class _Control:
     ) -> ControlInitialization:
         """Load and initialize a fixture from a module source or setup object.
 
-        Module sources (``ModuleType``/``str``/``Path``) follow the legacy
-        ``context_holder``/``SetupFixtures`` contract: the holder is created
-        first, injected as ``SetupFixtures.logic``, and validated through
-        ``_FixtureInnerContext`` before the active state changes.
+        Module sources (``ModuleType``/``str``/``Path``) prefer a module-level
+        ``Fixtures`` class that combines ``FixturesContextHolder`` and
+        ``FixturesSetup``.  The class is instantiated once and validated
+        through ``_FixtureInnerContext`` before the active state changes.
+        Modules using the legacy ``context_holder``/``SetupFixtures`` contract
+        still create the holder first, inject it as ``SetupFixtures.logic``,
+        and perform the same validation.
 
-        ``FixturesSetup`` instances (including ``FixturesAPI``/``Fixtures`` from
-        ``cmd_router.api``) bypass module loading entirely.  The instance is
+        ``FixturesSetup`` instances (including ``FixturesSDK``/``Fixtures`` from
+        ``cmd_router.sdk``) bypass module loading entirely.  The instance is
         already constructed, so its ``logic`` is used as the holder and the
         instance itself becomes the active setup.  A ``FixturesSetup``
         subclass is instantiated with no arguments first (which lets
-        ``FixturesAPI`` children self-bind ``logic=self``).
+        ``FixturesSDK`` children self-bind ``logic=self``).
 
         The old ``setup``/``FixtureGrammarLogic`` hook pair is intentionally
         no longer used: those hooks depended on mutable ``uctx`` settings
@@ -322,25 +332,40 @@ class _Control:
             module = _load_fixture_module(fixture, id(self))
             log.debug("fixture module loaded (%s)", module.__name__)
 
-            holder_factory = getattr(module, "context_holder", None)
-            setup_factory = getattr(module, "SetupFixtures", None)
+            fixture_factory = getattr(module, "Fixtures", None)
+            is_single_class = (
+                isinstance(fixture_factory, type)
+                and issubclass(fixture_factory, FixturesContextHolder)
+                and issubclass(fixture_factory, FixturesSetup)
+            )
 
-            if not isinstance(holder_factory, type) or not issubclass(holder_factory, FixturesContextHolder):
-                raise TypeError("fixture must define context_holder as a FixturesContextHolder child class")
-            if not isinstance(setup_factory, type) or not issubclass(setup_factory, FixturesSetup):
-                raise TypeError("fixture must define SetupFixtures as a FixturesSetup child class")
+            if is_single_class:
+                _FixtureInnerContext.reset()
+                setup = fixture_factory()
+                logic = setup.logic
+                log.debug("single-class fixture created (%s)", type(setup).__name__)
+            else:
+                holder_factory = getattr(module, "context_holder", None)
+                setup_factory = getattr(module, "SetupFixtures", None)
 
-            _FixtureInnerContext.reset()
-            logic = holder_factory()
-            log.debug("fixture context holder created (%s)", type(logic).__name__)
+                if not isinstance(holder_factory, type) or not issubclass(holder_factory, FixturesContextHolder):
+                    raise TypeError("fixture must define context_holder as a FixturesContextHolder child class")
+                if not isinstance(setup_factory, type) or not issubclass(setup_factory, FixturesSetup):
+                    raise TypeError("fixture must define SetupFixtures as a FixturesSetup child class")
 
-            setup_factory.logic = logic
-            setup = setup_factory()
-            log.debug("fixture setup created (%s)", type(setup).__name__)
+                _FixtureInnerContext.reset()
+                logic = holder_factory()
+                log.debug("fixture context holder created (%s)", type(logic).__name__)
+
+                setup_factory.logic = logic
+                setup = setup_factory()
+                log.debug("fixture setup created (%s)", type(setup).__name__)
 
             valid = _FixtureInnerContext.validate()
             if isinstance(valid, Status):
                 return self._initialization_error("fixture initialization failed", None, valid)
+            if logic is None:
+                raise RuntimeError("single-class fixture must initialize its logic")
             log.debug("fixture initialization flags verified (holder=True, setup=True)")
 
             self.deeper_context.attach_fixture(module, logic, setup)

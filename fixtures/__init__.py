@@ -3,34 +3,29 @@
 #  Copyright (c) 2026 Ian Hylton
 #  All rights reserved.
 
-"""Reference fixture showing the single-class ``FixturesAPI`` style.
+"""Reference fixture showing the single-class ``FixturesSDK`` style.
 
-Subclass ``FixturesAPI`` once: action methods live next to the settings that bind
+Subclass ``FixturesSDK`` once: action methods live next to the settings that bind
 them, and ``self.logic`` is the holder those actions close over.  Importing
-this module alone creates nothing; the control layer constructs the class
-(either as a ``context_holder``/``SetupFixtures`` module fixture or, more
-simply, from a ``FixturesAPI`` instance passed directly to
-``Control.initialize``).
+this module alone creates nothing; the control layer constructs ``Fixtures``
+when loading this module or accepts a ``FixturesSDK`` instance passed directly
+to ``Control.initialize``.
 
 To build your own fixture, copy this shape into your module: add state and
 action methods, then map grammar command names to them in ``__init__`` via
 ``self.logic``.  Command grammar files stay separate under ``fixtures/``;
 this module supplies behavior and setup only.
-
-``context_holder`` and ``SetupFixtures`` below are loader-contract aliases
-for the one class, so file-based loading keeps working.  They are not
-separate extension points.
 """
 
-__all__ = ("Fixtures", "SetupFixtures", "context_holder")
+__all__ = ("Fixtures",)
 
 from typing import Any, final
 
-from cmd_router.api import FixturesAPI
+from cmd_router.sdk import FixturesSDK
 
 
 @final
-class Fixtures(FixturesAPI):
+class Fixtures(FixturesSDK):
     """Hold the example state, actions, and command configuration."""
 
     def __init__(self, logic: Any = None) -> None:
@@ -65,10 +60,3 @@ class Fixtures(FixturesAPI):
     def bar(self, **arguments: Any) -> dict[str, Any]:
         """Record and return arguments for the ``bar`` action family."""
         return self._record("bar", arguments)
-
-
-context_holder = Fixtures
-"""Loader-contract alias so file-based fixtures resolve the holder."""
-
-SetupFixtures = Fixtures
-"""Loader-contract alias so file-based fixtures resolve the setup."""

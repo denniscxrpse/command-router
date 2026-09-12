@@ -5,11 +5,12 @@
 
 """State holder owned by one fixture initialization.
 
-A fixture module supplies a ``context_holder`` class derived from
-``FixturesContextHolder``.  The control layer creates exactly one instance
-per initialization attempt and keeps it as ``deeper_level.fixture_logic``.
-Importing a fixture module must not create state or run actions; only
-calling ``context_holder()`` does.
+A fixture module's preferred ``Fixtures`` class derives from
+``FixturesContextHolder`` (usually through ``FixturesSDK``).  The control
+layer creates exactly one instance per initialization attempt and keeps it as
+``deeper_level.fixture_logic``.  Importing a fixture module must not create
+state or run actions; only constructing its fixture class does.  The older
+``context_holder`` factory remains supported.
 
 The base initializer registers the instance as current (both on the concrete
 subclass and on this base), creates ``calls`` as a list of
@@ -20,7 +21,7 @@ inspect, but production holders may manage to state however they wish.
 
 Configuration (prefix, help policy, actions, overrides, suggestion budgets)
 does not live here.  It lives on the ``FixtureSettings`` parent consumed by
-``FixturesSetup`` and ``FixturesAPI``.  This holder only owns the runtime state,
+``FixturesSetup`` and ``FixturesSDK``.  This holder only owns the runtime state,
 and the callables a setup binds' into ``command_action``.
 """
 

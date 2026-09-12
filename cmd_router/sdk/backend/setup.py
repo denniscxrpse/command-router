@@ -11,15 +11,17 @@ mapping, argument overrides, suggestion budgets) from ``FixtureSettings`` and
 adds exactly one concern: which holder instance (``logic``) the configured
 actions close over.
 
-The lifecycle for module fixtures is:
+The preferred module-fixture lifecycle is:
 
 1. Import the fixture module without running actions.
-2. Call ``context_holder()`` to create the holder for this attempt.
-3. Bind that holder to ``SetupFixtures.logic`` and call ``SetupFixtures()``.
-   The base ``__init__`` validates the binding and creates independent
-   defaults via ``FixtureSettings``.
-4. The control layer stores module/holder/setup in its deeper state and
+2. Construct its combined ``Fixtures`` class once.  Its holder and setup
+   initializers create the state and independent defaults via
+   ``FixtureSettings``.
+3. The control layer stores module/holder/setup in its deeper state and
    compiles grammars against the setup.
+
+The older two-class ``context_holder``/``SetupFixtures`` lifecycle remains
+supported by the control layer.
 
 Each ``Control`` gets an independent setup; loading a fixture replaces only
 that control's setup.  Action lookup stays late-bound through the mapping,
@@ -27,8 +29,8 @@ so replacing ``command_action`` after compilation changes the next
 invocation without rebuilding the dispatcher.
 
 Direct users may pass ``logic=...`` explicitly instead of relying on the
-class-level binding installed by ``Control``.  ``FixturesAPI`` (in
-``cmd_router.api``) builds on this class so a single subclass can own both
+class-level binding installed by ``Control``.  ``FixturesSDK`` (in
+``cmd_router.sdk``) builds on this class so a single subclass can own both
 holder state and settings with ``logic`` defaulting to itself.
 """
 

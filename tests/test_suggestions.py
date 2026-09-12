@@ -12,7 +12,7 @@ import pytest
 from cmd_router.lib.commands import CmdParse
 from cmd_router.lib.control import ControlType as Control
 from cmd_router.lib.control.api import ControlResult
-from cmd_router.lib.control.api.fixtures_api import FixturesContextHolder, FixturesSetup
+from cmd_router.lib.control.api.fixtures_sdk import FixturesContextHolder, FixturesSetup
 from cmd_router.lib.control.api.result import _UNSET
 from cmd_router.utils.cli import flags
 from cmd_router.utils.context import uctx
