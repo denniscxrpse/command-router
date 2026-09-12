@@ -80,6 +80,27 @@ def test_control_accepts_setup_instance_directly() -> None:
         runner.close()
 
 
+def test_bundled_fixture_exposes_a_builder_dispatcher() -> None:
+    from fixtures import Fixtures as ExampleFixtures
+
+    fixture = ExampleFixtures()
+    result = fixture.builder_dispatcher.parse("advancement grant Alex only story done")
+
+    assert result.ok
+    assert result.context is not None
+    assert result.context.args == {
+        "target": "Alex",
+        "advancement": "story",
+        "criterion": "done",
+    }
+    assert result.handler is not None
+    assert result.handler(**result.context.args) == {
+        "target": "Alex",
+        "advancement": "story",
+        "criterion": "done",
+    }
+
+
 def test_control_accepts_setup_subclass_directly() -> None:
     runner = Control()
     try:

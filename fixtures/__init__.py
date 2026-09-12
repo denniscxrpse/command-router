@@ -9,7 +9,9 @@ Subclass ``FixturesSDK`` once: action methods live next to the settings that bin
 them, and ``self.logic`` is the holder those actions close over.  Importing
 this module alone creates nothing; the control layer constructs ``Fixtures``
 when loading this module or accepts a ``FixturesSDK`` instance passed directly
-to ``Control.initialize``.
+to ``Control.initialize``.  The advanced Python grammar is assembled in
+``fixtures.grammars`` and exposed through the instance for applications that
+register their command tree in Python.
 
 To build your own fixture, copy this shape into your module: add state and
 action methods, then map grammar command names to them in ``__init__`` via
@@ -23,10 +25,18 @@ from typing import Any, final
 
 from cmd_router.sdk import FixturesSDK
 
+from .grammars import build_grammar
+
 
 @final
 class Fixtures(FixturesSDK):
-    """Hold the example state, actions, and command configuration."""
+    """Hold the example state, actions, and command configuration.
+
+    ``command_action`` serves the file-backed control grammars.  The
+    ``builder_dispatcher`` property contains the equivalent Python-built tree
+    for callers that want to compose or parse the same command surface without
+    a grammar file.
+    """
 
     def __init__(self, logic: Any = None) -> None:
         """Build example values using the holder bound to ``logic``."""
@@ -45,6 +55,11 @@ class Fixtures(FixturesSDK):
             "advancement": self.logic.bar,
             "say": self.logic.bar,
         }
+
+        # The same command surface can be registered directly in Python. The
+        # advanced grammar definition lives in ``fixtures.grammars`` so this
+        # module remains focused on state, actions, and settings.
+        self.builder_dispatcher = build_grammar(self.command_action)
 
         # How many completion hints a parse error exposes via
         # ``error["suggestions"]`` (first N of ``expected``). The bundled

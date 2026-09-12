@@ -51,7 +51,7 @@ _default_pfx = "/"
 
 
 FixtureInitializationError = stat.FixtureInitializationError
-"""Raised when a fixture's lifecycle flags disagree with the expected state.
+"""(Alias) Raised when a fixture's lifecycle flags disagree with the expected state.
 
 The control layer turns this exception into a structured
 ``ControlInitialization`` failure so callers receive a single, consistent

@@ -380,9 +380,8 @@ class CommandRouter:
             return stat.TokenizeUnsupportedTypeError()
 
         command_marker = command.strip().casefold()
-        quitters: tuple[str, ...] = ("q", "quit", "e", "exit")
-        for name in quitters:  # o(n)
-            quitters += (f"{Fixtures.cmd_prefix}{name}",)
+        quitters: tuple[str, ...] = ("q", "quit", "e", "exit", "!q", "!quit")
+        quitters += tuple(f"{Fixtures.cmd_prefix}{name}" for name in ("q", "quit", "e", "exit"))
         if command_marker in quitters:
             log.info("test loop requested to stop")
             return stat.Success()

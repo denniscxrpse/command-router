@@ -347,4 +347,6 @@ def init_flags(**kwargs) -> None:
         # existing value alone is important when the command is invoked by a
         # caller that has already configured `flags` programmatically.
         if value is not None and hasattr(flags, key):
+            if key == "ignore":
+                value = frozenset(value)
             setattr(flags, key, value)

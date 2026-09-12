@@ -75,6 +75,7 @@ class FixturesSDK(FixturesContextHolder, FixturesSetup):
         """Legacy error namespace."""
 
         InitError: Final[type[FixtureInitializationError]] = FixtureInitializationError
+        """(Alias) Raised when a fixture's lifecycle flags disagree with the expected state."""
 
     def __init__(self, logic: Any = None) -> None:
         """Create holder state and settings for one fixture surface.

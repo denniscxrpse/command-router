@@ -3,13 +3,14 @@ import threading
 from pathlib import Path
 
 import pytest
+from click.testing import CliRunner
 
 import cmd_router as command_router_module
 
 # noinspection protected-member
 from cmd_router import REPL, CommandRouter, _CmdRouter
 from cmd_router.lib.control import ControlType as Control
-from cmd_router.utils.cli import flags
+from cmd_router.utils.cli import flags, init_flags
 from cmd_router.utils.context import paths, uctx
 from cmd_router.utils.status import Status, stat
 
@@ -34,6 +35,14 @@ GRAMMAR_ERR = "err.json5"
 GRAMMAR_IGNORED = "ignored.json5"
 GRAMMAR_INCLUDE = "include.json5"
 GRAMMAR_INVALID = "invalid.json5"
+
+
+def _set_ignored_files(monkeypatch: pytest.MonkeyPatch, option: str, *values: str) -> None:
+    """Configure grammar ignores through the public CLI option."""
+    monkeypatch.setattr(flags, "ignore", flags.ignore)
+    arguments = [part for value in values for part in (option, value)]
+    result = CliRunner().invoke(init_flags, arguments)
+    assert result.exit_code == 0, result.output
 
 
 @pytest.fixture
@@ -75,7 +84,7 @@ def test_constructor_loads_non_lazy_fixtures(tmp_path: Path, monkeypatch: pytest
 
 
 def test_init_grammar_loads_supported_files_and_skips_unknown_files(
-    router: _CmdRouter, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    router: _CmdRouter, tmp_path: Path
 ) -> None:
     json_file = tmp_path / GRAMMAR_JSON5
     toml_file = tmp_path / GRAMMAR_TOML
@@ -83,7 +92,6 @@ def test_init_grammar_loads_supported_files_and_skips_unknown_files(
     json_file.write_text(_json_grammar("json"), encoding="utf-8")
     toml_file.write_text(_toml_grammar("toml"), encoding="utf-8")
     text_file.write_text("not a grammar", encoding="utf-8")
-    monkeypatch.setattr(flags, "ignore", frozenset())
 
     result = router.grammar_init([json_file, toml_file, text_file])
 
@@ -93,12 +101,15 @@ def test_init_grammar_loads_supported_files_and_skips_unknown_files(
     )
 
 
-def test_init_grammar_ignores_a_filename(router: _CmdRouter, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+@pytest.mark.parametrize("option", ["-I", "--ignore"])
+def test_init_grammar_ignores_a_filename(
+    router: _CmdRouter, tmp_path: Path, monkeypatch: pytest.MonkeyPatch, option: str
+) -> None:
     ignored = tmp_path / GRAMMAR_IGNORED
     include = tmp_path / GRAMMAR_INCLUDE
     ignored.write_text("invalid", encoding="utf-8")
     include.write_text(_json_grammar(), encoding="utf-8")
-    monkeypatch.setattr(flags, "ignore", frozenset({ignored.name}))
+    _set_ignored_files(monkeypatch, option, ignored.name)
 
     result = router.grammar_init([ignored, include])
 
@@ -113,7 +124,7 @@ def test_init_grammar_ignores_a_full_file_path(
     include = tmp_path / GRAMMAR_INCLUDE
     ignored.write_text("invalid", encoding="utf-8")
     include.write_text(_json_grammar(), encoding="utf-8")
-    monkeypatch.setattr(flags, "ignore", frozenset({str(ignored)}))
+    _set_ignored_files(monkeypatch, "--ignore", str(ignored))
 
     result = router.grammar_init([ignored, include])
 
@@ -130,7 +141,7 @@ def test_init_grammar_ignores_files_under_a_directory(
     include = tmp_path / GRAMMAR_INCLUDE
     ignored.write_text("invalid", encoding="utf-8")
     include.write_text(_json_grammar(), encoding="utf-8")
-    monkeypatch.setattr(flags, "ignore", frozenset({str(ignored_dir)}))
+    _set_ignored_files(monkeypatch, "-I", str(ignored_dir))
 
     result = router.grammar_init([ignored, include])
 
@@ -138,11 +149,10 @@ def test_init_grammar_ignores_files_under_a_directory(
 
 
 def test_init_grammar_returns_validation_error(
-    router: _CmdRouter, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    router: _CmdRouter, tmp_path: Path
 ) -> None:
     invalid = tmp_path / GRAMMAR_INVALID
     invalid.write_text(_json_grammar().replace(f'"{SCHEMA_VERSION}": 1', f'"zz{SCHEMA_VERSION}": -1'), encoding="utf-8")
-    monkeypatch.setattr(flags, "ignore", frozenset())
 
     result = router.grammar_init(invalid)
 

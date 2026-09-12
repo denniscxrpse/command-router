@@ -103,7 +103,7 @@ class NodeBuilder:
         """Return the wrapped node's name."""
         return self._node.name
 
-    def then(self, *children: "NodeBuilder | CommandNode") -> Self:  # noqa: UP037
+    def then(self, *children: NodeBuilder | CommandNode) -> Self:
         """Attach children and return this builder.
 
         Each child may be another builder (used via its ``build()``) or an
@@ -202,7 +202,7 @@ def argument(name: str, arg_type: ArgumentType[Any] | None = None, executes: _Ha
     return ArgumentBuilder(name, arg_type, executes=executes)
 
 
-def build_dispatcher(*roots: "NodeBuilder | CommandNode") -> CommandDispatcher:  # noqa: UP037
+def build_dispatcher(*roots: NodeBuilder | CommandNode) -> CommandDispatcher:
     """Build a dispatcher from builder or node roots.
 
     Each root is built (when a builder) and registered in order.  Duplicate
