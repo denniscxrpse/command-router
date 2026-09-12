@@ -76,6 +76,8 @@ class _StatusNS:
     @final
     class ImpossibleControlState(IStatus):
         """Raised when the unreachable control layer is somehow reached."""
+        _code = 6
+        _MESSAGE = "Impossible states are normally a logic error. This is a bug."
     @final
     class DefaultGrammarError(IStatus): ...
     @final

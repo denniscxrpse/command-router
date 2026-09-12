@@ -4,9 +4,9 @@ from .backend.holder import FixturesContextHolder
 from .backend.settings import FixtureInitializationError
 from .backend.setup import FixturesSetup
 
-__all__ = ["FixturesAPI", "Fixtures"]
+__all__ = ["FixturesSDK", "Fixtures"]
 
-class FixturesAPI(FixturesContextHolder, FixturesSetup):
+class FixturesSDK(FixturesContextHolder, FixturesSetup):
     ContextHolder = FixturesContextHolder
     Setup = FixturesSetup
 
@@ -15,4 +15,4 @@ class FixturesAPI(FixturesContextHolder, FixturesSetup):
 
     def __init__(self, logic: Any = None) -> None: ...
 
-Fixtures: Final[FixturesAPI]
+Fixtures: Final[FixturesSDK]

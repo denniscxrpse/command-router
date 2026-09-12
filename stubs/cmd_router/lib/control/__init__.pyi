@@ -1,6 +1,6 @@
 from .api.context import *
 from .api.control import *
-from .api.fixtures_api import *
+from .api.fixtures_sdk import *
 from .api.result import *
 
 __all__ = [

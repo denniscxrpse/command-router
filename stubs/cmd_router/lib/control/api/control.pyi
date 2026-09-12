@@ -10,7 +10,7 @@ from cmd_router.lib.control.compiler import _GrammarSource
 from cmd_router.utils import Status
 
 from .context import *
-from .fixtures_api import *
+from .fixtures_sdk import *
 from .result import *
 
 __all__ = ["ControlType", "control"]

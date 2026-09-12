@@ -7,13 +7,10 @@ from cmd_router.lib.control import ControlResult
 from cmd_router.lib.control.api import *
 from cmd_router.lib.grammar.loader import *
 from cmd_router.suggestions import *
-from cmd_router.utils.cli import *
-from cmd_router.utils.context import *
-from cmd_router.utils.lazy_server import *
-from cmd_router.utils.logger import *
-from cmd_router.utils.status import Status
+from cmd_router.suite import *
+from cmd_router.utils import Status
 
-__all__ = ["CommandRouter", "Lazy@60"]
+__all__ = ["REPL", "CommandRouter", "Lazy@57"]
 
 _Dict = dict[str, Any]
 
@@ -33,7 +30,7 @@ class CommandRouter:
     control: Incomplete
     def __init__(self) -> None: ...
     @property
-    def initialize(self) -> Status: ...
+    def initialize(self, as_router: bool = True) -> Status: ...
     @property
     def main(self) -> Status: ...
     def execute(self, command: Any) -> ControlResult: ...
@@ -41,6 +38,8 @@ class CommandRouter:
     @property
     def deeper_level(self) -> Any: ...
     def _test_suite_loop(self) -> Status: ...
+    def _handle_command(self, command: str) -> Outcome: ...
 
 # Names in __all__ with no definition:
-#   Lazy@60
+#   Lazy@57
+#   REPL

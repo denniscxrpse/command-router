@@ -23,6 +23,7 @@ def main() -> Status:
         log.critical(str(exception))
         return stat.Abort()
     log.info("command router exited with code %s (%s)", ultima.code, ultima.name)
+    log.info("contract message (if any): %s", ultima.message)
     return ultima
 
 

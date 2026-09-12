@@ -6,7 +6,7 @@ from _typeshed import Incomplete
 
 from cmd_router.lib.commands.dispatcher import CommandDispatcher
 
-from .fixtures_api import FixturesSetup
+from .fixtures_sdk import FixturesSetup
 from .result import ControlInitialization, ControlResult
 
 __all__ = ["ControlDeeperContext"]

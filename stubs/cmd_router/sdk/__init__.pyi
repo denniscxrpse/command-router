@@ -32,7 +32,7 @@ from .backend import (
     load_fixture_module as load_fixture_module,
 )
 from .user import Fixtures as Fixtures
-from .user import FixturesAPI as FixturesAPI
+from .user import FixturesSDK as FixturesSDK
 
 __all__ = [
     "ArgumentBuilder",
@@ -47,5 +47,5 @@ __all__ = [
     "literal",
     "load_fixture_module",
     "Fixtures",
-    "FixturesAPI",
+    "FixturesSDK",
 ]
