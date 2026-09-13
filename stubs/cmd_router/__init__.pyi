@@ -10,7 +10,7 @@ from cmd_router.suggestions import *
 from cmd_router.suite import *
 from cmd_router.utils import Status
 
-__all__ = ["REPL", "CommandRouter", "Lazy@57"]
+__all__ = ["REPL", "CommandRouter", "Lazy@59"]
 
 _Dict = dict[str, Any]
 
@@ -38,8 +38,11 @@ class CommandRouter:
     @property
     def deeper_level(self) -> Any: ...
     def _test_suite_loop(self) -> Status: ...
+    def _serve_loop(self) -> Status: ...
+    @staticmethod
+    def _serve_fallback(text: str, message: str) -> None: ...
     def _handle_command(self, command: str) -> Outcome: ...
 
 # Names in __all__ with no definition:
-#   Lazy@57
+#   Lazy@59
 #   REPL

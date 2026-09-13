@@ -3,8 +3,6 @@
 #  Copyright (c) 2026 Ian Hylton
 #  All rights reserved.
 
-#  The Clear BSD License
-#
 """Byte-budget contract for suggestion emission.
 
 ``fuzzy_str_match`` fuses ranking and emission so ``len(str(out).encode())``

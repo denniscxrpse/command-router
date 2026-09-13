@@ -116,6 +116,29 @@ class EnvFlags:
     function as we do not have a way (yet) to pass the control the existing module ``fixtures`` already has.
     """
 
+    serve: bool = False
+    """
+    Read dirty command lines from ``stdin``; the control layer prints one JSON response per line on ``stderr``. There 
+    is no input schema: every line is fed whole to the control surface (the same path the test suite uses), 
+    so empty lines, plain text, and malformed commands all yield exactly one structured response instead of raising. 
+    ``stdout`` keeps streaming live logs for a human operator, while ``stderr`` carries only protocol lines for the 
+    pipe consumer.
+
+    Serve mode implies ``json_out`` and skips binding the suggestions HTTP server, so nothing else can interleave on 
+    ``stderr``. Takes effect only when ``test_suite`` is off. EOF ends the loop with a clean status, which makes this
+    the subprocess-pipe transport: a parent process spawns the router as a child and talks to it over pipes.
+    """
+
+    quiet: bool = False
+    """
+    Disables printing of logs to ``stdout``.
+
+    If you enable this flag, it will skip the printing of logs to ``stdout``, which may improve performance.
+    History is still recorded, so ``recent_messages`` keeps working. Embedded
+    callers that never parse CLI options may set ``CMD_ROUTER_QUIET=1`` before
+    importing instead, or call ``log_handler.set_stdout_enabled(False)``.
+    """
+
     no_help: bool = False
     """
     Disables compilation of the built-in ``help`` commands. This has an effect only when ``test_suite`` is enabled.
@@ -249,15 +272,15 @@ class EnvFlags:
     """
     Every single time the Command Router (``cmd-router``) finishes compilation, and is ready to start parsing, 
     formatting, and outputting commands (data) into the ``stderr``, we either do two things depending on this flag:
-    
+
     - If ``False`` (**default**): The exposed data in the ``stderr`` is exposed as a Python dictionary like object.
-       There is nothing more to it, it's simply a dictionary that can be quickly parsed in Python environments.
-    
+      There is nothing more to it, it's simply a dictionary that can be quickly parsed in Python environments.
+
     - If ``True``: The exposed data will be a JSON like object, requiring parsing in your application depending on 
-       your requirements. You must set this flag to ``True`` if your application expects the ``stderr`` parsed data to 
-       be JSON.
-       
-    Currently, TOML is not supported when exposing parsed data.  
+      your requirements. You must set this flag to ``True`` if your application expects the ``stderr`` parsed data to 
+      be JSON.
+
+    Currently, TOML is not supported when exposing parsed data.
     """
 
 
@@ -289,6 +312,19 @@ flags: Final[EnvFlags] = EnvFlags()
     is_flag=True,
     default=None,
     help="Initialize the test suite. Do not confuse with `pytest`.",
+)
+@click.option(
+    "--serve",
+    is_flag=True,
+    default=flags.serve,
+    help="Serve commands from stdin, one JSON response per line on stderr.",
+)
+@click.option(
+    "-q",
+    "--quiet",
+    is_flag=True,
+    default=flags.quiet,
+    help="Disable all output from the logger (stdout).",
 )
 @click.option(
     "--no-help",
@@ -350,3 +386,10 @@ def init_flags(**kwargs) -> None:
             if key == "ignore":
                 value = frozenset(value)
             setattr(flags, key, value)
+    # Sync stdout rendering to the parsed value in both directions: parsing
+    # runs after every import, which is the only point the flag is known.
+    # The import stays local because `logger` reads `flags` at module level,
+    # so a top-level import here would be circular.
+    from cmd_router.utils.logger import log_handler
+
+    log_handler.set_stdout_enabled(not flags.quiet)

@@ -5,6 +5,8 @@
 
 __all__ = ("CommandRouter", "REPL")
 
+import json
+import sys
 import threading
 import tomllib
 from http.server import HTTPServer
@@ -259,6 +261,8 @@ class CommandRouter:
         suggestions_server: HTTPServer | None = None
         if flags.no_suggestions_server:
             log.info("suggestions server completely disabled; not binding")
+        elif flags.serve:
+            log.info("serve mode owns the stderr transport; suggestions server not binding")
         else:
             # Bind even when `suggestions_server` is off, so disabled use stays
             # visible instead of a dropped connection: the handler logs at
@@ -297,19 +301,21 @@ class CommandRouter:
 
         log.info("ready (%d commands grammar(s))", len(self._grammars))
 
-        try:
-            # Implement router service loop, where we wait until we recieve something from the `stdin`.
-            ultima = stat.Success()
-            ...
-        except KeyboardInterrupt:
-            log.critical("router interrupted")
-            ultima = stat.Interrupted()
-        finally:
-            # Embedded use keeps the daemon server alive beyond `initialize`
-            # so clients can POST/GET after ready (it dies with the process).
-            # Only the test-suite path above shuts its server down eagerly.
-            ...
-        return ultima
+        if ctrl_init and flags.serve:
+            if not flags.json_out:
+                log.debug("serve mode implies JSON responses")
+                flags.json_out = True
+            log.info("serve mode enabled; entering stdin loop")
+            try:
+                ultima = self._serve_loop()
+                log.info("serve loop exited with status %s", ultima)
+                return ultima
+            finally:
+                if suggestions_server is not None:
+                    suggestions_server.shutdown()
+                    suggestions_server.server_close()
+
+        return stat.Success()
 
     @property
     def main(self) -> Status:
@@ -364,6 +370,62 @@ class CommandRouter:
             return stat.ImpossibleControlState()
         log.info("repl exited with status %s", ultima)
         return ultima
+
+    def _serve_loop(self) -> Status:
+        """Feed dirty stdin lines to the control surface; answers flow to stderr.
+
+        There is no input schema: every line is fed whole to ``execute``,
+        the same path the test suite uses, so empty lines, plain text, and
+        broken commands are all accepted eagerly. The control layer prints
+        exactly one JSON response line per execution on ``stderr`` itself,
+        which keeps framing strictly one-to-one with no printing done here.
+        The loop only writes when that emission could not have happened: an
+        execution failure, or an action value that JSON cannot serialize
+        (re-serialized here as a watchdog, since the control layer swallows
+        that emission failure internally). EOF ends the loop with ``Success``.
+        """
+        log.info("serve loop started; reading commands from stdin")
+        try:
+            for line in sys.stdin:
+                text = line.rstrip("\n")
+                try:
+                    result = self.execute(text)
+                except Exception as exception:
+                    log.error("serve loop failed to execute %r: %s", text, exception)
+                    self._serve_fallback(text, str(exception))
+                    continue
+                try:
+                    result.to_json()
+                except (TypeError, ValueError) as exception:
+                    log.error("serve loop could not serialize the answer to %r: %s", text, exception)
+                    self._serve_fallback(text, f"unserializable result: {exception}")
+        except KeyboardInterrupt:
+            log.warning("serve loop interrupted")
+            return stat.Interrupted()
+        log.info("serve loop reached EOF")
+        return stat.Success()
+
+    @staticmethod
+    def _serve_fallback(text: str, message: str) -> None:
+        """Print one JSON error line on ``stderr`` to preserve 1:1 framing.
+
+        Only used when the control layer could not emit its own response
+        line, so a pipe consumer waiting on the next line never hangs.
+        """
+        print(
+            json.dumps(
+                {
+                    "ok": False,
+                    "input": text,
+                    "value": None,
+                    "suggestions": [],
+                    "error": {"message": message},
+                    "message": message,
+                }
+            ),
+            file=sys.stderr,
+            flush=True,
+        )
 
     def _handle_command(self, command: str) -> Outcome:
         """Execute one REPL line: exit-status, suggestions, or keep-going.

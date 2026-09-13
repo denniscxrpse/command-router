@@ -70,6 +70,12 @@ def fit_to_budget(ranked: Sequence[str], budget: int) -> list[str]:
     search. Same ``+Z``-per-word cost model (words assumed free of
     quotes/backslashes).
 
+    Never use this function unless the ranked sequence is already ranked by
+    ``fuzzy_str_match`` or similar, and you need to truncate it to fit a
+    specific byte budget. If you avoid doing this, this function will likely
+    produce a suboptimal result, while *not* truncating the list to fit the
+    budget and taking forever to finish.
+
     Args:
         ranked: Suggestions in final order; the result is always a prefix.
         budget: Maximum ``len(str(result).encode(_ENC))``. Values ``<= 0``

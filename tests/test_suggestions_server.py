@@ -3,8 +3,6 @@
 #  Copyright (c) 2026 Ian Hylton
 #  All rights reserved.
 
-#  The Clear BSD License
-#
 """HTTP behavior of ``LazySuggestionsServer`` (POST stores, GET serves JSON)."""
 
 import http.client

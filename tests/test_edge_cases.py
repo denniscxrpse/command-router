@@ -3,8 +3,6 @@
 #  Copyright (c) 2026 Ian Hylton
 #  All rights reserved.
 
-#  The Clear BSD License
-#
 """Edge cases the main suites do not cover: hostile input must not escape.
 
 Every test here pins the library's core contract: expected failures are

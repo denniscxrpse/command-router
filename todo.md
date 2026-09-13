@@ -155,14 +155,14 @@ Hard rule: the builder can’t introduce new matching behavior; it’s just a ni
 
 **Goal:** another application can drive this engine over an IPC-style transport.
 
-- [ ] pick transport (s):
-    - [ ] unix domain socket (best “internal socket” default on Linux/macOS)
-    - [ ] optional: TCP localhost
-    - [ ] optional: stdio mode (subprocess pipes)
-- [ ] define a tiny protocol (start with JSON lines):
+- [x] pick transport (s):
+    - [x] unix domain socket (best “internal socket” default on Linux/macOS)
+    - [x] optional: TCP localhost
+    - [x] optional: stdio mode (subprocess pipes)
+- [x] define a tiny protocol (start with JSON lines):
     - request: `{id, input, cursor?}`
     - response: `{id, ok, result|error, suggestions?}`
-- [ ] keep logs on stderr; keep protocol clean on the transport
+- [x] keep logs on stderr; keep protocol clean on the transport
 
 **Exit condition:** a tiny external client can connect, send a command, and get a structured response.
 
@@ -172,7 +172,13 @@ Hard rule: the builder can’t introduce new matching behavior; it’s just a ni
 
 **Goal:** prove the “another app summons this” story end-to-end.
 
-- [ ] a minimal client script that connects and sends requests
-- [ ] server mode that loads a demo command tree and serves requests
+- [x] a minimal client script that connects and sends requests
+- [x] server mode that loads a demo command tree and serves requests
 
-**Exit condition:** two terminals (server + client) feel solid and boring.
+**Exit condition:** two terminals (server and client) feel solid and boring.
+
+---
+
+## Phase 11 — Documentation
+
+- [ ] ugh

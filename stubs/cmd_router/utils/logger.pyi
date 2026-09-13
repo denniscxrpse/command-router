@@ -43,7 +43,7 @@ class LoggerHandler:
     _stderr_users: int
     _recent_messages: deque[str]
     _recent_entries: deque[tuple[int, str]]
-    _stdout_enabled: bool
+    _stdout_enabled: Incomplete
     def __init__(self) -> None: ...
     @property
     def stdout_enabled(self) -> bool: ...

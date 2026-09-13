@@ -3,6 +3,16 @@
 #  Copyright (c) 2026 Ian Hylton
 #  All rights reserved.
 
+import os
+import sys
+
+argv = sys.argv[1:]
+if "--quiet" in argv or "-q" in argv:
+    # Flag parsing runs after every import, but importing the router already
+    # logs; seed quiet mode through the environment so the handler is born
+    # silent. `init_flags` confirms it once options are parsed.
+    os.environ["CMD_ROUTER_QUIET"] = "1"
+
 from cmd_router import CommandRouter
 from cmd_router.utils.cli import *
 from cmd_router.utils.logger import *

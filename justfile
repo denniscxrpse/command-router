@@ -6,7 +6,7 @@
 # Example project requires `dotnet` to be accessiable in your ENV. `just dotrun` will
 # not work without `dotnet` installed:
 # - https://dotnet.microsoft.com/download
-# Last edit: 25/Aug/2026
+# Last *big* edit: 25/Aug/2026
 
 # Initialize the project. This will only work if you have `just` in your ENV already.
 init:

@@ -9,6 +9,7 @@ __all__ = (
 )
 
 import logging as _log
+import os
 import sys
 from collections import deque
 from collections.abc import Awaitable
@@ -124,7 +125,10 @@ class LoggerHandler:
         self._stderr_users = 0
         self._recent_messages: deque[str] = deque(maxlen=256)
         self._recent_entries: deque[tuple[int, str]] = deque(maxlen=256)
-        self._stdout_enabled = True
+        # Seed from the environment because flag parsing runs after every
+        # import, while module-level setup already logs during those imports.
+        # `init_flags` takes over as the source of truth once it runs.
+        self._stdout_enabled = os.environ.get("CMD_ROUTER_QUIET", "0") != "1"
         # paths.LOGS_DIR.mkdir(parents=True, exist_ok=True)
 
     @property
