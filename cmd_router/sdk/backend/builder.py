@@ -5,15 +5,17 @@
 
 """Brigadier-inspired builder for the hand-built command tree.
 
-This module is Phase 7: ergonomics after correctness.  It introduces no new
+This module is ergonomics over the hand-built tree: it introduces no new
 matching behavior.  Every builder delegates to the same ``CommandNode``
 primitives used by hand-built trees:
 
-* ``then`` calls ``CommandNode.add_child`` (so greedy-terminal and duplicate
+- ``then`` calls ``CommandNode.add_child`` (so greedy-terminal and duplicate
   checks fail fast at build time, exactly as before).
-* ``executes`` calls ``CommandNode.set_command`` (so handler validation is
+- ``executes`` calls ``CommandNode.set_command`` (so handler validation is
   identical).
-* ``build`` returns the underlying node; ``build_dispatcher`` registers built
+- ``redirect`` calls ``CommandNode.set_redirect`` (so redirect graph edges fail
+  fast exactly like hand-built redirects).
+- ``build`` returns the underlying node; ``build_dispatcher`` registers built
   roots on a fresh ``CommandDispatcher``.
 
 The intended shape is:
@@ -139,6 +141,33 @@ class NodeBuilder:
         log.debug("builder setting handler on %r", self._node.label or "<root>")
         self._node.set_command(handler)
         return self
+
+    def redirect(self, target: NodeBuilder | CommandNode) -> Self:
+        """Point this node at *target* and return this builder.
+
+        Parsing that reaches this node continues with *target*'s children
+        without consuming a token. *target* may be another builder (used via
+        its ``build()``) or an already-built node. Children are still tried
+        first, so a redirect is a fallback continuation. Greedy-terminal,
+        self-target, and cycle errors propagate from ``set_redirect`` unchanged.
+        """
+        if isinstance(target, NodeBuilder):
+            resolved = target.build()
+        elif isinstance(target, CommandNode):
+            resolved = target
+        else:
+            raise TypeError(f"redirect target must be a builder or CommandNode, got {type(target).__name__}")
+        log.debug(
+            "builder redirecting %r to %r",
+            self._node.label or "<root>",
+            resolved.label or "<root>",
+        )
+        self._node.set_redirect(resolved)
+        return self
+
+    def redirect_to(self, target: NodeBuilder | CommandNode) -> Self:
+        """Alias for ``redirect`` for callers preferring the explicit name."""
+        return self.redirect(target)
 
     def build(self) -> CommandNode:
         """Return the underlying command node."""

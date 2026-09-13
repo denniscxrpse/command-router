@@ -5,7 +5,7 @@
 
 """Compatibility wrapper around the canonical ``cmd_router.sdk`` fixtures.
 
-Phase 7 moved the real implementation to ``cmd_router.sdk.backend`` so the
+The real implementation lives in ``cmd_router.sdk.backend`` so the
 public ``FixturesSDK``/``Fixtures`` façade and the control layer share one
 source of truth.  This module keeps the old import paths working by
 re-exporting the same objects; it adds no behavior of its own.

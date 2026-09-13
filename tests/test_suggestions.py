@@ -3,7 +3,7 @@
 #  Copyright (c) 2026 Ian Hylton
 #  All rights reserved.
 
-"""Phase 6 suggestions: size limits, flags, and dict-or-None error transport."""
+"""Suggestions: size limits, flags, and dict-or-None error transport."""
 
 import json
 

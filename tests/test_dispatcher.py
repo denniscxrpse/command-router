@@ -31,7 +31,7 @@ def debug_handler() -> None:
     return None
 
 
-def _phase_one_dispatcher() -> tuple[CmdNode.Dispatcher, dict[str, Callable[..., Any]]]:
+def _example_dispatcher() -> tuple[CmdNode.Dispatcher, dict[str, Callable[..., Any]]]:
     handlers: dict[str, Callable[..., Any]] = {
         "say": say_handler,
         "tell": tell_handler,
@@ -109,10 +109,10 @@ def _phase_one_dispatcher() -> tuple[CmdNode.Dispatcher, dict[str, Callable[...,
         ("debug off", "debug", {}),
     ],
 )
-def test_phase_one_commands_parse_to_handlers_and_context(
+def test_example_commands_parse_to_handlers_and_context(
     command: str, handler_name: str, expected_args: dict[str, Any]
 ) -> None:
-    dispatcher, handlers = _phase_one_dispatcher()
+    dispatcher, handlers = _example_dispatcher()
 
     result = dispatcher.parse(command)
 
@@ -138,10 +138,10 @@ def test_phase_one_commands_parse_to_handlers_and_context(
         ("tp 1 nope 3", ControlResultKinds.INVALID_ARGUMENT, 2, ("<y:int>",)),
     ],
 )
-def test_phase_one_failures_report_the_furthest_expectation(
+def test_example_failures_report_the_furthest_expectation(
     command: str, kind: ControlResultKinds, token_index: int, expected: tuple[str, ...]
 ) -> None:
-    dispatcher, _ = _phase_one_dispatcher()
+    dispatcher, _ = _example_dispatcher()
 
     result = dispatcher.parse(command)
 
@@ -153,7 +153,7 @@ def test_phase_one_failures_report_the_furthest_expectation(
 
 
 def test_dispatcher_returns_tokenization_error_codes() -> None:
-    dispatcher, _ = _phase_one_dispatcher()
+    dispatcher, _ = _example_dispatcher()
 
     result = dispatcher.parse('say "unterminated')
 
@@ -165,7 +165,7 @@ def test_dispatcher_returns_tokenization_error_codes() -> None:
 
 
 def test_parse_error_exposes_failure_context_for_debugging() -> None:
-    dispatcher, _ = _phase_one_dispatcher()
+    dispatcher, _ = _example_dispatcher()
 
     result = dispatcher.parse("tell Alex")
 
@@ -216,7 +216,7 @@ def test_greedy_arguments_must_be_terminal() -> None:
 
 
 def test_empty_input_reports_root_expectations() -> None:
-    dispatcher, _ = _phase_one_dispatcher()
+    dispatcher, _ = _example_dispatcher()
 
     result = dispatcher.parse("   ")
 

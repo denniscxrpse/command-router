@@ -102,6 +102,7 @@ class CommandDispatcher:
         index: int,
         args: dict[str, Any],
         original_input: str,
+        _seen: frozenset[tuple[int, int]] | None = None,
     ) -> ParseResult | ParseError:
         log.debug(
             "visiting node %r at token %d/%d with args=%r",
@@ -110,6 +111,19 @@ class CommandDispatcher:
             len(tokens),
             args,
         )
+        seen = frozenset() if _seen is None else _seen
+        key = (id(node), index)
+        if key in seen:
+            log.error("redirect cycle detected at %r token %d", node.label or "<root>", index)
+            return ParseError(
+                kind=ParseErrorKinds.UNEXPECTED_COMMAND,
+                token_index=index,
+                expected=self._expected(node),
+                message="redirect cycle detected",
+                partial_args=dict(args),
+                token=tokens[index] if 0 <= index < len(tokens) else None,
+            )
+        seen = seen | {key}
         if index == len(tokens):
             if node.command is not None:
                 log.debug("terminal handler found at %r", node.label or "<root>")
@@ -122,6 +136,13 @@ class CommandDispatcher:
                         tokens=tokens,
                     ),
                 )
+            if node.redirect is not None:
+                log.debug(
+                    "following redirect from %r to %r at end of input",
+                    node.label or "<root>",
+                    node.redirect.label or "<root>",
+                )
+                return self._walk(node.redirect, tokens, index, args, original_input, seen)
             log.debug("input ended before a command was complete at %r", node.label or "<root>")
             return self._incomplete(node, index, args)
 
@@ -133,7 +154,7 @@ class CommandDispatcher:
             if child.name != tokens[index]:
                 continue
             log.debug("trying literal %r at token %d", child.name, index)
-            result = self._walk(child, tokens, index + 1, args, original_input)
+            result = self._walk(child, tokens, index + 1, args, original_input, seen)
             if isinstance(result, ParseResult):
                 return result
             failures.append(result)
@@ -173,10 +194,22 @@ class CommandDispatcher:
             next_args[child.name] = parsed
             next_index = len(tokens) if child.greedy else index + 1
             log.debug("argument %r accepted value %r", child.label, parsed)
-            result = self._walk(child, tokens, next_index, next_args, original_input)
+            result = self._walk(child, tokens, next_index, next_args, original_input, seen)
             if isinstance(result, ParseResult):
                 return result
             failures.append(result)
+
+        if node.redirect is not None:
+            log.debug(
+                "following redirect from %r to %r at token %d",
+                node.label or "<root>",
+                node.redirect.label or "<root>",
+                index,
+            )
+            redirect_result = self._walk(node.redirect, tokens, index, args, original_input, seen)
+            if isinstance(redirect_result, ParseResult):
+                return redirect_result
+            failures.append(redirect_result)
 
         if failures:
             log.debug("selecting the best of %d branch failure(s)", len(failures))
@@ -206,7 +239,14 @@ class CommandDispatcher:
 
     @staticmethod
     def _expected(node: CommandNode) -> tuple[str, ...]:
-        return tuple(child.label for child in node.children)
+        seen: set[int] = {id(node)}
+        ordered: list[str] = [child.label for child in node.children]
+        current = node.redirect
+        while current is not None and id(current) not in seen:
+            seen.add(id(current))
+            ordered.extend(child.label for child in current.children)
+            current = current.redirect
+        return tuple(dict.fromkeys(ordered))
 
     @staticmethod
     def _best_error(errors: list[ParseError], tokens: tuple[str, ...] | None = None) -> ParseError:

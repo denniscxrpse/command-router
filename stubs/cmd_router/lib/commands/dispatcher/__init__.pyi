@@ -20,7 +20,13 @@ class CommandDispatcher:
     def parse(self, command: str) -> ParseResult: ...
     def dispatch(self, command: str) -> ParseResult: ...
     def _walk(
-        self, node: CommandNode, tokens: tuple[str, ...], index: int, args: dict[str, Any], original_input: str
+        self,
+        node: CommandNode,
+        tokens: tuple[str, ...],
+        index: int,
+        args: dict[str, Any],
+        original_input: str,
+        _seen: frozenset[tuple[int, int]] | None = None,
     ) -> ParseResult | ParseError: ...
     def _incomplete(self, node: CommandNode, index: int, args: dict[str, Any]) -> ParseError: ...
     @staticmethod

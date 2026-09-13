@@ -5,8 +5,6 @@ a command tree, typed arguments, good parse errors, and suggestions/autocomplete
 
 Also: make it runnable as a small standalone process that another app can talk to (local socket or similar).
 
-Non-goals (for now): PyPI polish, long-term API stability promises, docs, perfect CI.
-
 Rule: only add complexity when a real command grammar demands it.
 
 ---
@@ -145,9 +143,9 @@ Hard rule: the builder can’t introduce new matching behavior; it’s just a ni
 
 **Goal:** support graph-like trees (redirect/fork) if/when a real command needs it.
 
-- [ ] choose one motivating grammar (e.g. an `execute`-style modifier chain)
-- [ ] implement redirect/fork mechanics
-- [ ] add a guard so malformed grammars can’t loop forever
+- [x] choose one motivating grammar (e.g. an `execute`-style modifier chain)
+- [x] implement redirect/fork mechanics
+- [x] add a guard so malformed grammars can’t loop forever
 
 **Exit condition:** that one repeating grammar works and termination is well-defined.
 
@@ -178,9 +176,3 @@ Hard rule: the builder can’t introduce new matching behavior; it’s just a ni
 - [ ] server mode that loads a demo command tree and serves requests
 
 **Exit condition:** two terminals (server + client) feel solid and boring.
-
----
-
-## Packaging note
-
-Don’t optimize for PyPI. If you ever want that, create a new TODO dedicated to “publishable library mode”.

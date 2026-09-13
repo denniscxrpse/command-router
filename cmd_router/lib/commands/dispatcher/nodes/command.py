@@ -24,6 +24,7 @@ class CommandNode:
             raise TypeError(f"command must be callable, got {type(command).__name__}")
         self.command = command
         self.children: list[CommandNode] = []
+        self.redirect: CommandNode | None = None
 
     @property
     def label(self) -> str:
@@ -41,6 +42,9 @@ class CommandNode:
         if getattr(child, "greedy", False) and child.children:
             raise ValueError("greedy argument nodes must be terminal")
 
+        if getattr(child, "greedy", False) and getattr(child, "redirect", None) is not None:
+            raise ValueError("greedy argument nodes must be terminal")
+
         if any(self._duplicates(existing, child) for existing in self.children):
             raise ValueError(f"duplicate child node: {child.label}")
 
@@ -52,6 +56,33 @@ class CommandNode:
         if not callable(command):
             raise TypeError(f"command must be callable, got {type(command).__name__}")
         self.command = command
+        return self
+
+    def set_redirect(self, target: CommandNode) -> CommandNode:
+        """Point this node at *target* and return the node.
+
+        Parsing that reaches this node continues with *target*'s children
+        without consuming a token, which expresses aliases and repeating
+        modifier chains. Children are still tried first, so a redirect is a
+        fallback continuation rather than a replacement.
+
+        Fails fast when *target* is not a node, is this node itself, sits on
+        a greedy source, or would close a redirect-only cycle.
+        """
+        if not isinstance(target, CommandNode):
+            raise TypeError(f"redirect target must be a CommandNode, got {type(target).__name__}")
+        if target is self:
+            raise ValueError("redirect target cannot be the node itself")
+        if getattr(self, "greedy", False):
+            raise ValueError("greedy argument nodes must be terminal")
+        seen: set[int] = {id(self)}
+        current: CommandNode | None = target
+        while current is not None:
+            if id(current) in seen:
+                raise ValueError("redirect would create a cycle")
+            seen.add(id(current))
+            current = current.redirect
+        self.redirect = target
         return self
 
     @staticmethod

@@ -9,9 +9,10 @@ Subclass ``FixturesSDK`` once: action methods live next to the settings that bin
 them, and ``self.logic`` is the holder those actions close over.  Importing
 this module alone creates nothing; the control layer constructs ``Fixtures``
 when loading this module or accepts a ``FixturesSDK`` instance passed directly
-to ``Control.initialize``.  The advanced Python grammar is assembled in
+to ``Control.initialize``.  The advanced Python grammars are assembled in
 ``fixtures.grammars`` and exposed through the instance for applications that
-register their command tree in Python.
+register their command tree in Python: ``builder_dispatcher`` for the plain
+tree and ``builder_redirect_dispatcher`` for the redirect example.
 
 To build your own fixture, copy this shape into your module: add state and
 action methods, then map grammar command names to them in ``__init__`` via
@@ -25,7 +26,7 @@ from typing import Any, final
 
 from cmd_router.sdk import FixturesSDK
 
-from .grammars import build_grammar
+from .grammars import build_grammar, build_redirect_grammar
 
 
 @final
@@ -35,7 +36,9 @@ class Fixtures(FixturesSDK):
     ``command_action`` serves the file-backed control grammars.  The
     ``builder_dispatcher`` property contains the equivalent Python-built tree
     for callers that want to compose or parse the same command surface without
-    a grammar file.
+    a grammar file.  The ``builder_redirect_dispatcher`` property contains the
+    Redirect example (``msg`` alias plus the ``execute`` modifier
+    chain) built from the same ``say``/``tell`` actions.
     """
 
     def __init__(self, logic: Any = None) -> None:
@@ -60,6 +63,12 @@ class Fixtures(FixturesSDK):
         # advanced grammar definition lives in ``fixtures.grammars`` so this
         # module remains focused on state, actions, and settings.
         self.builder_dispatcher = build_grammar(self.command_action)
+
+        # The redirect example reuses the ``say``/``tell`` actions: it
+        # adds a ``msg`` alias for ``tell`` and an ``execute`` modifier chain
+        # (``execute (as <executor> | at <location>)* run <command>``) whose
+        # repetition and root forwarding are expressed with ``redirect``.
+        self.builder_redirect_dispatcher = build_redirect_grammar(self.command_action)
 
         # How many completion hints a parse error exposes via
         # ``error["suggestions"]`` (first N of ``expected``). The bundled

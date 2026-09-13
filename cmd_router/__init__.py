@@ -223,7 +223,7 @@ class CommandRouter:
         log.info("router instance was initialized. use `initialize` to actually start the router")
 
     @property
-    def initialize(self, as_router: bool = True) -> Status:
+    def initialize(self) -> Status:
         """The main entry point for the router."""
         if not self._was_i_initialized:
             return stat.ImpossibleControlState()
@@ -297,12 +297,9 @@ class CommandRouter:
 
         log.info("ready (%d commands grammar(s))", len(self._grammars))
 
-        # The `ultima` shouldn't be instantiated when the router is embedded.
-        # Values must be instantiated only when the router either successfully
-        # exited or crashed.
-        # We instantiate `ultima` here to avoid Python complaints.
-        ultima = stat.Success()
         try:
+            # Implement router service loop, where we wait until we recieve something from the `stdin`.
+            ultima = stat.Success()
             ...
         except KeyboardInterrupt:
             log.critical("router interrupted")

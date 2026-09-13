@@ -3,7 +3,7 @@
 #  Copyright (c) 2026 Ian Hylton
 #  All rights reserved.
 
-"""Phase 7 public API: FixturesSDK single-class fixtures and sane Fixtures defaults."""
+"""Public SDK API: single-class FixturesSDK fixtures and sane Fixtures defaults."""
 
 from pathlib import Path
 from types import ModuleType

@@ -3,7 +3,7 @@
 #  Copyright (c) 2026 Ian Hylton
 #  All rights reserved.
 
-"""Phase 7 builder: same trees, pleasanter registration."""
+"""Builder: same trees as hand-built registration, pleasanter syntax."""
 
 from collections.abc import Callable
 from typing import Any
