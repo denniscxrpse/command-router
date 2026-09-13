@@ -28,7 +28,7 @@ dependencies = [
 [project.urls]
 Repository = "https://gitlab.com/denniscxrpse/command-router"
 Issues = "https://gitlab.com/denniscxrpse/command-router/-/work_items"
-# Documentation = "https://gitlab.com/denniscxrpse/
+Documentation = "https://gitlab.com/denniscxrpse/command-router/-/wikis/"
 
 [tool.black]
 line-length = 120
