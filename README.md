@@ -35,7 +35,7 @@ process.
 ## Run it
 
 ```sh
-just            # see available recipes
+just -l         # see available recipes
 just test       # run the test suite
 just run        # start the router
 just run -L     # start the router in lazy grammar mode
@@ -45,8 +45,9 @@ just run -L     # start the router in lazy grammar mode
 
 ## Documentation
 
-Start with the [project documentation](docs/home.md). It explains the command tree, fixture SDK, grammar files,
-structured response contracts, suggestions, redirects, service modes, and the external consumer example.
+Start with the [project documentation](https://gitlab.com/denniscxrpse/command-router/-/wikis/home). It explains the
+command tree, fixture SDK, grammar files, structured response contracts, suggestions, redirects, service modes, and
+the external consumer example.
 
 ## Mirrors
 

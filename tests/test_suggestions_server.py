@@ -12,11 +12,11 @@ from http.server import HTTPServer
 
 import pytest
 
-from pkg.lib.control.api.control import control as _shared_control
-from pkg.suggestions import LazySuggestionsServer, lazy_suggest_srv_ctx
-from pkg.suggestions.algo import fuzzy_str_match
-from pkg.utils.cli import flags
-from pkg.utils.status import stat
+from command_router.lib.control.api.control import control as _shared_control
+from command_router.suggestions import LazySuggestionsServer, lazy_suggest_srv_ctx
+from command_router.suggestions.algo import fuzzy_str_match
+from command_router.utils.cli import flags
+from command_router.utils.status import stat
 
 _GRAMMARS = {
     "gamemode": "(survival|creative)",

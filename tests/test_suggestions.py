@@ -9,18 +9,18 @@ import json
 
 import pytest
 
-from pkg.lib.commands import CmdParse
-from pkg.lib.control import ControlType as Control
-from pkg.lib.control.api import ControlResult
-from pkg.lib.control.api.fixtures_sdk import FixturesContextHolder, FixturesSetup
-from pkg.lib.control.api.result import _UNSET
-from pkg.utils.cli import flags
-from pkg.utils.context import uctx
-from pkg.utils.status import stat
+from command_router.lib.commands import CmdParse
+from command_router.lib.control import ControlType as Control
+from command_router.lib.control.api import ControlResult
+from command_router.lib.control.api.fixtures_sdk import FixturesContextHolder, FixturesSetup
+from command_router.lib.control.api.result import _UNSET
+from command_router.utils.cli import flags
+from command_router.utils.context import uctx
+from command_router.utils.status import stat
 
 
 def _make_error(expected: tuple[str, ...], token: str | None = None) -> CmdParse.Error:
-    from pkg.lib.control.api.result import ControlResultKinds
+    from command_router.lib.control.api.result import ControlResultKinds
 
     return CmdParse.Error(
         kind=ControlResultKinds.UNEXPECTED_TOKEN,

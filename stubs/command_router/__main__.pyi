@@ -1,0 +1,3 @@
+from command_router import start as start
+
+def console_main() -> int: ...

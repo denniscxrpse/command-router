@@ -1,29 +1,36 @@
 [project]
 name = "command-router"
-version = "26.0-dev"
+version = "0.1.0"
 requires-python = ">=3.14"
-license = "BSD-3-Clause-Clear"
+license = { file = "LICENSE" }
+license-expression = "BSD-3-Clause-Clear"
 authors = [
     { name = "Ian Hylton", email = "dcxrpse@krwwstudios.com" }
 ]
 description = "Small, Brigadier-inspired command router."
 readme = "README.md"
 dependencies = [
-    "black>=26.5.1",
     "click>=8.4.2",
-    "icecream>=2.2.0",
     "json5>=0.15.0",
+    "prompt-toolkit>=3.0.53",
+    "rapidfuzz>=3.14.6",
+    "textual>=8.2.8",
+]
+
+[dependency-groups]
+dev = [
+    "black>=26.5.1",
     # The only reason to add `mypy` was because of `stubgen`.
     # Do not use `mypy` for anything else, if not at all.
     "mypy>=2.3.1",
-    "prompt-toolkit>=3.0.53",
     "pytest>=9.1.1",
-    "rapidfuzz>=3.14.6",
     "ruff>=0.15.22",
-    "rust-just>=1.57.0",
-    "textual>=8.2.8",
+    "rust-just>=1.58.0",
     "ty>=0.0.77",
 ]
+
+[project.scripts]
+cmd-router = "command_router.__main__:console_main"
 
 [project.urls]
 Repository = "https://gitlab.com/denniscxrpse/command-router"
@@ -35,10 +42,14 @@ line-length = 120
 target-version = ['py314']
 
 [tool.pytest.ini_options]
-pythonpath = ["."]
+pythonpath = ["src"]
 
 [tool.pyrefly]
 project-includes = [
     "**/*.py*",
     "**/*.ipynb",
 ]
+
+[build-system]
+requires = ["uv_build>=0.11.29,<0.12.0"]
+build-backend = "uv_build"

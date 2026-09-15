@@ -6,6 +6,7 @@
 """Serve mode: dirty stdin lines in, one JSON response per stderr line."""
 
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -14,7 +15,7 @@ from typing import Any
 import pytest
 from click.testing import CliRunner
 
-from pkg.utils.cli import flags, init_flags
+from command_router.utils.cli import flags, init_flags
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -30,11 +31,17 @@ DIRTY = [
 ]
 
 
+def _child_env() -> dict[str, str]:
+    """Point the child at the source tree so `-m command_router` resolves without an install."""
+    return {**os.environ, "PYTHONPATH": str(ROOT / "src")}
+
+
 def _serve(lines: list[str], timeout: int = 180) -> tuple[list[dict[str, Any]], int, str]:
-    """Run `main.py --serve` as a child; return stderr responses, exit code, and stdout."""
+    """Run `cmd-router --serve` as a child; return stderr responses, exit code, and stdout."""
     proc = subprocess.Popen(
-        [sys.executable, "main.py", "--serve"],
+        [sys.executable, "-m", "command_router", "--serve"],
         cwd=ROOT,
+        env=_child_env(),
         stdin=subprocess.PIPE,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,

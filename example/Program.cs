@@ -17,9 +17,12 @@ var root = Utils.ThisPath();
 
 using var router = new Process();
 
+const string fname     = "uv";
+const string arguments = "run --quiet cmd-router --serve --quiet";
+
 router.StartInfo = new ProcessStartInfo {
-    FileName              = "uv",
-    Arguments             = "run --quiet python main.py --serve --quiet",
+    FileName              = fname,
+    Arguments             = arguments,
     WorkingDirectory      = root,
     RedirectStandardInput = true,
     RedirectStandardError = true,
@@ -37,6 +40,9 @@ try {
 
     return 1;
 }
+
+Utils.Print("router started, using ... ", $"{fname} {arguments}");
+Utils.Print($"PID: {router.Id}");
 
 // Each line exercises one router path: valid commands, an unknown command, a missing argument, plain-text
 // passthrough (kind INPUT), and a broken quote. Note the prefix must lead the line: even padded valid text

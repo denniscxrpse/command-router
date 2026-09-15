@@ -5,15 +5,15 @@ from typing import Any
 
 import pytest
 
-from pkg.lib.control import ControlResultKinds, FixturesContextHolder, FixturesSetup, api
-from pkg.lib.control import ControlType as Control
-from pkg.lib.control.api.fixtures_sdk import (
+from command_router.lib.control import ControlResultKinds, FixturesContextHolder, FixturesSetup, api
+from command_router.lib.control import ControlType as Control
+from command_router.lib.control.api.fixtures_sdk import (
     FixtureInitializationError,
     _FixtureInnerContext,
 )
-from pkg.lib.control.api.result import _UNSET
-from pkg.utils.logger import log
-from pkg.utils.status import stat
+from command_router.lib.control.api.result import _UNSET
+from command_router.utils.logger import log
+from command_router.utils.status import stat
 
 
 def test_control_returns_structured_results_and_keeps_deeper_state() -> None:
@@ -50,7 +50,7 @@ def test_control_emits_compact_data_and_error_responses_to_stderr(capsys: pytest
     import ast
     import json
 
-    from pkg.utils.context import uctx
+    from command_router.utils.context import uctx
 
     runner = Control()
     try:
@@ -242,7 +242,9 @@ def test_fixture_setup_type_errors_name_the_property(name: str, value: Any, mess
 def test_bundled_fixture_uses_the_new_setup_contract() -> None:
     runner = Control()
     try:
-        fixture = Path(__file__).parents[1] / "fixtures"
+        from command_router._example import fixtures as example_fixtures
+
+        fixture = Path(example_fixtures.__file__).parent
         initialized = runner.initialize({"say": "<message...>"}, fixture=fixture)
 
         assert initialized.ok

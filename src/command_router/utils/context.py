@@ -1,0 +1,183 @@
+#  The Clear BSD License
+#
+#  Copyright (c) 2026 Ian Hylton
+#  All rights reserved.
+
+"""Shared constants and paths used by the commands-router packages.
+``uctx`` is deliberately not a mutable commands configuration object.  It
+
+provides schema constants, serialized grammar keys, and a read-only listener
+for the latest stderr message; fixture-owned settings such as ``cmd_prefix``,
+the help policy, action functions, and argument overrides live on
+``FixturesSetup`` instances in the control API.  Keeping commands settings out
+of this module avoids hidden global state between independent control surfaces
+and fixture initializations.
+"""
+
+__all__ = (
+    "default_fixtures_dir",
+    "paths",
+    "uctx",
+)
+
+from dataclasses import dataclass, field
+from importlib import resources
+from pathlib import Path
+from typing import TYPE_CHECKING, Any, Final
+from warnings import deprecated
+
+if TYPE_CHECKING:
+    from command_router.lib.control.api.result import ControlResultKinds
+else:
+    ControlResultKinds = Any
+
+from .status import Status
+
+
+@dataclass
+@deprecated("This class is expected to be removed completely by the implementation of `--genesis`.")
+class _Paths:
+
+    @staticmethod
+    @deprecated("This method is deprecated and will be removed in a future release.")
+    def _get_root() -> Path:
+        """Traverse up to find the project root (containing pyproject.toml)."""
+        curr: Path = Path(__file__).resolve().parent
+        while curr != curr.parent:
+            if (curr / "uv.lock").exists():
+                return curr
+            curr: Path = curr.parent
+        # Fallback to current directory if not found
+        return Path.cwd()
+
+    ROOT: Path = _get_root()
+    FIXTURES: Path = ROOT / "fixtures"
+    FIXTURES_HTTP: Path = FIXTURES / "http"
+    LOGS_DIR: Path = ROOT / "logs"
+
+
+@dataclass(frozen=True, slots=True)
+class _UniversalContext:
+    """Namespace containing shared constants and read-only observations."""
+
+    CMD_ROUTER_DEFAULT_ADDRESS: Final[str] = "127.0.0.1"
+    CMD_ROUTER_DEFAULT_PORT: Final[int] = 0
+
+    INTERNAL_JSON_CONTRACT: Final[dict[str, Any]] = field(
+        default_factory=lambda: {
+            "ok": bool,  # [bool]
+            "code": Status,  # code.name [_StatusContract]
+            "kind": ControlResultKinds,  # [ControlResultKinds]
+            "input": ...,  # [stdin?/Any]
+            "command": str,  # [str]
+            "value": ...,  # [Any]
+            "parsed_args": None,  # context.args [CommandContext|null]
+            "error": {...},  # error.to_dict [ParseError|null]
+            "message": None,  # [str|null]
+            "exception": None,  # [str|null]
+        }
+    )
+    """Full response contract returned by ``ControlResult.to_dict``.
+
+    Every mapping contains exactly these keys, in both plain dictionaries
+    and JSON. Absent values are ``None`` (``null`` in JSON) instead of being
+    omitted, so consumers can rely on a fixed shape:
+
+    - ``ok`` (bool): whether the attempt succeeded.
+    - ``code`` (str): ``code.name`` status string, e.g. ``"Success"``.
+    - ``kind`` (str): result stage, e.g. ``"COMMAND"``, ``"INPUT"``,
+      ``"UNEXPECTED_TOKEN"``. Stored as ``str`` so enums stay
+      JSON-serializable.
+    - ``input`` (Any): exact caller input, passed through unvalidated.
+    - ``command`` (str|null): matched command without prefix, or ``None``
+      for non-command ``INPUT`` results.
+    - ``value`` (Any): action return value, or pass-through input for
+      ``INPUT``. ``None`` when no action produced a value. Passed through
+      as-is; the API never parses, validates, or converts it.
+    - ``parsed_args`` (dict|null): ``context.args`` when a parse produced
+      arguments, else ``None``.
+    - ``error`` (dict|null): ``error.to_dict()`` for parse failures, else
+      ``None``. The nested dict is itself fixed-shape and JSON-serializable.
+    - ``message`` (str|null): human-readable detail, or ``None`` when there
+      is nothing to report. A valid request such as ``/help advancement``
+      therefore returns ``"message": None`` instead of dropping the key.
+    - ``exception`` (str|null): formatted ``"Type: detail"`` for action
+      failures, else ``None``.
+
+    Valid requests (``ok=True``) carry the result in ``value`` with
+    ``error``/``exception`` as ``None``; ``message`` is usually ``None``.
+    Invalid requests (``ok=False``) keep ``value`` as ``None`` (unless a
+    partial value exists), describe the failure in ``message``, and expose
+    structured detail in ``error`` and/or ``exception``. In both cases all
+    eleven keys are present.
+    """
+
+    INTERNAL_JSON_CONTRACT_COMPACT: Final[dict[str, Any]] = field(
+        default_factory=lambda: {
+            "ok": bool,  # [bool]
+            "input": ...,  # [stdin?/Any]
+            "value": ...,  # [Any]
+            "suggestions": [str, ...],  # [list[str]|null]
+            "error": {...},  # _transport_value(...) [dict|null]
+            "message": None,  # [str|null]
+        }
+    )
+    """Compact response contract returned by ``ControlResult.to_response``.
+
+    Every mapping contains exactly these keys, in both plain dictionaries
+    and JSON. Absent values are ``None`` (``null`` in JSON) instead of being
+    omitted. It carries the outcome without the full diagnostic metadata,
+    which saves bytes and CPU cycles on the hot stderr path:
+
+    - ``ok`` (bool): whether the attempt succeeded.
+    - ``input`` (Any): exact caller input, passed through unvalidated.
+    - ``value`` (Any): action return value (or pass-through input),
+      ``None`` when absent. Passed through as-is.
+    - ``suggestions`` (list[str]|null): first ``N`` of ``ParseError.expected``
+      no parse error exists, or ``None`` when ``flags.no_suggestions`` disables
+      (``N`` from ``FixturesSetup.suggestions_set_current_size``), ``[]`` when
+      hints.
+    - ``error`` (dict|null): transported ``error_payload`` via
+      ``_transport_value`` — always a dictionary or ``None``. A ``ParseError``
+      becomes its ``to_dict()`` (which carries ``suggestions``); a string or
+      arbitrary payload becomes ``{"message": ..., "suggestions": ...}``.
+    - ``message`` (str|null): human-readable detail, or ``None`` when there
+      is nothing to report.
+
+    Valid requests (``ok=True``) return the outcome in ``value`` with
+    ``error`` as ``None`` and ``message`` usually ``None``. Invalid requests
+    (``ok=False``) return the failure in ``error``/``message`` with ``value``
+    as ``None``. In both cases all six keys are present.
+    """
+
+    # Serialized key names used by grammar containers.
+    CMD_ROUTER_SERIAL: Final[str] = "cmd-router"
+    GRAMMAR_SERIAL: Final[str] = "grammar"
+    SCHEMA_VERSION_SERIAL: Final[str] = "schema-version"
+    # Constant values used while validating grammar files.
+    VALID_SCHEMAS: Final[frozenset[int]] = frozenset({1})
+    """The valid schemas for the grammars."""
+
+    # Suggestion variables used by the commands' context
+    SUGGESTIONS_MAX: Final[int] = 255  # UINT8_MAX (2^8-1)
+    SUGGESTION_SERVER_DEFAULT_ADDRESS: Final[str] = CMD_ROUTER_DEFAULT_ADDRESS
+    SUGGESTION_SERVER_DEFAULT_PORT: Final[int] = 9077
+
+
+paths: Final[_Paths] = _Paths()
+uctx: Final[_UniversalContext] = _UniversalContext()
+
+
+def default_fixtures_dir() -> Path:
+    """Return the repo ``fixtures/`` directory, or the packaged templates.
+
+    An installed package has no repository checkout, so ``paths.FIXTURES``
+    may not exist. In that case the ``_example/fixtures`` templates shipped
+    inside the wheel serve as the default grammar and fixture source, which
+    keeps standalone runs working with no extra configuration. A present
+    ``fixtures/`` directory (including one patched in by tests) always wins,
+    so local development behavior is unchanged.
+    """
+    if paths.FIXTURES.is_dir():
+        return paths.FIXTURES
+    return Path(str(resources.files("command_router") / "_example" / "fixtures"))

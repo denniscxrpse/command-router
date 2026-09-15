@@ -10,10 +10,10 @@ from typing import Any
 
 import pytest
 
-from pkg.lib.commands import CmdNode, CmdType
-from pkg.lib.control import ControlResultKinds
-from pkg.sdk import argument, build_dispatcher, literal
-from pkg.sdk.backend.builder import ArgumentBuilder, LiteralBuilder
+from command_router.lib.commands import CmdNode, CmdType
+from command_router.lib.control import ControlResultKinds
+from command_router.sdk import argument, build_dispatcher, literal
+from command_router.sdk.backend.builder import ArgumentBuilder, LiteralBuilder
 
 
 def _say(**arguments: Any) -> Any:

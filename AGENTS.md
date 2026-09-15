@@ -11,13 +11,14 @@ behavior through the builder, the SDK, or later roadmap phases.
 
 The current surfaces are:
 
-- `cmd_router.lib.commands` for parsing primitives and the tree.
-- `cmd_router.sdk` for fixture authoring and tree building (`FixturesSDK`, `literal` / `argument` /
+- `command_router.lib.commands` for parsing primitives and the tree.
+- `command_router.sdk` for fixture authoring and tree building (`FixturesSDK`, `literal` / `argument` /
   `build_dispatcher`).
-- `cmd_router.lib.control` for fixture-backed initialization and execution (`Control`, `ControlResult`).
-- `cmd_router.suite` for the interactive Textual test-suite REPL.
-- `cmd_router.suggestions` for ranked prefix-first / fuzzy-fallback suggestions and the lazy server.
-- `src` (`CommandRouter`) as the thin runtime orchestrator over grammar loading, control, and servers.
+- `command_router.lib.control` for fixture-backed initialization and execution (`Control`, `ControlResult`).
+- `command_router.suite` for the interactive Textual test-suite REPL.
+- `command_router.suggestions` for ranked prefix-first / fuzzy-fallback suggestions and the lazy server.
+- `src/command_router/__init__.py` (`__CommandRouter`) as the thin runtime orchestrator over grammar loading,
+  control, and servers.
 
 Do not implement `todo.md` phases out of order. Implement functionality in the order the user describes, or in the
 order that best fits the existing design.
@@ -26,20 +27,21 @@ order that best fits the existing design.
 
 Top-level layout:
 
-- `src`: thin `CommandRouter` / `_Router` orchestrator only.
-- `src`: tokenizer, argument types, dispatcher nodes, parse contexts.
-- `src`: compiler, fixture loader, grammar helpers, and `api/` (`control`, `result`, `context`,
-  `fixtures_sdk`).
-- `src`: file-backed TOML / JSON5 loading and parsing.
-- `src`: user façade (`FixturesSDK`, default `Fixtures`) plus `backend/` peers (`builder`, `holder`,
-  `settings`, `setup`, `loader`).
-- `src`: `algo.py` matching logic, `context.py` endpoint state, package root for
+- `src/command_router/__init__.py`: thin `__CommandRouter` / `__Router` orchestrator only.
+- `src/command_router/lib/commands`: tokenizer, argument types, dispatcher nodes, parse contexts.
+- `src/command_router/lib/control`: compiler, fixture loader, grammar helpers, and `api/` (`control`, `result`,
+  `context`, `fixtures_sdk`).
+- `src/command_router/lib/grammar`: file-backed TOML / JSON5 loading and parsing.
+- `src/command_router/sdk`: user façade (`FixturesSDK`, default `Fixtures`) plus `backend/` peers (`builder`,
+  `holder`, `settings`, `setup`, `loader`).
+- `src/command_router/suggestions`: `algo.py` matching logic, `context.py` endpoint state, package root for
   `LazySuggestionsServer`.
-- `src`: Textual REPL (`REPL`, `Outcome`) and its CSS.
-- `src`: `flags` / `init_flags`, `log`, `stat` / `Status`, `uctx` / `paths`, lazy-server base.
-- `fixtures/`: reference inputs. `__init__.py` holds behavior and settings, `grammars.py` holds the advanced
-  Python-built tree (`builder_dispatcher`), `*.toml` / `*.json5` hold file-backed grammars.
-- `tests/`, `stubs/`, `main.py`, `justfile`, `ruff.toml`, `pyproject.toml`.
+- `src/command_router/suite`: Textual REPL (`REPL`, `Outcome`) and its CSS.
+- `src/command_router/utils`: `flags` / `init_flags`, `log`, `stat` / `Status`, `uctx` / `paths`, lazy-server base.
+- `src/command_router/_example/fixtures/`: reference inputs. `__init__.py` holds behavior and settings,
+  `grammars.py` holds the advanced Python-built tree (`builder_dispatcher`), `*.toml` / `*.json5` hold file-backed
+  grammars.
+- `tests/`, `stubs/`, `justfile`, `ruff.toml`, `pyproject.toml`.
 
 Rules:
 
@@ -47,8 +49,9 @@ Rules:
   classes where that improves the public surface.
 - Add a Python `__init__.py` only when a package needs a deliberate public façade. Do not add package initializers
   everywhere by habit.
-- Prefer using the existing files and skeletons under `src`, `src`, `src`,
-  `src`, and `src` before creating new implementation files there.
+- Prefer using the existing files and skeletons under `src/command_router/lib`, `src/command_router/sdk`,
+  `src/command_router/suggestions`, `src/command_router/suite`, and `src/command_router/utils` before creating new
+  implementation files there.
 - Planning stubs may describe a future control/runtime layer; leave it alone while the package is being organized unless
   the user explicitly asks to implement that layer.
 - Preserve unrelated working-tree changes. Inspect with `git status` / `git diff` before editing and keep changes
@@ -59,7 +62,7 @@ Rules:
 - Keep the current implementation-module `.pyi` stubs untouched.
 - Do not create or update stub files for future implementation changes unless the user explicitly requests it.
 - Keep stubs in their dedicated root and avoid mirroring the implementation tree when a flat layout is valid. If a type
-  checker requires import-compatible package resolution, retain only the minimal `stubs/cmd_router/...`
+  checker requires import-compatible package resolution, retain only the minimal `stubs/command_router/...`
   hierarchy needed for that resolution; do not add extra duplicate directories or initializers.
 - Regenerate only when asked, with the project command (`just stub`, which runs `stubgen` plus `black --pyi` plus
   `ruff --fix`). Do not hand-format stubs outside that flow.
@@ -67,10 +70,10 @@ Rules:
 ## Public API and imports
 
 The command package exposes concise namespaces. Example from
-`cmd_router.lib.commands`:
+`command_router.lib.commands`:
 
 ```python
-from pkg.lib.commands import CmdError, CmdNode, CmdParse, CmdType
+from command_router.lib.commands import CmdError, CmdNode, CmdParse, CmdType
 ```
 
 Use the namespace façades at outer call sites:
@@ -82,21 +85,22 @@ Use the namespace façades at outer call sites:
 
 Use the surrounding façades the same way:
 
-- `from cmd_router.sdk import FixturesSDK, Fixtures, literal, argument, build_dispatcher` for fixture authoring and
-  Python-built trees. `cmd_router.sdk.backend` mirrors `control.deeper` for advanced integration only.
-- `from cmd_router.lib.control import ControlType as Control, ControlResult, ControlInitialization` for isolated
+- `from command_router.sdk import FixturesSDK, Fixtures, literal, argument, build_dispatcher` for fixture authoring
+  and Python-built trees. `command_router.sdk.backend` mirrors `control.deeper` for advanced integration only.
+- `from command_router.lib.control import ControlType as Control, ControlResult, ControlInitialization` for isolated
   command surfaces. Pass a `FixturesSDK` subclass or instance directly to `Control.initialize` when no fixture module
   file is needed.
-- `from cmd_router.suite import REPL, Outcome` for the test-suite UI. `Outcome` is `Status | list[str] | None`:
+- `from command_router.suite import REPL, Outcome` for the test-suite UI. `Outcome` is `Status | list[str] | None`:
   `Status` exits, `list[str]` reports unknown-command suggestions, `None` keeps listening.
-- `from cmd_router.suggestions import LazySuggestionsServer, lazy_suggest_srv_ctx` for completion infrastructure.
-- `from cmd_router.utils import flags, init_flags, log, stat, Status, uctx, paths` for CLI state, diagnostics, error
-  values, shared context, and well-known paths.
+- `from command_router.suggestions import LazySuggestionsServer, lazy_suggest_srv_ctx` for completion
+  infrastructure.
+- `from command_router.utils import flags, init_flags, log, stat, Status, uctx, paths` for CLI state, diagnostics,
+  error values, shared context, and well-known paths.
 
 Fixture contract, preferred first:
 
 ```python
-from pkg.sdk import FixturesSDK
+from command_router.sdk import FixturesSDK
 
 
 class Fixtures(FixturesSDK):
@@ -107,17 +111,18 @@ class Fixtures(FixturesSDK):
 ```
 
 The legacy two-class `context_holder` plus `SetupFixtures` contract remains supported for compatibility. New fixtures
-use the single-class form. File-backed grammars stay in TOML / JSON5; `fixtures/grammars.py` plus the fixture's
-`builder_dispatcher` is the advanced Python form for trees that need handlers at build time, computed branches, helper
-functions, or argument types the data formats avoid.
+use the single-class form. File-backed grammars stay in TOML / JSON5;
+`src/command_router/_example/fixtures/grammars.py` plus the fixture's `builder_dispatcher` is the advanced Python
+form for trees that need handlers at build time, computed branches, helper functions, or argument types the data
+formats avoid.
 
 Keep implementation modules separate underneath the façade. Add aliases in the package initializer when a public name
 would otherwise expose an internal or overly verbose implementation name.
 
 Use `__all__` deliberately in modules. The project favors clean, explicit import surfaces and may use
-`from cmd_router.module import *` when the imported module defines a trustworthy `__all__`. Do not replace that pattern
-with conventional imports merely for style, and do not use wildcards from third-party or uncontrolled modules. Use
-`TYPE_CHECKING` imports to break cycles (for example `ParseError` inside `cmd_router.suggestions`).
+`from command_router.module import *` when the imported module defines a trustworthy `__all__`. Do not replace that
+pattern with conventional imports merely for style, and do not use wildcards from third-party or uncontrolled modules.
+Use `TYPE_CHECKING` imports to break cycles (for example `ParseError` inside `command_router.suggestions`).
 
 Preserve the existing Clear BSD license header in new Python files:
 
@@ -131,7 +136,7 @@ Preserve the existing Clear BSD license header in new Python files:
 ## Error handling and safety
 
 - Expected user/input failures should return an error code or a structured result, rather than escaping as exceptions.
-  Reuse the centralized error values in `cmd_router.utils.status` and expose them through `CmdError` / `stat`.
+  Reuse the centralized error values in `command_router.utils.status` and expose them through `CmdError` / `stat`.
 - Control failures use structured results: `ControlResult` for execution and `ControlInitialization` (including
   `ControlFixtureError`) for fixture, grammar, and action validation. `FixtureInitializationError` covers fixture
   lifecycle-flag disagreements.
@@ -219,7 +224,7 @@ Useful checks:
 uv run pytest -q
 uv run ruff check .
 uv run ty check .
-uv run python main.py --lazy # You may use `curl` via HTTP to test this.
+uv run cmd-router --lazy # You may use `curl` via HTTP to test this.
 ```
 
 The `justfile` equivalents are preferred while iterating: `just pytest`, `just lint [path]`, `just test [extra]`,
@@ -261,7 +266,7 @@ Rules in detail:
   group per area so a reader can scan what moved.
 - Wrap body lines to stay readable (the history wraps near 72-80 columns), indent continuation lines two spaces, and
   leave a blank line between bullet groups. Use backticks for paths, modules, symbols, flags, and status codes, for
-  example `` `cmd_router/suggestions/` ``, `` `build_dispatcher` ``, `` `flags.no_suggestions_server` ``.
+  example `` `command_router/suggestions/` ``, `` `build_dispatcher` ``, `` `flags.no_suggestions_server` ``.
 - Always end with exactly `Signed-off-by: name <email>` as its own trailing block, preceded by a
   blank line. Never omit it, change the name or email, or substitute another trailer.
 - Tiny maintenance commits may be subject plus trailer only, with no body. Example:

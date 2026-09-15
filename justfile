@@ -17,7 +17,7 @@ init:
 
 # Run with sane defaults. Use `what` to specify a flag, use `--help` for details.
 run what="":
-    uv run python main.py {{ what }}
+    uv run cmd-router {{ what }}
 
 # Run example project; requires `dotnet` (.NET) to work. To build, pass `build=1`.
 dotrun build="0" path="./example":
@@ -47,17 +47,17 @@ pytest:
     uv run pytest -q
 
 # Check all lints. Use `path` to lint someting else.
-lint path="./pkg/ ./fixtures/ ./tests/":
+lint path="./src/ ./tests/":
     #### Avoid checking stub files, linters go crazy on them.
     uv run ruff check {{ path }}
     uv run ty check {{ path }}
 
 # Auto fix all (and only) ruff lints.
-autofix path="./pkg/ ./fixtures/":
-    uv run ruff check {{ path }} --fix
+autofix what="./src/ ./tests/":
+    uv run ruff check {{ what }} --fix
 
 # Format the code. Use `what` to inject extra flags into the `black` formatter.
-format what="./pkg/**":
+format what="./src/**":
     uv run ruff check --select I --fix {{ what }}
     uv run black {{ what }}
 
@@ -66,7 +66,7 @@ stub:
     #### Cleaning up first...
     rm -rf ./stubs
     #### Running stubgen...
-    uv run stubgen ./pkg/ -o ./stubs/ --include-private
+    uv run stubgen ./src/command_router -o ./stubs/ --include-private
     #### Running black...
     uv run black --pyi ./stubs/**
     #### Fixing minor warnings (it's fine if we fail here)

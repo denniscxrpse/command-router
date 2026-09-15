@@ -12,9 +12,9 @@ cumsum+searchsorted fitter for already-ranked lists from other producers.
 
 import random
 
-from pkg.suggestions.algo import fit_to_budget, fuzzy_str_match
-from pkg.utils.cli import flags
-from pkg.utils.context import uctx
+from command_router.suggestions.algo import fit_to_budget, fuzzy_str_match
+from command_router.utils.cli import flags
+from command_router.utils.context import uctx
 
 _BUDGET = flags.suggestions_payload
 

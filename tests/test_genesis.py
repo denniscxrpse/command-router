@@ -6,6 +6,7 @@
 """Genesis flag: custom fixture directories outside the bundled tree."""
 
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -13,15 +14,15 @@ from pathlib import Path
 import pytest
 from click.testing import CliRunner
 
-from pkg import _Router
-from pkg.utils.cli import flags, init_flags
+from command_router import __Router
+from command_router.utils.cli import flags, init_flags
 
 ROOT = Path(__file__).resolve().parents[1]
 
 _FIXTURE_INIT = """\
 from typing import Any
 
-from pkg.sdk import FixturesSDK
+from command_router.sdk import FixturesSDK
 
 
 class Fixtures(FixturesSDK):
@@ -66,41 +67,47 @@ def test_genesis_option_keeps_path_type(monkeypatch: pytest.MonkeyPatch, tmp_pat
 def test_genesis_source_unset_returns_none(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(flags, "genesis", None)
 
-    assert _Router().genesis_source is None
+    assert __Router().genesis_source is None
 
 
 def test_genesis_source_missing_directory_returns_none(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     monkeypatch.setattr(flags, "genesis", tmp_path / "absent")
 
-    assert _Router().genesis_source is None
+    assert __Router().genesis_source is None
 
 
 def test_genesis_source_without_init_returns_none(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     genesis = _make_genesis(tmp_path / "noinit", with_init=False)
     monkeypatch.setattr(flags, "genesis", genesis)
 
-    assert _Router().genesis_source is None
+    assert __Router().genesis_source is None
 
 
 def test_genesis_source_valid_directory_returns_path(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     genesis = _make_genesis(tmp_path / "custom")
     monkeypatch.setattr(flags, "genesis", genesis)
 
-    assert _Router().genesis_source == genesis
+    assert __Router().genesis_source == genesis
 
 
 def test_genesis_source_coerces_programmatic_strings(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     genesis = _make_genesis(tmp_path / "custom")
     monkeypatch.setattr(flags, "genesis", str(genesis))
 
-    assert _Router().genesis_source == genesis
+    assert __Router().genesis_source == genesis
+
+
+def _child_env() -> dict[str, str]:
+    """Point the child at the source tree so `-m command_router` resolves without an install."""
+    return {**os.environ, "PYTHONPATH": str(ROOT / "src")}
 
 
 def _serve_genesis(genesis: Path, lines: list[str], timeout: int = 180) -> tuple[str, str, int]:
-    """Run `main.py --genesis <dir> --serve` as a child; return stdout, stderr, and exit code."""
+    """Run `cmd-router --genesis <dir> --serve` as a child; return stdout, stderr, and exit code."""
     proc = subprocess.Popen(
-        [sys.executable, "main.py", "--genesis", str(genesis), "--serve"],
+        [sys.executable, "-m", "command_router", "--genesis", str(genesis), "--serve"],
         cwd=ROOT,
+        env=_child_env(),
         stdin=subprocess.PIPE,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,

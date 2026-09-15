@@ -2,8 +2,8 @@ from typing import cast
 
 import pytest
 
-from pkg.lib.commands import CmdParse
-from pkg.utils.status import stat
+from command_router.lib.commands import CmdParse
+from command_router.utils.status import stat
 
 
 @pytest.mark.parametrize(

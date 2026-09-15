@@ -5,14 +5,14 @@
 
 import pytest
 
-import main as entrypoint
-from pkg.lib.commands import CmdError
-from pkg.lib.commands.typing import ArgumentParseError
+import command_router as entrypoint
+from command_router.lib.commands import CmdError
+from command_router.lib.commands.typing import ArgumentParseError
 
 # noinspection protected-member
-from pkg.lib.control.compiler import _compile_grammars
-from pkg.utils.logger import log
-from pkg.utils.status import stat
+from command_router.lib.control.compiler import _compile_grammars
+from command_router.utils.logger import log
+from command_router.utils.status import stat
 
 
 def _emit_callsite_log() -> None:
@@ -34,17 +34,17 @@ def test_cmd_error_aliases_status_with_argument_error() -> None:
     assert stat.ArgumentParseError.__name__ == "ArgumentParseError"
 
 
-def test_main_logs_exception_message_and_returns_abort_name(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(entrypoint, "init_flags", lambda **_kwargs: None)
+def test_start_logs_exception_message_and_returns_abort_name(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(entrypoint, "init_flags", lambda *_args, **_kwargs: None)
 
     def fail() -> None:
         raise ValueError("bad value")
 
-    monkeypatch.setattr(entrypoint, "CommandRouter", fail)
+    monkeypatch.setattr(entrypoint, "__CommandRouter", fail)
     messages: list[object] = []
     monkeypatch.setattr(entrypoint.log, "critical", lambda *message: messages.extend(message))
 
-    assert entrypoint.main().code == stat.Abort().code
+    assert entrypoint.start().code == stat.Abort().code
     assert messages == ["bad value"]
 
 

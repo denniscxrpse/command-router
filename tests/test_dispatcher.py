@@ -3,8 +3,8 @@ from typing import Any
 
 import pytest
 
-from pkg.lib.commands import CmdNode, CmdParse, CmdType
-from pkg.lib.control import ControlResultKinds
+from command_router.lib.commands import CmdNode, CmdParse, CmdType
+from command_router.lib.control import ControlResultKinds
 
 
 def say_handler() -> None:

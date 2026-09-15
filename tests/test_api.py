@@ -11,9 +11,9 @@ from typing import Any
 
 import pytest
 
-from pkg.lib.commands import CmdType
-from pkg.lib.control import ControlType as Control
-from pkg.sdk import (
+from command_router.lib.commands import CmdType
+from command_router.lib.control import ControlType as Control
+from command_router.sdk import (
     Fixtures,
     FixturesContextHolder,
     FixtureSettings,
@@ -24,7 +24,7 @@ from pkg.sdk import (
     literal,
     load_fixture_module,
 )
-from pkg.sdk.backend.settings import _FixtureInnerContext
+from command_router.sdk.backend.settings import _FixtureInnerContext
 
 
 class DemoSDK(FixturesSDK):
@@ -81,7 +81,7 @@ def test_control_accepts_setup_instance_directly() -> None:
 
 
 def test_bundled_fixture_exposes_a_builder_dispatcher() -> None:
-    from fixtures import Fixtures as ExampleFixtures
+    from command_router._example.fixtures import Fixtures as ExampleFixtures
 
     fixture = ExampleFixtures()
     result = fixture.builder_dispatcher.parse("advancement grant Alex only story done")

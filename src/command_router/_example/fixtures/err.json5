@@ -1,0 +1,28 @@
+// Deliberately broken grammar file. Do NOT copy its structure, and do NOT
+// try to fix it: it exists to exercise the failure paths, and the test
+// suite plus the default ignore set depend on it staying invalid.
+//
+// What is wrong with it (one defect per marker below): a negative
+// schema version, a grammar value that is not a string, and an unknown
+// top-level key. Loading this file normally ends in a structured grammar
+// error instead of a traceback.
+//
+// Why it is still here: ``flags.ignore`` contains ``err.json5`` by
+// default, so everyday runs skip it silently. To see the failure it
+// produces, pass your own ``--ignore`` value (any explicit value replaces
+// the default set, so this file gets loaded) or clear the set
+// programmatically. That round-trip -- broken file in, structured error
+// out -- is the intended first example of how ``--ignore`` shapes
+// grammar discovery.
+{
+  "cmd-router": {
+    // Invalid schema version
+    "schema-version": -1,
+    "grammar": {
+      // Invalid grammar map
+      "gamemode": 5,
+    },
+    // Unknown key
+    "unknown": "key"
+  },
+}

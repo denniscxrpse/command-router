@@ -10,9 +10,9 @@ from typing import Any
 
 import pytest
 
-from pkg.lib.commands import CmdNode, CmdType
-from pkg.lib.control import ControlResultKinds
-from pkg.sdk import argument, build_dispatcher, literal
+from command_router.lib.commands import CmdNode, CmdType
+from command_router.lib.control import ControlResultKinds
+from command_router.sdk import argument, build_dispatcher, literal
 
 
 def _say(**arguments: Any) -> Any:
@@ -215,7 +215,7 @@ def test_forced_redirect_cycle_ends_as_structured_error() -> None:
 
 
 def test_build_redirect_grammar_uses_given_actions() -> None:
-    from fixtures.grammars import build_redirect_grammar
+    from command_router._example.fixtures.grammars import build_redirect_grammar
 
     dispatcher = build_redirect_grammar({"say": _say, "tell": _tell})
 
@@ -231,7 +231,7 @@ def test_build_redirect_grammar_uses_given_actions() -> None:
 
 
 def test_fixture_exposes_redirect_dispatcher_alongside_base() -> None:
-    from fixtures import Fixtures as ExampleFixtures
+    from command_router._example.fixtures import Fixtures as ExampleFixtures
 
     fixture = ExampleFixtures()
 
