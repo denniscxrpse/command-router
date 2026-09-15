@@ -14,19 +14,19 @@ from typing import Any
 import pytest
 from click.testing import CliRunner
 
-from cmd_router.utils.cli import flags, init_flags
+from pkg.utils.cli import flags, init_flags
 
 ROOT = Path(__file__).resolve().parents[1]
 
 DIRTY = [
     "/say hello world",
-    "  /tell Alex \"hi there\"  ",
+    '  /tell Alex "hi there"  ',
     "/gamemode creative",
     "/bogus )))",
     "/tell",
     "",
     "just some text",
-    "/say \"unterminated",
+    '/say "unterminated',
 ]
 
 

@@ -22,7 +22,7 @@ See the individual grammar files for complete examples of choices, nesting, opti
 ## Python fixture contract
 
 The control API imports `fixtures/__init__.py` and looks for one `Fixtures` class derived from
-`cmd_router.sdk.FixturesSDK`. The class owns the state, actions, and command settings together. The control layer
+`pkg.sdk.FixturesSDK`. The class owns the state, actions, and command settings together. The control layer
 constructs it once, then uses the instance as both the holder and setup while compiling grammars.
 
 A minimal fixture looks like this:
@@ -30,7 +30,7 @@ A minimal fixture looks like this:
 ```python
 from typing import Any
 
-from cmd_router.sdk import FixturesSDK
+from pkg.sdk import FixturesSDK
 
 
 class Fixtures(FixturesSDK):

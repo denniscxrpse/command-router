@@ -24,7 +24,7 @@ __all__ = ("Fixtures",)
 
 from typing import Any, final
 
-from cmd_router.sdk import FixturesSDK
+from pkg.sdk import FixturesSDK
 
 from .grammars import build_grammar, build_redirect_grammar
 

@@ -11,9 +11,9 @@ from typing import Any
 
 import pytest
 
-from cmd_router.lib.commands import CmdType
-from cmd_router.lib.control import ControlType as Control
-from cmd_router.sdk import (
+from pkg.lib.commands import CmdType
+from pkg.lib.control import ControlType as Control
+from pkg.sdk import (
     Fixtures,
     FixturesContextHolder,
     FixtureSettings,
@@ -24,7 +24,7 @@ from cmd_router.sdk import (
     literal,
     load_fixture_module,
 )
-from cmd_router.sdk.backend.settings import _FixtureInnerContext
+from pkg.sdk.backend.settings import _FixtureInnerContext
 
 
 class DemoSDK(FixturesSDK):

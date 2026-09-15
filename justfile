@@ -47,17 +47,17 @@ pytest:
     uv run pytest -q
 
 # Check all lints. Use `path` to lint someting else.
-lint path="./cmd_router/ ./fixtures/ ./tests/":
+lint path="./pkg/ ./fixtures/ ./tests/":
     #### Avoid checking stub files, linters go crazy on them.
     uv run ruff check {{ path }}
     uv run ty check {{ path }}
 
 # Auto fix all (and only) ruff lints.
-autofix path="./cmd_router/ ./fixtures/":
+autofix path="./pkg/ ./fixtures/":
     uv run ruff check {{ path }} --fix
 
 # Format the code. Use `what` to inject extra flags into the `black` formatter.
-format what="./cmd_router/**":
+format what="./pkg/**":
     uv run ruff check --select I --fix {{ what }}
     uv run black {{ what }}
 
@@ -66,7 +66,7 @@ stub:
     #### Cleaning up first...
     rm -rf ./stubs
     #### Running stubgen...
-    uv run stubgen ./cmd_router/ -o ./stubs/ --include-private
+    uv run stubgen ./pkg/ -o ./stubs/ --include-private
     #### Running black...
     uv run black --pyi ./stubs/**
     #### Fixing minor warnings (it's fine if we fail here)

@@ -5,14 +5,14 @@ from pathlib import Path
 import pytest
 from click.testing import CliRunner
 
-import cmd_router as command_router_module
+import pkg as command_router_module
 
 # noinspection protected-member
-from cmd_router import REPL, CommandRouter, _CmdRouter
-from cmd_router.lib.control import ControlType as Control
-from cmd_router.utils.cli import flags, init_flags
-from cmd_router.utils.context import paths, uctx
-from cmd_router.utils.status import Status, stat
+from pkg import REPL, CommandRouter, _Router
+from pkg.lib.control import ControlType as Control
+from pkg.utils.cli import flags, init_flags
+from pkg.utils.context import paths, uctx
+from pkg.utils.status import Status, stat
 
 CMD_ROUTER = uctx.CMD_ROUTER_SERIAL
 SCHEMA_VERSION = uctx.SCHEMA_VERSION_SERIAL
@@ -46,14 +46,14 @@ def _set_ignored_files(monkeypatch: pytest.MonkeyPatch, option: str, *values: st
 
 
 @pytest.fixture
-def router() -> _CmdRouter:
-    instance = _CmdRouter()
+def router() -> _Router:
+    instance = _Router()
     instance.grammars = {}
     instance.info = {}
     return instance
 
 
-def test_normalize_merges_grammar_and_info(router: _CmdRouter) -> None:
+def test_normalize_merges_grammar_and_info(router: _Router) -> None:
     router.normalize(*({"say": "<message...>"}, {SCHEMA_VERSION: 1}))
 
     assert router.grammars == {"say": "<message...>"}
@@ -71,10 +71,10 @@ def test_constructor_loads_non_lazy_fixtures(tmp_path: Path, monkeypatch: pytest
     monkeypatch.setattr(flags, "lazy", False)
     monkeypatch.setattr(flags, "test_suite", False)
 
-    private = _CmdRouter()
+    private = _Router()
     private.grammars = {}
     private.info = {}
-    monkeypatch.setattr(command_router_module, "_cmd_router", private)
+    monkeypatch.setattr(command_router_module, "_router", private)
 
     router = CommandRouter()
 
@@ -83,9 +83,7 @@ def test_constructor_loads_non_lazy_fixtures(tmp_path: Path, monkeypatch: pytest
     assert router._info == {SCHEMA_VERSION: 1}
 
 
-def test_init_grammar_loads_supported_files_and_skips_unknown_files(
-    router: _CmdRouter, tmp_path: Path
-) -> None:
+def test_init_grammar_loads_supported_files_and_skips_unknown_files(router: _Router, tmp_path: Path) -> None:
     json_file = tmp_path / GRAMMAR_JSON5
     toml_file = tmp_path / GRAMMAR_TOML
     text_file = tmp_path / GRAMMAR_TXT
@@ -103,7 +101,7 @@ def test_init_grammar_loads_supported_files_and_skips_unknown_files(
 
 @pytest.mark.parametrize("option", ["-I", "--ignore"])
 def test_init_grammar_ignores_a_filename(
-    router: _CmdRouter, tmp_path: Path, monkeypatch: pytest.MonkeyPatch, option: str
+    router: _Router, tmp_path: Path, monkeypatch: pytest.MonkeyPatch, option: str
 ) -> None:
     ignored = tmp_path / GRAMMAR_IGNORED
     include = tmp_path / GRAMMAR_INCLUDE
@@ -118,7 +116,7 @@ def test_init_grammar_ignores_a_filename(
 
 # noinspection DuplicatedCode
 def test_init_grammar_ignores_a_full_file_path(
-    router: _CmdRouter, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    router: _Router, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     ignored = tmp_path / GRAMMAR_IGNORED
     include = tmp_path / GRAMMAR_INCLUDE
@@ -133,7 +131,7 @@ def test_init_grammar_ignores_a_full_file_path(
 
 # noinspection DuplicatedCode
 def test_init_grammar_ignores_files_under_a_directory(
-    router: _CmdRouter, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    router: _Router, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     ignored_dir = tmp_path / "ignored"
     ignored_dir.mkdir()
@@ -148,9 +146,7 @@ def test_init_grammar_ignores_files_under_a_directory(
     assert result == ({"say": "<message...>"}, {SCHEMA_VERSION: 1})
 
 
-def test_init_grammar_returns_validation_error(
-    router: _CmdRouter, tmp_path: Path
-) -> None:
+def test_init_grammar_returns_validation_error(router: _Router, tmp_path: Path) -> None:
     invalid = tmp_path / GRAMMAR_INVALID
     invalid.write_text(_json_grammar().replace(f'"{SCHEMA_VERSION}": 1', f'"zz{SCHEMA_VERSION}": -1'), encoding="utf-8")
 
@@ -162,7 +158,7 @@ def test_init_grammar_returns_validation_error(
 
 def _post_to_lazy_router(
     monkeypatch: pytest.MonkeyPatch,
-    router: _CmdRouter,
+    router: _Router,
     payloads: list[bytes],
     fixture_root: Path,
 ) -> list[int]:
@@ -219,11 +215,11 @@ def test_lazy_init_reuses_an_identical_persisted_grammar(
 ) -> None:
     payload = grammar.encode()
 
-    first = _CmdRouter.__new__(_CmdRouter)
+    first = _Router.__new__(_Router)
     first.grammars = {}
     first.info = {}
 
-    second = _CmdRouter.__new__(_CmdRouter)
+    second = _Router.__new__(_Router)
     second.grammars = {}
     second.info = {}
 

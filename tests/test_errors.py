@@ -6,13 +6,13 @@
 import pytest
 
 import main as entrypoint
-from cmd_router.lib.commands import CmdError
-from cmd_router.lib.commands.typing import ArgumentParseError
+from pkg.lib.commands import CmdError
+from pkg.lib.commands.typing import ArgumentParseError
 
 # noinspection protected-member
-from cmd_router.lib.control.compiler import _compile_grammars
-from cmd_router.utils.logger import log
-from cmd_router.utils.status import stat
+from pkg.lib.control.compiler import _compile_grammars
+from pkg.utils.logger import log
+from pkg.utils.status import stat
 
 
 def _emit_callsite_log() -> None:

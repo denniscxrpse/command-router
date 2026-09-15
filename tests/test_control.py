@@ -5,15 +5,15 @@ from typing import Any
 
 import pytest
 
-from cmd_router.lib.control import ControlResultKinds, FixturesContextHolder, FixturesSetup, api
-from cmd_router.lib.control import ControlType as Control
-from cmd_router.lib.control.api.fixtures_sdk import (
+from pkg.lib.control import ControlResultKinds, FixturesContextHolder, FixturesSetup, api
+from pkg.lib.control import ControlType as Control
+from pkg.lib.control.api.fixtures_sdk import (
     FixtureInitializationError,
     _FixtureInnerContext,
 )
-from cmd_router.lib.control.api.result import _UNSET
-from cmd_router.utils.logger import log
-from cmd_router.utils.status import stat
+from pkg.lib.control.api.result import _UNSET
+from pkg.utils.logger import log
+from pkg.utils.status import stat
 
 
 def test_control_returns_structured_results_and_keeps_deeper_state() -> None:
@@ -50,7 +50,7 @@ def test_control_emits_compact_data_and_error_responses_to_stderr(capsys: pytest
     import ast
     import json
 
-    from cmd_router.utils.context import uctx
+    from pkg.utils.context import uctx
 
     runner = Control()
     try:

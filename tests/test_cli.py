@@ -6,8 +6,8 @@
 import pytest
 from click.testing import CliRunner
 
-from cmd_router.utils.cli import flags, init_flags
-from cmd_router.utils.logger import log_handler
+from pkg.utils.cli import flags, init_flags
+from pkg.utils.logger import log_handler
 
 
 def test_cli_options_update_renamed_environment_flags(monkeypatch: pytest.MonkeyPatch) -> None:

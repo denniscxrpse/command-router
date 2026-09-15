@@ -39,10 +39,10 @@ __all__ = ("build_grammar", "build_redirect_grammar")
 from collections.abc import Callable, Mapping
 from typing import Any
 
-from cmd_router.lib.commands import CmdType
-from cmd_router.lib.commands.dispatcher import CommandDispatcher
-from cmd_router.sdk import NodeBuilder, argument, literal
-from cmd_router.sdk import build_dispatcher as sdk_build_dispatcher
+from pkg.lib.commands import CmdType
+from pkg.lib.commands.dispatcher import CommandDispatcher
+from pkg.sdk import NodeBuilder, argument, literal
+from pkg.sdk import build_dispatcher as sdk_build_dispatcher
 
 _Action = Callable[..., Any]
 
@@ -133,9 +133,7 @@ def build_redirect_grammar(actions: Mapping[str, _Action]) -> CommandDispatcher:
     """
     say = literal("say").then(argument("message", CmdType.greedy_string()).executes(actions["say"]))
     tell = literal("tell").then(
-        argument("target", CmdType.word()).then(
-            argument("message", CmdType.greedy_string()).executes(actions["tell"])
-        )
+        argument("target", CmdType.word()).then(argument("message", CmdType.greedy_string()).executes(actions["tell"]))
     )
     msg = literal("msg").redirect(tell)
     execute, run = _build_execute_tree()

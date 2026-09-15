@@ -19,12 +19,12 @@ from http.server import HTTPServer
 import pytest
 from click.testing import CliRunner
 
-from cmd_router.lib.commands import CmdNode
-from cmd_router.lib.commands.typing import ArgumentType
-from cmd_router.lib.control import ControlType as Control
-from cmd_router.suggestions import LazySuggestionsServer, lazy_suggest_srv_ctx
-from cmd_router.utils.cli import flags, init_flags
-from cmd_router.utils.status import stat
+from pkg.lib.commands import CmdNode
+from pkg.lib.commands.typing import ArgumentType
+from pkg.lib.control import ControlType as Control
+from pkg.suggestions import LazySuggestionsServer, lazy_suggest_srv_ctx
+from pkg.utils.cli import flags, init_flags
+from pkg.utils.status import stat
 
 
 @pytest.fixture
@@ -190,7 +190,7 @@ def test_set_suggestions_rejects_non_strings() -> None:
 @pytest.fixture
 def _live_server(monkeypatch: pytest.MonkeyPatch):
     """Serve the suggestions server with an initialized control surface."""
-    from cmd_router.lib.control.api.control import control as shared
+    from pkg.lib.control.api.control import control as shared
 
     monkeypatch.setattr(flags, "suggestions_server", True)
     monkeypatch.setattr(flags, "no_suggestions_server", False)

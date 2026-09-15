@@ -17,7 +17,7 @@ The current surfaces are:
 - `cmd_router.lib.control` for fixture-backed initialization and execution (`Control`, `ControlResult`).
 - `cmd_router.suite` for the interactive Textual test-suite REPL.
 - `cmd_router.suggestions` for ranked prefix-first / fuzzy-fallback suggestions and the lazy server.
-- `cmd_router` (`CommandRouter`) as the thin runtime orchestrator over grammar loading, control, and servers.
+- `src` (`CommandRouter`) as the thin runtime orchestrator over grammar loading, control, and servers.
 
 Do not implement `todo.md` phases out of order. Implement functionality in the order the user describes, or in the
 order that best fits the existing design.
@@ -26,17 +26,17 @@ order that best fits the existing design.
 
 Top-level layout:
 
-- `cmd_router/__init__.py`: thin `CommandRouter` / `_CmdRouter` orchestrator only.
-- `cmd_router/lib/commands`: tokenizer, argument types, dispatcher nodes, parse contexts.
-- `cmd_router/lib/control`: compiler, fixture loader, grammar helpers, and `api/` (`control`, `result`, `context`,
+- `src`: thin `CommandRouter` / `_Router` orchestrator only.
+- `src`: tokenizer, argument types, dispatcher nodes, parse contexts.
+- `src`: compiler, fixture loader, grammar helpers, and `api/` (`control`, `result`, `context`,
   `fixtures_sdk`).
-- `cmd_router/lib/grammar`: file-backed TOML / JSON5 loading and parsing.
-- `cmd_router/sdk`: user façade (`FixturesSDK`, default `Fixtures`) plus `backend/` peers (`builder`, `holder`,
+- `src`: file-backed TOML / JSON5 loading and parsing.
+- `src`: user façade (`FixturesSDK`, default `Fixtures`) plus `backend/` peers (`builder`, `holder`,
   `settings`, `setup`, `loader`).
-- `cmd_router/suggestions`: `algo.py` matching logic, `context.py` endpoint state, package root for
+- `src`: `algo.py` matching logic, `context.py` endpoint state, package root for
   `LazySuggestionsServer`.
-- `cmd_router/suite`: Textual REPL (`REPL`, `Outcome`) and its CSS.
-- `cmd_router/utils`: `flags` / `init_flags`, `log`, `stat` / `Status`, `uctx` / `paths`, lazy-server base.
+- `src`: Textual REPL (`REPL`, `Outcome`) and its CSS.
+- `src`: `flags` / `init_flags`, `log`, `stat` / `Status`, `uctx` / `paths`, lazy-server base.
 - `fixtures/`: reference inputs. `__init__.py` holds behavior and settings, `grammars.py` holds the advanced
   Python-built tree (`builder_dispatcher`), `*.toml` / `*.json5` hold file-backed grammars.
 - `tests/`, `stubs/`, `main.py`, `justfile`, `ruff.toml`, `pyproject.toml`.
@@ -47,8 +47,8 @@ Rules:
   classes where that improves the public surface.
 - Add a Python `__init__.py` only when a package needs a deliberate public façade. Do not add package initializers
   everywhere by habit.
-- Prefer using the existing files and skeletons under `cmd_router/lib`, `cmd_router/sdk`, `cmd_router/suite`,
-  `cmd_router/suggestions`, and `cmd_router/utils` before creating new implementation files there.
+- Prefer using the existing files and skeletons under `src`, `src`, `src`,
+  `src`, and `src` before creating new implementation files there.
 - Planning stubs may describe a future control/runtime layer; leave it alone while the package is being organized unless
   the user explicitly asks to implement that layer.
 - Preserve unrelated working-tree changes. Inspect with `git status` / `git diff` before editing and keep changes
@@ -70,7 +70,7 @@ The command package exposes concise namespaces. Example from
 `cmd_router.lib.commands`:
 
 ```python
-from cmd_router.lib.commands import CmdError, CmdNode, CmdParse, CmdType
+from pkg.lib.commands import CmdError, CmdNode, CmdParse, CmdType
 ```
 
 Use the namespace façades at outer call sites:
@@ -96,7 +96,7 @@ Use the surrounding façades the same way:
 Fixture contract, preferred first:
 
 ```python
-from cmd_router.sdk import FixturesSDK
+from pkg.sdk import FixturesSDK
 
 
 class Fixtures(FixturesSDK):
