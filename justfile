@@ -6,7 +6,7 @@
 # Example project requires `dotnet` to be accessiable in your ENV. `just dotrun` will
 # not work without `dotnet` installed:
 # - https://dotnet.microsoft.com/download
-# Last *big* edit: 25/Aug/2026
+# Last *big* edit: 15/Sep/2026
 
 # Initialize the project. This will only work if you have `just` in your ENV already.
 init:
@@ -18,6 +18,9 @@ init:
 # Run with sane defaults. Use `what` to specify a flag, use `--help` for details.
 run what="":
     uv run cmd-router {{ what }}
+
+build what=".":
+    uv build {{ what }}
 
 # Run example project; requires `dotnet` (.NET) to work. To build, pass `build=1`.
 dotrun build="0" path="./example":

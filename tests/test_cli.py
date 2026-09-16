@@ -3,12 +3,27 @@
 #  Copyright (c) 2026 Ian Hylton
 #  All rights reserved.
 
+import os
+import subprocess
+import sys
 from pathlib import Path
 
 import pytest
 from click.testing import CliRunner
 
-from command_router.utils.cli import describe_flags, flag_names, flags, init_flags, normalize_bare_options
+from command_router.utils.cli import (
+    _BARE_OPTION_DEFAULTS,
+    _help,
+    _init,
+    _quiet,
+    _verbose_help,
+    cli_flags,
+    describe_flags,
+    flag_names,
+    flags,
+    init_flags,
+    normalize_bare_options,
+)
 from command_router.utils.logger import log_handler
 
 
@@ -75,14 +90,139 @@ def test_init_flags_without_quiet_restores_stdout_rendering() -> None:
         log_handler.set_stdout_enabled(True)
 
 
-@pytest.mark.parametrize("option", ["-init", "--init"])
-def test_init_option_accepts_both_spellings(option: str, monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+@pytest.mark.parametrize("option", ["-i", "--init"])
+def test_init_option_accepts_all_spellings(option: str, monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     monkeypatch.setattr(flags, "init", None)
 
     result = CliRunner().invoke(init_flags, [option, str(tmp_path / "fresh")])
 
     assert result.exit_code == 0
     assert flags.init == tmp_path / "fresh"
+
+
+def test_init_short_flag_stays_distinct_from_ignore(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    monkeypatch.setattr(flags, "init", None)
+    monkeypatch.setattr(flags, "ignore", flags.ignore)
+
+    result = CliRunner().invoke(init_flags, ["-i", str(tmp_path / "fresh"), "-I", "x.json5"])
+
+    assert result.exit_code == 0
+    assert flags.init == tmp_path / "fresh"
+    assert flags.ignore == frozenset({"x.json5"})
+
+
+@pytest.mark.parametrize("option", ["-H", "--verbose-help"])
+def test_verbose_help_option_accepts_both_spellings(option: str, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(flags, "verbose_help", None)
+
+    result = CliRunner().invoke(init_flags, [option, "serve"])
+
+    assert result.exit_code == 0
+    assert flags.verbose_help == "serve"
+
+
+def test_help_flag_does_not_trigger_verbose_help(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(flags, "verbose_help", None)
+
+    result = CliRunner().invoke(init_flags, ["-h"])
+
+    assert result.exit_code == 0
+    assert flags.verbose_help is None
+
+
+def test_bare_defaults_derive_from_alias_lists() -> None:
+    assert set(_BARE_OPTION_DEFAULTS) == set(_init) | set(_verbose_help)
+    assert _BARE_OPTION_DEFAULTS["--init"] == "fixtures"
+    assert _BARE_OPTION_DEFAULTS["--verbose-help"] == "all"
+
+
+@pytest.mark.parametrize(
+    ("field", "expected"),
+    [
+        ("quiet", ("-q", "--quiet")),
+        ("help", ("-h", "--help")),
+        ("verbose_help", ("-H", "--verbose-help")),
+        ("serve", ("--serve",)),
+        ("genesis", ("--genesis",)),
+    ],
+)
+def test_cli_flags_reports_parser_spellings(field: str, expected: tuple[str, ...]) -> None:
+    assert cli_flags(field) == expected
+
+
+def test_cli_flags_agrees_with_alias_lists() -> None:
+    assert set(cli_flags("init")) == set(_init)
+    assert set(cli_flags("verbose_help")) == set(_verbose_help)
+    assert set(cli_flags("help")) == set(_help)
+    assert set(cli_flags("quiet")) == set(_quiet)
+
+
+def test_cli_flags_rejects_unknown_names() -> None:
+    with pytest.raises(ValueError, match="unknown flag"):
+        cli_flags("frobnicate")
+
+
+ROOT = Path(__file__).resolve().parents[1]
+
+
+def _child_env() -> dict[str, str]:
+    """Point the child at the source tree so `-m command_router` resolves without an install."""
+    return {**os.environ, "PYTHONPATH": str(ROOT / "src")}
+
+
+def test_help_output_stays_free_of_import_logs() -> None:
+    proc = subprocess.Popen(
+        [sys.executable, "-m", "command_router", "--help"],
+        cwd=ROOT,
+        env=_child_env(),
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+    )
+    out, _ = proc.communicate(timeout=120)
+
+    assert proc.returncode == 0
+    assert "Usage:" in out
+    assert all(not line.startswith(("DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL")) for line in out.splitlines())
+
+
+def test_quiet_output_stays_free_of_logs() -> None:
+    proc = subprocess.Popen(
+        [sys.executable, "-m", "command_router", "--quiet", "--verbose-help", "quiet"],
+        cwd=ROOT,
+        env=_child_env(),
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+    )
+    out, _ = proc.communicate(timeout=120)
+
+    assert proc.returncode == 0
+    assert "quiet: bool" in out
+    assert all(not line.startswith(("DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL")) for line in out.splitlines())
+
+
+def test_help_stays_clean_when_imports_log(tmp_path: Path) -> None:
+    # Shadow `rapidfuzz` with a failing module so `suggestions.algo` emits
+    # its import-time fallback error; `--help` must still print clean help
+    # because the log handler silences itself on early help tokens.
+    shadow = tmp_path / "rapidfuzz"
+    shadow.mkdir()
+    (shadow / "__init__.py").write_text("raise ImportError('shadowed for test')\n")
+    env = {**_child_env(), "PYTHONPATH": f"{tmp_path}{os.pathsep}{ROOT / 'src'}"}
+    proc = subprocess.Popen(
+        [sys.executable, "-m", "command_router", "--help"],
+        cwd=ROOT,
+        env=env,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+    )
+    out, _ = proc.communicate(timeout=120)
+
+    assert proc.returncode == 0
+    assert "Usage:" in out
+    assert all(not line.startswith(("DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL")) for line in out.splitlines())
 
 
 def test_init_option_requires_a_value() -> None:
@@ -107,7 +247,8 @@ def test_verbose_help_option_takes_an_optional_name(monkeypatch: pytest.MonkeyPa
     [
         ([], []),
         (["--init"], ["--init", "fixtures"]),
-        (["-init"], ["-init", "fixtures"]),
+        (["-i"], ["-i", "fixtures"]),
+        (["-H"], ["-H", "all"]),
         (["--init", "mydir"], ["--init", "mydir"]),
         (["--init", "--serve"], ["--init", "fixtures", "--serve"]),
         (["--init=mydir"], ["--init=mydir"]),

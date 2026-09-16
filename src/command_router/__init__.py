@@ -6,7 +6,6 @@
 __all__ = ("start", "init_flags")
 
 import json
-import os
 import shutil
 import sys
 import threading
@@ -16,12 +15,6 @@ from importlib import resources
 from pathlib import Path
 from typing import Any
 from uuid import uuid4
-
-if any(v in sys.argv[1:] for v in ["--quiet", "-q"]):
-    # Flag parsing runs after every import, but importing the router already
-    # logs; seed quiet mode through the environment so the handler is born
-    # silent. `init_flags` confirms it once options are parsed.
-    os.environ["CMD_ROUTER_QUIET"] = "1"
 
 import json5
 

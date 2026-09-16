@@ -26,6 +26,21 @@ _PROJECT_PACKAGE_PREFIX = "command_router."
 
 _end = "\n"
 
+QUIET_FLAGS: Final[tuple[str, ...]] = ("-q", "--quiet")
+"""Raw-argument spellings that silence stdout rendering."""
+
+HELP_FLAGS: Final[tuple[str, ...]] = ("-h", "--help")
+"""Raw-argument spellings that print help and exit before the router boots."""
+
+_EARLY_SILENT_FLAGS: Final[frozenset[str]] = frozenset((*QUIET_FLAGS, *HELP_FLAGS))
+"""Tokens that silence the handler from birth.
+
+Flag parsing runs after every import, while module-level setup may already
+log during those imports. The handler scans ``sys.argv`` itself so quiet
+and help requests stay clean without the importer pre-seeding anything.
+``init_flags`` takes over as the source of truth once options are parsed.
+"""
+
 
 class _CompletedWrite:
     """An awaitable that is already complete.
@@ -125,10 +140,14 @@ class LoggerHandler:
         self._stderr_users = 0
         self._recent_messages: deque[str] = deque(maxlen=256)
         self._recent_entries: deque[tuple[int, str]] = deque(maxlen=256)
-        # Seed from the environment because flag parsing runs after every
-        # import, while module-level setup already logs during those imports.
-        # `init_flags` takes over as the source of truth once it runs.
-        self._stdout_enabled = os.environ.get("CMD_ROUTER_QUIET", "0") != "1"
+        # Flag parsing runs after every import, while module-level setup may
+        # already log during those imports. Seed silent rendering from the
+        # environment (embedded callers) or from an early quiet/help token
+        # in the raw arguments. `init_flags` takes over as the source of
+        # truth once options are parsed.
+        self._stdout_enabled = os.environ.get("CMD_ROUTER_QUIET", "0") != "1" and not any(
+            token in _EARLY_SILENT_FLAGS for token in sys.argv[1:]
+        )
         # paths.LOGS_DIR.mkdir(parents=True, exist_ok=True)
 
     @property

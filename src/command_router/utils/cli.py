@@ -3,7 +3,7 @@
 #  Copyright (c) 2026 Ian Hylton
 #  All rights reserved.
 
-__all__ = ("describe_flags", "flag_names", "flags", "init_flags", "normalize_bare_options")
+__all__ = ("cli_flags", "describe_flags", "flag_names", "flags", "init_flags", "normalize_bare_options")
 
 import sys
 from dataclasses import dataclass, fields
@@ -13,7 +13,18 @@ from typing import Any, Final, final
 import click
 from click.exceptions import Exit, NoSuchOption
 
-_help = ["-h", "--help"]
+from .logger import HELP_FLAGS, QUIET_FLAGS
+
+# Command aliases: the single source of truth for flag spellings.
+# Every consumer (click options below, `_BARE_OPTION_DEFAULTS`, `cli_flags`)
+# derives from these lists instead of repeating spellings. Tokens match
+# exactly, so the single-char spellings stay distinct from each other and
+# from `-I`. Quiet and help spellings live in `logger` so the handler can
+# silence import-time output before this module (and click) is imported.
+_help = list(HELP_FLAGS)
+_init = ["-i", "--init"]
+_quiet = list(QUIET_FLAGS)
+_verbose_help = ["-H", "--verbose-help"]
 
 
 class _CliCommand(click.Command):
@@ -331,11 +342,10 @@ flags: Final[EnvFlags] = EnvFlags()
 """Single module-level instance, access the internal CLI flags."""
 
 
-_BARE_OPTION_DEFAULTS: Final[dict[str, str]] = {
-    "--init": "fixtures",
-    "-init": "fixtures",
-    "--verbose-help": "all",
-}
+_BARE_OPTION_DEFAULTS: Final[dict[str, str]] = (
+    # magic!
+    lambda mappings: {alias: val for aliases, val in mappings for alias in aliases}
+)([(_init, "fixtures"), (_verbose_help, "all")])
 """Explicit values injected when a valued option is passed bare.
 
 Stock click cannot express an option that is valid both bare and valued:
@@ -371,6 +381,24 @@ def normalize_bare_options(args: list[str]) -> list[str]:
 def flag_names() -> tuple[str, ...]:
     """Return the declared ``EnvFlags`` field names in definition order."""
     return tuple(declared.name for declared in fields(EnvFlags))
+
+
+def cli_flags(field: str) -> tuple[str, ...]:
+    """Return the CLI spellings for an ``EnvFlags`` field name, or `"help"`.
+
+    Spellings come from the click options themselves (plus `_help` for the
+    built-in help, which click adds dynamically), so this can never drift
+    from what the parser accepts. Use it instead of hardcoding spellings
+    when scanning raw arguments before parsing.
+
+    :raises ValueError: If *field* names neither a flag nor `"help"`.
+    """
+    if field == "help":
+        return tuple(_help)
+    for param in init_flags.params:
+        if param.name == field:
+            return tuple(param.opts)
+    raise ValueError(f"unknown flag {field!r}; expected one of: help, {', '.join(flag_names())}")
 
 
 def describe_flags(name: str | None) -> str:
@@ -428,8 +456,7 @@ def describe_flags(name: str | None) -> str:
     help="Serve commands from stdin, one JSON response per line on stderr.",
 )
 @click.option(
-    "-q",
-    "--quiet",
+    *_quiet,
     is_flag=True,
     default=flags.quiet,
     help="Disable all output from the logger (stdout).",
@@ -441,15 +468,14 @@ def describe_flags(name: str | None) -> str:
     help="Custom entry point for all grammar files.",
 )
 @click.option(
-    "--verbose-help",
+    *_verbose_help,
     type=str,
     required=False,
     default=None,
     help="Print verbose flag documentation; optionally for one flag name. Bare form describes every flag.",
 )
 @click.option(
-    "-init",
-    "--init",
+    *_init,
     type=Path,
     required=False,
     default=None,
@@ -517,6 +543,7 @@ def init_flags(**kwargs) -> None:
             if key in ("genesis", "init") and value is not None and not isinstance(value, Path):
                 value = Path(value)  # ty: ignore[invalid-argument-type]
             setattr(flags, key, value)
+
     # Sync stdout rendering to the parsed value in both directions: parsing
     # runs after every import, which is the only point the flag is known.
     # The import stays local because `logger` reads `flags` at module level,
