@@ -141,7 +141,7 @@ def test_bare_defaults_derive_from_alias_lists() -> None:
     [
         ("quiet", ("-q", "--quiet")),
         ("help", ("-h", "--help")),
-        ("verbose_help", ("-H", "--verbose-help")),
+        ("verbose_help", ("-H", "-man", "--verbose-help")),
         ("serve", ("--serve",)),
         ("genesis", ("--genesis",)),
     ],
@@ -198,7 +198,7 @@ def test_quiet_output_stays_free_of_logs() -> None:
     out, _ = proc.communicate(timeout=120)
 
     assert proc.returncode == 0
-    assert "quiet: bool" in out
+    assert "Disable log output" in out
     assert all(not line.startswith(("DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL")) for line in out.splitlines())
 
 
@@ -255,6 +255,12 @@ def test_verbose_help_option_takes_an_optional_name(monkeypatch: pytest.MonkeyPa
         (["--init", "-weird"], ["--init", "fixtures", "-weird"]),
         (["--verbose-help"], ["--verbose-help", "all"]),
         (["--verbose-help", "serve"], ["--verbose-help", "serve"]),
+        (["-H", "--init"], ["-H", "--init"]),
+        (["--verbose-help", "--serve"], ["--verbose-help", "--serve"]),
+        (["-H=init"], ["-H", "init"]),
+        (['-H="init"'], ["-H", "init"]),
+        (["--verbose-help=init"], ["--verbose-help", "init"]),
+        (["-H", "--"], ["-H", "all", "--"]),
         (["--serve", "--", "--init"], ["--serve", "--", "--init"]),
     ],
 )
@@ -267,20 +273,85 @@ def test_flag_names_covers_verbose_and_init() -> None:
     assert "init" in flag_names()
 
 
-def test_describe_flags_reports_live_state(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(flags, "quiet", True)
-
+def test_describe_flags_reports_field_docs() -> None:
     text = describe_flags("quiet")
 
-    assert text == "quiet: bool (default False, current True)"
+    assert "Disable log output" in text
+    assert "(default" not in text
+    assert text.endswith("\nAlias(es): -q, --quiet")
 
 
 def test_describe_flags_all_covers_every_flag() -> None:
-    lines = describe_flags("all").splitlines()
+    text = describe_flags("all")
 
-    assert [line.split(":")[0] for line in lines] == list(flag_names())
+    for name in flag_names():
+        assert f"{name}:\n" in text
+        assert f"\nAlias(es): {', '.join(cli_flags(name))}" in text
+
+
+def test_describe_flags_sanitizes_verbose_input() -> None:
+    expected = describe_flags("init")
+
+    for raw in ("--init", "=init", '"init"', "'init'", "-i", "i", "--init"):
+        assert describe_flags(raw) == expected
+
+    assert describe_flags("--test-suite") == describe_flags("test_suite")
+
+
+def test_describe_flags_resolves_every_cli_spelling() -> None:
+    for field in flag_names():
+        expected = describe_flags(field)
+
+        assert expected
+        for spelling in cli_flags(field):
+            assert describe_flags(spelling) == expected
+            assert describe_flags(spelling.lstrip("-")) == expected
+
+
+def test_describe_flags_appends_alias_trailer() -> None:
+    assert describe_flags("init").endswith("\nAlias(es): -i, --init")
+    assert describe_flags("serve").endswith("\nAlias(es): --serve")
 
 
 def test_describe_flags_rejects_unknown_names() -> None:
     with pytest.raises(ValueError, match="unknown flag"):
         describe_flags("frobnicate")
+
+
+@pytest.mark.parametrize(
+    ("args", "expected"),
+    [
+        (["-H", "--init"], "init"),
+        (["-H", "-i"], "init"),
+        (["-H", "i"], "init"),
+        (["--verbose-help", "--serve"], "serve"),
+        (["-H=init"], "init"),
+        (['-H="init"'], "init"),
+        (["--verbose-help=init"], "init"),
+    ],
+)
+def test_verbose_help_greedy_and_attached_forms(
+    args: list[str], expected: str, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(flags, "verbose_help", None)
+
+    result = CliRunner().invoke(init_flags, normalize_bare_options(args))
+
+    assert result.exit_code == 0
+    assert flags.verbose_help == expected
+
+
+def test_verbose_help_is_silent(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(flags, "verbose_help", None)
+    monkeypatch.setattr(flags, "quiet", False)
+    log_handler.set_stdout_enabled(True)
+
+    try:
+        result = CliRunner().invoke(init_flags, ["--verbose-help", "quiet"])
+
+        assert result.exit_code == 0
+        assert log_handler.stdout_enabled is False
+    finally:
+        log_handler.set_stdout_enabled(True)
+
+    assert log_handler.stdout_enabled is True

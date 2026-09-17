@@ -58,11 +58,11 @@ from typing import Any, Final, Self
 from command_router.lib.commands import CmdParse
 from command_router.lib.control.compiler import _compile_grammars, _GrammarSource, _GrammarSyntaxError
 from command_router.lib.control.fixture_loader import _load_fixture_module
+from command_router.sdk import FixturesContextHolder, FixturesSetup
+from command_router.sdk.backend.settings import _FixtureInnerContext
 from command_router.utils import Status, flags, log, log_handler, stat
 
 from .context import *
-from .fixtures_sdk import *
-from .fixtures_sdk import _FixtureInnerContext
 from .result import *
 
 _Action = Callable[..., Any]

@@ -17,12 +17,8 @@ __all__ = (
     "ControlResultKinds",
     "ControlResult",
     "ControlDeeperContext",
-    "FixturesContextHolder",
-    "FixturesSetup",
-    "FixtureInitializationError",
 )
 
 from .api.context import *
 from .api.control import *
-from .api.fixtures_sdk import *
 from .api.result import *

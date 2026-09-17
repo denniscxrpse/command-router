@@ -12,8 +12,8 @@ import pytest
 from command_router.lib.commands import CmdParse
 from command_router.lib.control import ControlType as Control
 from command_router.lib.control.api import ControlResult
-from command_router.lib.control.api.fixtures_sdk import FixturesContextHolder, FixturesSetup
 from command_router.lib.control.api.result import _UNSET
+from command_router.sdk import FixturesContextHolder, FixturesSetup
 from command_router.utils.cli import flags
 from command_router.utils.context import uctx
 from command_router.utils.status import stat

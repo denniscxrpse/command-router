@@ -104,7 +104,7 @@ def test_initialize_verbose_help_short_circuits_before_boot(
     result = _fresh_router.initialize
 
     assert result == stat.Success()
-    assert "serve: bool" in capsys.readouterr().out
+    assert "Read dirty command lines" in capsys.readouterr().out
 
 
 def test_initialize_verbose_help_unknown_name_aborts(

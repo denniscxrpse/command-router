@@ -6,7 +6,7 @@
 # Example project requires `dotnet` to be accessiable in your ENV. `just dotrun` will
 # not work without `dotnet` installed:
 # - https://dotnet.microsoft.com/download
-# Last *big* edit: 15/Sep/2026
+# Last *big* edit: 17/Sep/2026
 
 # Initialize the project. This will only work if you have `just` in your ENV already.
 init:
@@ -14,13 +14,6 @@ init:
     if [ -d ".venv" ]; then echo "Virtual environment already exists!"; exit 1; fi
     uv sync
     echo "Run: `source .venv/bin/activate` if needed."
-
-# Run with sane defaults. Use `what` to specify a flag, use `--help` for details.
-run what="":
-    uv run cmd-router {{ what }}
-
-build what=".":
-    uv build {{ what }}
 
 # Run example project; requires `dotnet` (.NET) to work. To build, pass `build=1`.
 dotrun build="0" path="./example":
@@ -37,32 +30,13 @@ dotrun build="0" path="./example":
     if [[ $build == "1" ]]; then dotnet build "$path"; fi
     dotnet run --project "$path"
 
+# Run with sane defaults. Use `what` to specify a flag, use `--help` for details.
+run what="":
+    uv run cmd-router {{ what }}
+
 # Run with `--lazy` flag.
 lazy:
     just run --lazy
-
-# Run with the `--test` flag, `extra` allows for injection of more flags.
-test extra="":
-    just run "--test-suite {{ extra }}"
-
-# Run tests at `./tests`.
-pytest:
-    uv run pytest -q
-
-# Check all lints. Use `path` to lint someting else.
-lint path="./src/ ./tests/":
-    #### Avoid checking stub files, linters go crazy on them.
-    uv run ruff check {{ path }}
-    uv run ty check {{ path }}
-
-# Auto fix all (and only) ruff lints.
-autofix what="./src/ ./tests/":
-    uv run ruff check {{ what }} --fix
-
-# Format the code. Use `what` to inject extra flags into the `black` formatter.
-format what="./src/**":
-    uv run ruff check --select I --fix {{ what }}
-    uv run black {{ what }}
 
 # Automatically generate stub files.
 stub:
@@ -75,3 +49,43 @@ stub:
     #### Fixing minor warnings (it's fine if we fail here)
     uv run ruff check ./stubs/ --fix --unsafe-fixes
     #### done
+
+# Builds the `cmd-router` package.
+build what=".":
+    uv build {{ what }}
+
+# Check all lints. Use `path` to lint someting else.
+lint path="./src/ ./tests/":
+    #### Avoid checking stub files, linters go crazy on them.
+    uv run ruff check {{ path }}
+    uv run ty check {{ path }}
+
+# Run with the `test-suite` flag, `with` allows for injection of more flags.
+test with="":
+    just run "--test-suite {{ with }}"
+
+# Run tests at `./tests`.
+pytest:
+    uv run pytest -q
+
+# Auto fix all (and only) ruff lints.
+autofix what="./src/ ./tests/":
+    uv run ruff check {{ what }} --fix
+
+# Format the code. Use `what` to inject extra flags into the `black` formatter.
+format what="./src/**":
+    uv run ruff check --select I --fix {{ what }}
+    uv run black {{ what }}
+
+# Generic check: lints, tries to autofix, formats, run tests and builds.
+check-all lint="0":
+    #!/usr/bin/env bash
+    set -e
+    if [[ {{ lint }} == "1" ]]
+      then just lint
+    else echo "#### Linting disabled!"; fi
+    just autofix
+    just format
+    just stub
+    just pytest
+    just build

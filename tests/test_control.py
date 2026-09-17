@@ -5,13 +5,15 @@ from typing import Any
 
 import pytest
 
-from command_router.lib.control import ControlResultKinds, FixturesContextHolder, FixturesSetup, api
+from command_router.lib.control import ControlResultKinds, api
 from command_router.lib.control import ControlType as Control
-from command_router.lib.control.api.fixtures_sdk import (
-    FixtureInitializationError,
-    _FixtureInnerContext,
-)
 from command_router.lib.control.api.result import _UNSET
+from command_router.sdk import (
+    FixtureInitializationError,
+    FixturesContextHolder,
+    FixturesSetup,
+)
+from command_router.sdk.backend.settings import _FixtureInnerContext
 from command_router.utils.logger import log
 from command_router.utils.status import stat
 

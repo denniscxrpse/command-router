@@ -15,6 +15,22 @@ The main user-facing features are:
 - aliases and repeating modifier chains through redirect edges;
 - embedded, interactive, and stdin/stdio service modes.
 
+## Install
+
+The [uv](https://docs.astral.sh/uv/) package manager can be used to install the library:
+
+```sh
+uv venv
+uv add command-router
+```
+
+You may use [pip](https://pip.pypa.io/en/stable/) for a more conventional approach:
+
+```sh
+python -m venv ./venv
+pip install command-router
+```
+
 ## How it works
 
 ```mermaid

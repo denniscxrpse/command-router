@@ -5,10 +5,12 @@
 
 """Tokenize and parse the compact grammar notation used by control fixtures.
 
-This module is the syntax-only front end for the control grammar compiler.  It turns one grammar string into a small
-immutable, private syntax tree made from the term records below.  It does not build dispatcher nodes, resolve argument
-types, validate action functions, or parse user-entered command text.  Those responsibilities belong to
-``src.lib.control.compiler`` and the command dispatcher respectively.
+This module is the syntax-only front end for the control grammar compiler.
+It turns one grammar string into a small immutable, private syntax tree
+made from the term records below.  It does not build dispatcher nodes,
+resolve argument types, validate action functions, or parse user-entered
+command text.  Those responsibilities belong to ``src.lib.control.compiler``
+and the command dispatcher respectively.
 
 The supported notation is intentionally small:
 
@@ -17,46 +19,61 @@ The supported notation is intentionally small:
 ``(a|b|c)``
     A choice.  Each side of ``|`` is a sequence and may contain nested terms.
 ``[term]``
-    An optional term or group.  The body may itself contain choices and sequences.
+    An optional term or group.  The body may itself contain choices and
+    sequences.
 ``<name>``
     A required ``word`` argument.
 ``<name:type>``
     A required argument whose type name is retained for the compiler.
 ``<name...>``
-    A greedy-string argument.  The trailing ellipsis is translated to the ``greedy_string`` type name.
+    A greedy-string argument.  The trailing ellipsis is translated to the
+    ``greedy_string`` type name.
 ``<name:type=default>``
-    An argument declaration with an alternate omitted value.  The parser stores defaults as text except that a source
-    type spelled ``int`` or ``integer`` is converted to an ``int`` immediately.
+    An argument declaration with an alternate omitted value.  The parser
+    stores defaults as text except that a source type spelled ``int`` or
+    ``integer`` is converted to an ``int`` immediately.
 ``'literal'`` or ``"literal"``
-    A quoted literal.  Quotes are removed with ``ast.literal_eval``, so Python string escapes are accepted, and
-    punctuation or whitespace inside the literal is not interpreted as grammar structure.
+    A quoted literal.  Quotes are removed with ``ast.literal_eval``, so
+    Python string escapes are accepted, and punctuation or whitespace
+    inside the literal is not interpreted as grammar structure.
 
-Only the parser recognizes syntax.  The compiler currently accepts the type names ``word``, ``string``,
-``int``/``integer``, and ``greedy``/``greedy_string``.  Unknown type names are preserved in an ``_ArgumentTerm`` and
-rejected later by the compiler.  Likewise, this parser does not enforce dispatcher-specific rules such as the
+Only the parser recognizes syntax.  The compiler currently accepts the
+type names ``word``, ``string``, ``int``/``integer``, and
+``greedy``/``greedy_string``.  Unknown type names are preserved in an
+``_ArgumentTerm`` and rejected later by the compiler.  Likewise,
+this parser does not enforce dispatcher-specific rules such as the
 requirement that a greedy argument be terminal.
 
-Parsing is performed in two passes.  ``_scan`` walks the source character by character and emits tokens for
-structural markers, quoted literals, argument declarations, and unquoted literals.  ``_GrammarParser`` then consumes
-those tokens with a recursive-descent parser.  Parentheses and brackets pass their closing marker down to the
-sequence parser, while ``|`` terminates the current sequence and is consumed by the alternatives' parser.  The
-top-level result is wrapped in a one-element tuple containing ``_ChoiceTerm``.  This may look unusual for a source
-that is not visibly a choice, but it gives the compiler a uniform representation: the whole expression can be
-expanded by the same choice/sequence machinery used for nested groups.
+Parsing is performed in two passes.  ``_scan`` walks the source
+character by character and emits tokens for structural markers, quoted
+literals, argument declarations, and unquoted literals.  ``_GrammarParser``
+then consumes those tokens with a recursive-descent parser.  Parentheses
+and brackets pass their closing marker down to the sequence parser, while
+``|`` terminates the current sequence and is consumed by the alternatives'
+parser.  The top-level result is wrapped in a one-element tuple containing
+``_ChoiceTerm``.  This may look unusual for a source that is not visibly a
+choice, but it gives the compiler a uniform representation: the whole
+expression can be expanded by the same choice/sequence machinery used for
+nested groups.
 
-The parser intentionally preserves structure rather than eagerly producing paths.
-A source such as ``(survival|creative) [<target>]`` becomes a choice whose alternatives contain literal terms,
-followed by an optional term whose body is another choice.  The compiler later turns that structure into four
-possible paths.  Dataclass terms are frozen and slotted, so they can be passed around safely as parser output
-without exposing the mutable parser state.
+The parser intentionally preserves structure rather than eagerly producing
+paths. A source such as ``(survival|creative) [<target>]`` becomes a choice
+whose alternatives contain literal terms, followed by an optional term whose
+body is another choice.  The compiler later turns that structure into four
+possible paths.  Dataclass terms are frozen and slotted, so they can be
+passed around safely as parser output without exposing the mutable parser
+state.
 
-Errors are raised as ``_GrammarSyntaxError``, a ``ValueError`` subclass used by the control API as a
-grammar-initialization failure.  The scanner reports unterminated quotes and argument declarations and rejects
-quoted values that are not strings.  The parser reports unexpected closing markers, incomplete groups,
-missing names/types, empty literals, and trailing tokens.  It does not attach source offsets to these errors;
-structured token positions are produced later when the compiled dispatcher parses an actual command.  Empty source,
-empty alternatives, and empty groups are syntactically representable because the recursive sequence parser can return
-an empty tuple; the compiler decides what those empty paths mean in a command tree.
+Errors are raised as ``_GrammarSyntaxError``, a ``ValueError`` subclass
+used by the control API as a grammar-initialization failure.  The scanner
+reports unterminated quotes and argument declarations and rejects quoted
+values that are not strings.  The parser reports unexpected closing markers,
+incomplete groups, missing names/types, empty literals, and trailing tokens.
+It does not attach source offsets to these errors; structured token positions
+are produced later when the compiled dispatcher parses an actual command.
+Empty source, empty alternatives, and empty groups are syntactically
+representable because the recursive sequence parser can return an empty tuple;
+the compiler decides what those empty paths mean in a command tree.
 
 All names in this module are private implementation details.  Use the control
 API for normal grammar configuration and keep grammar examples in fixture
@@ -65,6 +82,7 @@ files or public configuration documentation.
 
 import ast
 from dataclasses import dataclass
+from functools import lru_cache
 from typing import Any
 
 from command_router.utils import log
@@ -233,6 +251,7 @@ class _GrammarParser:
         return _LiteralTerm(token)
 
     @staticmethod
+    @lru_cache
     def _scan(source: str) -> tuple[str, ...]:
         """Tokenize a *source* without applying runtime command tokenization.
 
@@ -245,6 +264,10 @@ class _GrammarParser:
         This scanner is for grammar definitions, not command invocations.  At execution time the dispatcher uses the
         project's command tokenizer, so quoting in a user's command is interpreted independently of quoting
         in this source string.
+
+        Cached because scanning is pure and grammars are compile-time only;
+        a miss happens only for a previously unseen grammar string.
+        Failures are not cached by ``lru_cache``.
 
         :raises _GrammarSyntaxError: For an unterminated quote, an unterminated argument declaration, an invalid
         Python-style quoted literal, or a quoted value that is not text.
@@ -307,21 +330,31 @@ class _GrammarParser:
         return tuple(tokens)
 
     @staticmethod
+    @lru_cache
     def _parse_argument(token: str) -> _ArgumentTerm:
         """Decode one ``<...>`` token into an ``_ArgumentTerm``.
 
-        The body is trimmed and then split at the first ``=`` when a default is present.  A trailing ``...`` takes
-        precedence as the shorthand for ``greedy_string``; otherwise the first ``:`` separates the name from
-        the type, and an omitted type defaults to ``word``.  Type names are case-folded for the compiler.  Defaults
-        remain text except for source type spellings ``int`` and ``integer``, which are converted and report
-        a syntax error when the value is not a valid integer.
+        The body is trimmed and then split at the first ``=`` when
+        a default is present.  A trailing ``...`` takes precedence as
+        the shorthand for ``greedy_string``; otherwise the first
+        ``:`` separates the name from the type, and an omitted type
+        defaults to ``word``.  Type names are case-folded for the compiler.
+        Defaults remain text except for source type spellings ``int`` and
+        ``integer``, which are converted and report a syntax error when
+        the value is not a valid integer.
 
-        The parser validates that the declaration has a name and, when a type separator is present, a type name.  It
-        deliberately does not validate the type against the compiler's supported-type map or enforce semantic
-        rules such as unique argument names and terminal greedy placement.
+        The parser validates that the declaration has a name and,
+        when a type separator is present, a type name.  It deliberately
+        does not validate the type against the compiler's supported-type
+        map or enforce semantic rules such as unique argument names and
+        terminal greedy placement.
 
-        :raises _GrammarSyntaxError: If the token is not closed, has an empty name/type, or has an invalid integer
-        default.
+        Cached because decoding is pure and argument declarations are
+        compile-time only; a miss happens only for a previously unseen
+        declaration. Failures are not cached by ``lru_cache``.
+
+        :raises _GrammarSyntaxError: If the token is not closed, has an empty
+        name/type, or has an invalid integer default.
         """
         if not token.endswith(">"):
             raise _GrammarSyntaxError(f"invalid argument declaration {token!r}")

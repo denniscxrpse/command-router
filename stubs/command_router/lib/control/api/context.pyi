@@ -5,8 +5,8 @@ from typing import Any
 from _typeshed import Incomplete
 
 from command_router.lib.commands.dispatcher import CommandDispatcher
+from command_router.sdk import FixturesSetup
 
-from .fixtures_sdk import FixturesSetup
 from .result import ControlInitialization, ControlResult
 
 __all__ = ["ControlDeeperContext"]

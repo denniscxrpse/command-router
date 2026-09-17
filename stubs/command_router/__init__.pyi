@@ -11,7 +11,7 @@ from command_router.suite import *
 from command_router.utils import Status
 from command_router.utils import init_flags as init_flags
 
-__all__ = ["init_flags", "start", "Lazy@92"]
+__all__ = ["init_flags", "start", "Lazy@85"]
 
 _Dict = dict[str, Any]
 
@@ -51,4 +51,4 @@ class __CommandRouter:
 def start(entry: tuple[str, ...] | None = None) -> Status: ...
 
 # Names in __all__ with no definition:
-#   Lazy@92
+#   Lazy@85

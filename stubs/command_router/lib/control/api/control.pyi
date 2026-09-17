@@ -7,10 +7,10 @@ from typing import Any, Final, Self
 
 from command_router.lib.commands import CmdParse
 from command_router.lib.control.compiler import _GrammarSource
+from command_router.sdk import FixturesSetup
 from command_router.utils import Status
 
 from .context import *
-from .fixtures_sdk import *
 from .result import *
 
 __all__ = ["ControlType", "control"]

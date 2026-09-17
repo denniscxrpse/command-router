@@ -14,6 +14,7 @@ import sys
 from collections import deque
 from collections.abc import Awaitable
 from datetime import datetime
+from functools import lru_cache
 from html import escape
 from threading import RLock
 from types import FrameType
@@ -27,19 +28,31 @@ _PROJECT_PACKAGE_PREFIX = "command_router."
 _end = "\n"
 
 QUIET_FLAGS: Final[tuple[str, ...]] = ("-q", "--quiet")
-"""Raw-argument spellings that silence stdout rendering."""
-
 HELP_FLAGS: Final[tuple[str, ...]] = ("-h", "--help")
-"""Raw-argument spellings that print help and exit before the router boots."""
-
-_EARLY_SILENT_FLAGS: Final[frozenset[str]] = frozenset((*QUIET_FLAGS, *HELP_FLAGS))
+VERBOSE_HELP_FLAGS: Final[tuple[str, ...]] = ("-H", "-man", "--verbose-help")
+_EARLY_SILENT_FLAGS: Final[frozenset[str]] = frozenset((*QUIET_FLAGS, *HELP_FLAGS, *VERBOSE_HELP_FLAGS))
 """Tokens that silence the handler from birth.
 
 Flag parsing runs after every import, while module-level setup may already
 log during those imports. The handler scans ``sys.argv`` itself so quiet
 and help requests stay clean without the importer pre-seeding anything.
 ``init_flags`` takes over as the source of truth once options are parsed.
+Attached verbose-help forms (``-H=name``) silence too, since the bare token
+never appears for them.
 """
+
+
+@lru_cache
+def _is_early_silent(token: str) -> bool:
+    """Return whether a raw CLI token requests silent log rendering.
+
+    Cached because the result depends only on static flag constants;
+    a miss happens only for a previously unseen token, which is rare
+    (import-time argv scan plus one check per log-handler init).
+    """
+    if token in _EARLY_SILENT_FLAGS:
+        return True
+    return any(token.startswith(f"{alias}=") for alias in VERBOSE_HELP_FLAGS)
 
 
 class _CompletedWrite:
@@ -146,7 +159,7 @@ class LoggerHandler:
         # in the raw arguments. `init_flags` takes over as the source of
         # truth once options are parsed.
         self._stdout_enabled = os.environ.get("CMD_ROUTER_QUIET", "0") != "1" and not any(
-            token in _EARLY_SILENT_FLAGS for token in sys.argv[1:]
+            _is_early_silent(token) for token in sys.argv[1:]
         )
         # paths.LOGS_DIR.mkdir(parents=True, exist_ok=True)
 

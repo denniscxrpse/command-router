@@ -33,9 +33,9 @@ from typing import Any, final
 
 from command_router.lib.commands import CmdNode
 from command_router.lib.commands.dispatcher import CommandDispatcher
+from command_router.sdk import FixturesSetup
 from command_router.utils import log
 
-from .fixtures_sdk import FixturesSetup
 from .result import ControlInitialization, ControlResult
 
 _Action = Callable[..., Any]
