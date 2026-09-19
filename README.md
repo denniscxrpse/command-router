@@ -65,6 +65,13 @@ Start with the [project documentation](https://gitlab.com/denniscxrpse/command-r
 command tree, fixture SDK, grammar files, structured response contracts, suggestions, redirects, service modes, and
 the external consumer example.
 
+## Example project
+
+[cmd-router-solver](https://gitlab.com/denniscxrpse/cmd-router-solver/) consumes `command-router` as a PyPI package
+and shows how to wire it into a standalone application: fixture actions bound to a command tree, structured results,
+and the service modes in a real project layout. Use it as the reference when integrating the library outside this
+repository.
+
 ## Mirrors
 
 - Primary: https://gitlab.com/denniscxrpse/command-router
